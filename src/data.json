@@ -256,13 +256,8 @@
           {
             "Error Codes - MoviPro": {
               "task_type": "open_url",
-              "title": "Troubleshooting - SEW - MoviPro - Error Codes",
-              "width": 830,
-              "height": 520,
               "url_path": "{{SEW_MoviPro_OperatingInstructions_url_path}}",
-              "url_wait_time": 12,
-              "pdf_page_number": 142,
-              "image_path": "C:\\Users\\kmartineztamayo\\OneDrive - Tesla\\Desktop\\Software\\Projects\\Troubleshooting\\media\\SEW_MoviPro_movitools_parameters.jpg"
+              "pdf_page_number": 142
             }
           },
           {
@@ -273,13 +268,9 @@
           },
           {
             "Error Codes - MoviFit": {
-              "task_type": "error_codes",
-              "title": "Troubleshooting - SEW - MoviFit - Error Codes",
-              "width": 830,
-              "height": 520,
+              "task_type": "open_url",
               "url_path": "{{SEW_MoviFit_OperatingInstructions_url_path}}",
-              "url_wait_time": 12,
-              "image_path": "C:\\Users\\kmartineztamayo\\OneDrive - Tesla\\Desktop\\Software\\Projects\\Troubleshooting\\media\\SEW_MoviPro_movitools_parameters.jpg"
+              "pdf_page_number": 214
             }
           },
           {
