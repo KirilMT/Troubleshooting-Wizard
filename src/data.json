@@ -2,7 +2,7 @@
   "MainApplication": {
     "title": "Troubleshooting",
     "width": 350,
-    "height": 405,
+    "height": 470,
     "Technologies": {
       "WTC": {
         "button_text": "WTC",
@@ -244,7 +244,53 @@
             }
           }
         ]
+      },
+      "SEW": {
+        "button_text": "SEW",
+        "title": "Troubleshooting - SEW",
+        "width": 370,
+        "height": 200,
+        "SEW_MoviPro_OperatingInstructions_url_path": "https://teslamotorsinc.sharepoint.com/sites/ControlsHub/Shared%20Documents/Controls%20Software%20Repository/SEW/MoviPro%20VFD-%20Operatiing%20Instructions.pdf",
+        "SEW_MoviFit_OperatingInstructions_url_path": "https://teslamotorsinc.sharepoint.com/sites/ControlsHub/Shared%20Documents/Controls%20Software%20Repository/SEW/MoviFit%20VFD-%20Operatiing%20Instructions.pdf",
+        "tasks": [
+          {
+            "Error Codes - MoviPro": {
+              "task_type": "open_url",
+              "title": "Troubleshooting - SEW - MoviPro - Error Codes",
+              "width": 830,
+              "height": 520,
+              "url_path": "{{SEW_MoviPro_OperatingInstructions_url_path}}",
+              "url_wait_time": 12,
+              "pdf_page_number": 142,
+              "image_path": "C:\\Users\\kmartineztamayo\\OneDrive - Tesla\\Desktop\\Software\\Projects\\Troubleshooting\\media\\SEW_MoviPro_movitools_parameters.jpg"
+            }
+          },
+          {
+            "Operating Instructions - MoviPro": {
+              "task_type": "open_url",
+              "url_path": "{{SEW_MoviPro_OperatingInstructions_url_path}}"
+            }
+          },
+          {
+            "Error Codes - MoviFit": {
+              "task_type": "error_codes",
+              "title": "Troubleshooting - SEW - MoviFit - Error Codes",
+              "width": 830,
+              "height": 520,
+              "url_path": "{{SEW_MoviFit_OperatingInstructions_url_path}}",
+              "url_wait_time": 12,
+              "image_path": "C:\\Users\\kmartineztamayo\\OneDrive - Tesla\\Desktop\\Software\\Projects\\Troubleshooting\\media\\SEW_MoviPro_movitools_parameters.jpg"
+            }
+          },
+          {
+            "Operating Instructions - MoviFit": {
+              "task_type": "open_url",
+              "url_path": "{{SEW_MoviFit_OperatingInstructions_url_path}}"
+            }
+          }
+        ]
       }
     }
   }
 }
+

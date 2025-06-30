@@ -29,7 +29,7 @@ def open_url(url_path, pdf_page_number=None):
 
 
 class ErrorCodes:
-    def __init__(self, title, width, height, url_path, image_path, url_wait_time):
+    def __init__(self, title, width, height, url_path, image_path, url_wait_time, task_attributes=None):
         self.root = tk.Tk()
         self.root.title(title)
         set_window_dimensions(self.root, width, height)
@@ -39,6 +39,7 @@ class ErrorCodes:
         self.photo = None
         self.url_path = url_path
         self.url_wait_time = url_wait_time  # Store the wait time for this task
+        self.task_attributes = task_attributes if task_attributes is not None else {}
 
         # Load and display an image
         self.load_and_display_image(image_path)
@@ -82,7 +83,9 @@ class ErrorCodes:
         self.root.destroy()
 
         # Open the PDF file in a web browser
-        webbrowser.open(self.url_path)
+        pdf_page_number = self.task_attributes.get("pdf_page_number")
+        open_url(self.url_path, pdf_page_number)
+
 
         # Wait for the specified wait time for the PDF file to load
         time.sleep(self.url_wait_time)
@@ -184,19 +187,24 @@ class Technology:
             height=height,  # Use the extracted height
             url_path=url_path,
             image_path=image_path,
-            url_wait_time=url_wait_time
+            url_wait_time=url_wait_time,
+            task_attributes=task_attributes
         )
 
 
 class MainProgram:
     def __init__(self, technologies_config):
         self.root = tk.Tk()
-        self.root.title("Troubleshooting")
-        set_window_dimensions(self.root, 350, 405)
+        main_app_config = technologies_config.get("MainApplication", {})
+        title = main_app_config.get("title", "Troubleshooting")
+        width = main_app_config.get("width", 350)
+        height = main_app_config.get("height", 405)
+        self.root.title(title)
+        set_window_dimensions(self.root, width, height)
 
         # Create buttons to launch different technologies from the JSON configuration
         tech_buttons = []
-        for tech_name, tech_data in technologies_config["MainApplication"]["Technologies"].items():
+        for tech_name, tech_data in technologies_config.get("MainApplication", {}).get("Technologies", {}).items():
             tech_buttons.append((tech_name, tech_data))
 
         for tech_name, tech_data in tech_buttons:
