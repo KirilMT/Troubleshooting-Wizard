@@ -5,6 +5,7 @@ import json
 import webbrowser
 import time
 import pyautogui
+import os
 
 def search_pdf(fault_message, url_path):
     # Open the PDF file in a web browser
@@ -29,9 +30,10 @@ def set_window_dimensions(window, width, height):
     window.geometry(f"{width}x{height}+{x}+{y}")
 
 class MainApplication:
-    def __init__(self, root_window, initial_json_data):
+    def __init__(self, root_window, initial_json_data, script_dir):
         self.root = root_window
         self.root.title(initial_json_data["MainApplication"]["title"])
+        self.script_dir = script_dir
 
         # Get the window dimensions from JSON data
         self.initial_width = initial_json_data["MainApplication"]["width"]
@@ -164,12 +166,15 @@ class MainApplication:
         back_button.pack(side="left", padx=10)  # Place "Tasks" button on the left side of the button frame
 
         try:
-            # Load and display an image
-            image = Image.open(image_path)
-            photo = ImageTk.PhotoImage(image)
-            image_label = ttk.Label(error_codes_frame, image=photo)
-            image_label.image = photo
-            image_label.pack(pady=10)
+            if image_path:
+                # Construct absolute path for the image relative to the script's directory
+                abs_image_path = os.path.abspath(os.path.join(self.script_dir, image_path))
+                # Load and display an image
+                image = Image.open(abs_image_path)
+                photo = ImageTk.PhotoImage(image)
+                image_label = ttk.Label(error_codes_frame, image=photo)
+                image_label.image = photo
+                image_label.pack(pady=10)
         except Exception as e:
             print(f"Error loading image: {e}")
 
@@ -226,7 +231,17 @@ class MainApplication:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    with open("data.json", "r") as json_file:
+
+    # Get the directory where the script is located
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
+    # Try to load the local data file, fall back to the example file
+    data_file_path = os.path.join(script_dir, "data.json")
+    if not os.path.exists(data_file_path):
+        data_file_path = os.path.join(script_dir, "example_data.json")
+
+    with open(data_file_path, "r") as json_file:
         json_data = json.load(json_file)
-    app = MainApplication(root, json_data)
+
+    app = MainApplication(root, json_data, script_dir)
     root.mainloop()

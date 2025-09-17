@@ -85,3 +85,6 @@ cython_debug/
 
 # Local databases
 *.db
+
+# Local data
+data.json
