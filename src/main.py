@@ -7,27 +7,6 @@ import time
 import pyautogui
 import os
 
-def search_pdf(fault_message, url_path):
-    # Open the PDF file in a web browser
-    webbrowser.open(url_path)
-
-    # Wait for the specified wait time for the PDF file to load
-    time.sleep(2)
-
-    # Simulate pressing Ctrl + F
-    pyautogui.hotkey('ctrl', 'f')
-    time.sleep(1)
-
-    # Type the search string and press Enter
-    pyautogui.typewrite(fault_message)
-    pyautogui.press('enter')
-
-def set_window_dimensions(window, width, height):
-    screen_width = window.winfo_screenwidth()
-    screen_height = window.winfo_screenheight()
-    x = (screen_width - width) // 2
-    y = (screen_height - height) // 2
-    window.geometry(f"{width}x{height}+{x}+{y}")
 
 class MainApplication:
     def __init__(self, root_window, initial_json_data, script_dir):
@@ -38,7 +17,7 @@ class MainApplication:
         # Get the window dimensions from JSON data
         self.initial_width = initial_json_data["MainApplication"]["width"]
         self.initial_height = initial_json_data["MainApplication"]["height"]
-        set_window_dimensions(self.root, self.initial_width, self.initial_height)  # Center the window
+        self._set_window_dimensions(self.initial_width, self.initial_height)  # Center the window
 
         self.json_data = initial_json_data
         self.current_view = None
@@ -48,10 +27,34 @@ class MainApplication:
 
         self.show_main_program()  # Show the Main Program initially
 
+    def _set_window_dimensions(self, width, height):
+        """Set window dimensions and center it on screen."""
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        x = (screen_width - width) // 2
+        y = (screen_height - height) // 2
+        self.root.geometry(f"{width}x{height}+{x}+{y}")
+
+    def _search_pdf(self, fault_message, url_path):
+        """Open PDF and search for fault message using browser automation."""
+        # Open the PDF file in a web browser
+        webbrowser.open(url_path)
+
+        # Wait for the specified wait time for the PDF file to load
+        time.sleep(2)
+
+        # Simulate pressing Ctrl + F
+        pyautogui.hotkey('ctrl', 'f')
+        time.sleep(1)
+
+        # Type the search string and press Enter
+        pyautogui.typewrite(fault_message)
+        pyautogui.press('enter')
+
     def show_main_program(self):
         self.destroy_current_view()
         self.view_stack.clear()  # Clear the view history
-        set_window_dimensions(self.root, self.initial_width, self.initial_height)
+        self._set_window_dimensions(self.initial_width, self.initial_height)
 
         main_program_frame = ttk.Frame(self.root)
         main_program_frame.pack(fill="both", expand=True)
@@ -79,7 +82,7 @@ class MainApplication:
 
         if tech_width and tech_height:
             # Set dimensions only if they are provided in the JSON data
-            set_window_dimensions(self.root, tech_width, tech_height)
+            self._set_window_dimensions(tech_width, tech_height)
 
         # Extract variables data for the current technology from the JSON configuration
         self.variables = tech_data
@@ -91,9 +94,10 @@ class MainApplication:
         )
         back_button.pack(side="left", anchor="nw", padx=10, pady=10)  # Move to the top-left corner
 
-        self.modify_tasks(tech_data)  # Modify and create task buttons
+        self._modify_tasks(tech_data)  # Modify and create task buttons
 
-    def modify_tasks(self, tech_data):
+    def _modify_tasks(self, tech_data):
+        """Create task buttons for the current technology."""
         tasks = tech_data.get("tasks", [])
         for index, task_data in enumerate(tasks):
             # Extract task attributes from the task_data dictionary
@@ -101,7 +105,7 @@ class MainApplication:
             task_attributes = task_data[task_title]
 
             # Replace variables in the URL paths with their values
-            task_attributes["url_path"] = self.replace_variables(task_attributes.get("url_path", ""))
+            task_attributes["url_path"] = self._replace_variables(task_attributes.get("url_path", ""))
 
             # Define custom style for the first button with a yellow background
             style = ttk.Style()
@@ -121,16 +125,17 @@ class MainApplication:
         if task_type == "error_codes":
             self.show_error_codes(task_attributes, tech_data)
         elif task_type == "open_url":
-            self.open_url(task_attributes.get("url_path"), task_attributes.get("pdf_page_number"))
+            self._open_url(task_attributes.get("url_path"), task_attributes.get("pdf_page_number"))
 
-    def open_url(self, url_path, pdf_page_number=None):
+    def _open_url(self, url_path, pdf_page_number=None):
+        """Open URL or PDF with optional page number."""
         # If a page number is provided, construct the URL with the page number
         if pdf_page_number is not None:
-            url_with_page = self.replace_variables(f"{url_path}#page={pdf_page_number}")
+            url_with_page = self._replace_variables(f"{url_path}#page={pdf_page_number}")
             webbrowser.open(url_with_page)
         else:
             # Open the PDF with the default web browser
-            url_path = self.replace_variables(url_path)
+            url_path = self._replace_variables(url_path)
             webbrowser.open(url_path)
 
     def show_error_codes(self, task_attributes, tech_data):
@@ -146,7 +151,7 @@ class MainApplication:
         self.current_view = error_codes_frame
 
         # Center the error_codes window
-        set_window_dimensions(self.root, error_codes_width, error_codes_height)
+        self._set_window_dimensions(error_codes_width, error_codes_height)
 
         button_frame = ttk.Frame(error_codes_frame)
         button_frame.pack(side="top", anchor="nw", padx=10, pady=10)  # Place the button frame at the top-left corner
@@ -196,12 +201,12 @@ class MainApplication:
         search_button = ttk.Button(
             error_codes_frame,
             text="Search",
-            command=lambda: search_pdf(search_entry.get(), task_attributes.get("url_path"))
+            command=lambda: self._search_pdf(search_entry.get(), task_attributes.get("url_path"))
         )
         search_button.pack(side="right", padx=10)
 
-    def replace_variables(self, text):
-        # Replace variables in double curly braces with their values from the JSON configuration
+    def _replace_variables(self, text):
+        """Replace variables in double curly braces with their values from the JSON configuration."""
         while "{{" in text and "}}" in text:
             start_index = text.find("{{")
             end_index = text.find("}}")
@@ -228,6 +233,7 @@ class MainApplication:
                 previous_view_func(previous_view_data)
             else:
                 previous_view_func()
+
 
 if __name__ == "__main__":
     root = tk.Tk()

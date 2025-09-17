@@ -1,34 +1,34 @@
 {
   "MainApplication": {
-    "title": "Troubleshooting",
+    "title": "Industrial Troubleshooting Application",
     "width": 350,
     "height": 470,
     "Technologies": {
       "WTC": {
-        "button_text": "WTC",
-        "title": "Troubleshooting - WTC",
+        "button_text": "WTC Controllers",
+        "title": "Troubleshooting - WTC Controllers",
         "width": 370,
         "height": 210,
-        "wtc_dep600_flowchart_url_path": "https://example.com/wtc_dep600_flowchart.pdf",
-        "wtc_manual_url_path": "https://example.com/wtc_manual.pdf",
-        "wtc_dep600_manual_url_path": "https://example.com/wtc_dep600_manual.pdf",
+        "wtc_flowchart_url_path": "https://example.com/path/to/wtc_flowchart.pdf",
+        "wtc_manual_url_path": "https://example.com/path/to/wtc_manual.pdf",
+        "wtc_advanced_manual_url_path": "https://example.com/path/to/wtc_advanced_manual.pdf",
         "tasks": [
           {
             "WTC Error Codes": {
               "task_type": "error_codes",
               "button_text": "WTC Error Codes",
-              "title": "Troubleshooting - WTC - Error Codes",
+              "title": "Troubleshooting - WTC Controllers - Error Codes",
               "width": 800,
               "height": 650,
               "url_path": "{{wtc_manual_url_path}}",
               "url_wait_time": 3,
-              "image_path": "../media/DEP600_WTC_Faults.PNG"
+              "image_path": "../media/example_wtc_errors.png"
             }
           },
           {
-            "DEP 600 Flowchart": {
+            "WTC Flowchart": {
               "task_type": "open_url",
-              "url_path": "{{wtc_dep600_flowchart_url_path}}"
+              "url_path": "{{wtc_flowchart_url_path}}"
             }
           },
           {
@@ -38,245 +38,84 @@
             }
           },
           {
-            "DEP 600 Manual": {
+            "WTC Advanced Manual": {
               "task_type": "open_url",
-              "url_path": "{{wtc_dep600_manual_url_path}}"
+              "url_path": "{{wtc_advanced_manual_url_path}}"
             }
           }
         ]
       },
       "Lenze": {
-        "button_text": "Lenze",
-        "title": "Troubleshooting - Lenze",
+        "button_text": "Lenze Drives",
+        "title": "Troubleshooting - Lenze Drives",
         "width": 370,
         "height": 300,
-        "manual_8400_protec_highline_url_path": "https://example.com/lenze_manual.pdf",
-        "diagnostic_training_url_path": "https://example.com/lenze_diagnostic_training.pptx",
-        "changing_8400_protec_highline_url_path": "https://example.com/lenze_changing_drive.pptx",
-        "general_lenze_training_url_path": "https://example.com/lenze_training_docs",
+        "lenze_manual_url_path": "https://example.com/path/to/lenze_manual.pdf",
+        "lenze_diagnostic_training_url_path": "https://example.com/path/to/lenze_diagnostic_training.pdf",
+        "lenze_replacement_guide_url_path": "https://example.com/path/to/lenze_replacement_guide.pdf",
+        "lenze_training_docs_url_path": "https://example.com/path/to/lenze_training_documentation",
         "tasks": [
           {
-            "Engineer Error Codes": {
+            "Lenze Error Codes": {
               "task_type": "error_codes",
               "button_text": "Lenze Error Codes",
-              "title": "Troubleshooting - Lenze - Error Codes",
+              "title": "Troubleshooting - Lenze Drives - Error Codes",
               "width": 800,
               "height": 730,
-              "url_path": "{{manual_8400_protec_highline_url_path}}",
+              "url_path": "{{lenze_manual_url_path}}",
               "url_wait_time": 6,
-              "image_path": "../media/Lenze_Engineer_Error_Codes.png"
+              "image_path": "../media/example_lenze_errors.png"
             }
           },
           {
-            "LED status displays": {
+            "LED Status Displays": {
               "task_type": "open_url",
-              "url_path": "{{manual_8400_protec_highline_url_path}}",
+              "url_path": "{{lenze_manual_url_path}}",
               "pdf_page_number": 591
             }
           },
           {
             "Diagnostic Training": {
               "task_type": "open_url",
-              "url_path": "{{diagnostic_training_url_path}}"
+              "url_path": "{{lenze_diagnostic_training_url_path}}"
             }
           },
           {
-            "Changing Lenze Drive": {
+            "Drive Replacement Guide": {
               "task_type": "open_url",
-              "url_path": "{{changing_8400_protec_highline_url_path}}"
+              "url_path": "{{lenze_replacement_guide_url_path}}"
             }
           },
           {
-            "Training Docs": {
+            "Training Documentation": {
               "task_type": "open_url",
-              "url_path": "{{general_lenze_training_url_path}}"
+              "url_path": "{{lenze_training_docs_url_path}}"
             }
           },
           {
-            "8400 Protec HighLine Manual": {
+            "Drive System Manual": {
               "task_type": "open_url",
-              "url_path": "{{manual_8400_protec_highline_url_path}}"
+              "url_path": "{{lenze_manual_url_path}}"
             }
           }
         ]
       },
-      "Fanuc": {
-        "button_text": "Fanuc",
-        "title": "Troubleshooting - Fanuc",
+      "FANUC": {
+        "button_text": "FANUC Robotics",
+        "title": "Troubleshooting - FANUC Robotics",
         "width": 370,
         "height": 200,
-        "R-30iB_ErrorCodeManual_url_path": "https://example.com/fanuc_error_codes.pdf",
+        "fanuc_error_manual_url_path": "https://example.com/path/to/fanuc_error_codes.pdf",
         "tasks": [
           {
-            "TP Error Codes": {
+            "FANUC Alarm Codes": {
               "task_type": "error_codes",
-              "title": "Troubleshooting - Fanuc - Error Codes",
+              "title": "Troubleshooting - FANUC Robotics - Alarm Codes",
               "width": 800,
               "height": 750,
-              "url_path": "{{R-30iB_ErrorCodeManual_url_path}}",
+              "url_path": "{{fanuc_error_manual_url_path}}",
               "url_wait_time": 5,
-              "image_path": "../media/FANUC_AlarmActive.PNG"
-            }
-          }
-        ]
-      },
-      "ADH": {
-        "button_text": "ADH",
-        "title": "Troubleshooting - ADH: Atlas Copco",
-        "width": 370,
-        "height": 200,
-        "manual_ControllerSYS6000_url_path": "https://example.com/adh_manual.pdf",
-        "tasks": [
-          {
-            "ADH - Error Codes": {
-              "task_type": "error_codes",
-              "title": "Troubleshooting - ADH: Atlas Copco - Error Codes",
-              "width": 800,
-              "height": 510,
-              "url_path": "{{manual_ControllerSYS6000_url_path}}",
-              "url_wait_time": 15,
-              "image_path": "../media/ADHAtlasCopco_ErrorsWarnings.png"
-            }
-          }
-        ]
-      },
-      "MDS": {
-        "button_text": "MDS",
-        "title": "Troubleshooting - MDS",
-        "width": 370,
-        "height": 200,
-        "manual_A240-PD2-P_Press_url_path": "https://example.com/mds_press_manual.pdf",
-        "manual_A000-A2_Feeder_url_path": "https://example.com/mds_feeder_manual.pdf",
-        "tasks": [
-          {
-            "MDS Error Messages (60-77)": {
-              "task_type": "error_codes",
-              "title": "Troubleshooting - MDS - Error Messages (60-77)",
-              "width": 800,
-              "height": 660,
-              "url_path": "{{manual_A240-PD2-P_Press_url_path}}",
-              "url_wait_time": 3,
-              "image_path": "../media/MDSClinching_ErrorMessages.png"
-            }
-          },
-          {
-            "MDS Error Messages (150-163)": {
-              "task_type": "error_codes",
-              "title": "Troubleshooting - MDS - Error Messages (150-163)",
-              "width": 800,
-              "height": 660,
-              "url_path": "{{manual_A000-A2_Feeder_url_path}}",
-              "url_wait_time": 32,
-              "image_path": "../media/MDSClinching_ErrorMessages.png"
-            }
-          }
-        ]
-      },
-      "Tucker": {
-        "button_text": "Tucker",
-        "title": "Troubleshooting - Tucker",
-        "width": 370,
-        "height": 200,
-        "TuckerFaultNotificationControl_url_path": "https://example.com/tucker_fault_notification.pdf",
-        "tasks": [
-          {
-            "Touchpad Error Codes": {
-              "task_type": "error_codes",
-              "title": "Troubleshooting - Tucker - Error Codes",
-              "width": 800,
-              "height": 720,
-              "url_path": "{{TuckerFaultNotificationControl_url_path}}",
-              "url_wait_time": 2,
-              "image_path": "../media/Tucker_ErrorCodes.PNG"
-            }
-          }
-        ]
-      },
-      "Bosch": {
-        "button_text": "Bosch",
-        "title": "Troubleshooting - Bosch",
-        "width": 370,
-        "height": 200,
-        "manual_RexrothTighteningSystems350_url_path": "https://example.com/bosch_manual.pdf",
-        "spareParts_RexrothTighteningSystems350_url_path": "https://example.com/bosch_spare_parts.pdf",
-        "tasks": [
-          {
-            "Error Codes": {
-              "task_type": "error_codes",
-              "title": "Troubleshooting - Bosch - Error Codes",
-              "width": 800,
-              "height": 730,
-              "url_path": "{{manual_RexrothTighteningSystems350_url_path}}",
-              "url_wait_time": 7,
-              "image_path": "../media/RexrothTighteningSystems350_Error_Codes2.png"
-            }
-          },
-          {
-            "Spare parts": {
-              "task_type": "open_url",
-              "url_path": "{{spareParts_RexrothTighteningSystems350_url_path}}"
-            }
-          }
-        ]
-      },
-      "Laser": {
-        "button_text": "Laser",
-        "title": "Troubleshooting - Laser",
-        "width": 370,
-        "height": 200,
-        "manual_8400_protec_highline_url_path": "https://example.com/laser_manual.pdf",
-        "tasks": [
-          {
-            "Engineer Error Codes": {
-              "task_type": "error_codes",
-              "title": "Troubleshooting - Lenze - Error Codes",
-              "width": 800,
-              "height": 730,
-              "url_path": "{{manual_8400_protec_highline_url_path}}",
-              "image_path": "../media/Lenze_Engineer_Error_Codes.png"
-            }
-          },
-          {
-            "LED status displays": {
-              "task_type": "open_url",
-              "url_path": "{{manual_8400_protec_highline_url_path}}",
-              "pdf_page_number": 591
-            }
-          }
-        ]
-      },
-      "SEW": {
-        "button_text": "SEW",
-        "title": "Troubleshooting - SEW",
-        "width": 370,
-        "height": 200,
-        "SEW_MoviPro_OperatingInstructions_url_path": "https://example.com/sew_movipro_instructions.pdf",
-        "SEW_MoviFit_OperatingInstructions_url_path": "https://example.com/sew_movifit_instructions.pdf",
-        "tasks": [
-          {
-            "Error Codes - MoviPro": {
-              "task_type": "open_url",
-              "url_path": "{{SEW_MoviPro_OperatingInstructions_url_path}}",
-              "pdf_page_number": 142
-            }
-          },
-          {
-            "Operating Instructions - MoviPro": {
-              "task_type": "open_url",
-              "url_path": "{{SEW_MoviPro_OperatingInstructions_url_path}}"
-            }
-          },
-          {
-            "Error Codes - MoviFit": {
-              "task_type": "open_url",
-              "url_path": "{{SEW_MoviFit_OperatingInstructions_url_path}}",
-              "pdf_page_number": 214
-            }
-          },
-          {
-            "Operating Instructions - MoviFit": {
-              "task_type": "open_url",
-              "url_path": "{{SEW_MoviFit_OperatingInstructions_url_path}}"
+              "image_path": "../media/example_fanuc_alarms.png"
             }
           }
         ]
@@ -284,4 +123,3 @@
     }
   }
 }
-

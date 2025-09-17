@@ -1,14 +1,20 @@
-# Byte-compiled / optimized / DLL files
+# User-specific configuration (contains sensitive URLs and paths)
+src/data.json
+
+# Media files - Keep only example files committed, ignore corporate-specific files
+media/*
+!media/example_*.png
+!media/example_*.jpg
+!media/.gitkeep
+
+# Python
 __pycache__/
 *.py[cod]
 *$py.class
-
-# C extensions
 *.so
-
-# Distribution / packaging
 .Python
 build/
+develop-eggs/
 dist/
 downloads/
 eggs/
@@ -19,18 +25,14 @@ parts/
 sdist/
 var/
 wheels/
-pip-wheel-metadata/
-share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 MANIFEST
 
 # PyInstaller
-#  Usually these files are created by pyinstaller, if you want to customize it
-#  then you can write your own spec file instead of letting pyinstaller to generate it.
+*.manifest
 *.spec
-
 
 # Installer logs
 pip-log.txt
@@ -39,18 +41,16 @@ pip-delete-this-directory.txt
 # Unit test / coverage reports
 htmlcov/
 .tox/
-.nox/
 .coverage
 .coverage.*
 .cache
 nosetests.xml
 coverage.xml
 *.cover
-*.py,cover
 .hypothesis/
 .pytest_cache/
 
-# Environments
+# Virtual environments
 .env
 .venv
 env/
@@ -59,32 +59,27 @@ ENV/
 env.bak/
 venv.bak/
 
-# Spyder project settings
-.spyderproject
-.spyderworkspace
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
 
-# Rope project settings
-.ropeproject
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
 
-# mkdocs documentation
-/site
+# Database files (generated)
+src/*.db
+src/*.sqlite
+src/*.sqlite3
 
-# mypy
-.mypy_cache/
-.dmypy.json
-dmypy.json
-
-# Pyre type checker
-.pyre/
-
-# pytype static analyzer
-.pytype/
-
-# Cython debug symbols
-cython_debug/
-
-# Local databases
-*.db
-
-# Local data
-data.json
+# Logs
+*.log
+logs/
