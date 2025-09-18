@@ -2,6 +2,7 @@ import pdfplumber
 import sqlite3
 import os
 import argparse
+import re
 
 
 class PDFTableExtractor:
@@ -133,6 +134,203 @@ class DatabaseManager:
         print(f"Successfully inserted {total_rows_inserted} rows into the '{table_name}' table.")
 
 
+class SEWErrorCodeExtractor:
+    """
+    Extracts robust SEW error codes from PDF tables, handling multi-row error codes, suberrors, and page/table headers.
+    """
+    def __init__(self, pdf_path):
+        self.pdf_path = pdf_path
+
+    def is_header_or_page_row(self, row):
+        """
+        Improved header/page row detection:
+        - Skips rows where the first column is a digit and the rest are empty or header-like (page number header).
+        - Skips rows where the first two columns are header keywords or the row is truly empty.
+        - Skips rows where the first column is a digit and the row is very short (likely a page header).
+        """
+        header_keywords = ["Error", "Code", "Designation", "Response (P)", "Suberror", "Possible cause", "Measure"]
+        page_header_keywords = ["MOVIPRO", "ADC error list", "Service", "Operating Instructions", "SEW EURODRIVE"]
+        # Check if the row is empty or all cells are None/empty
+        if not row or all(cell is None or str(cell).strip() == "" for cell in row):
+            return True
+        # Check if the first two columns are header keywords
+        if (str(row[0]).strip() in header_keywords or str(row[1]).strip() in header_keywords):
+            return True
+        # Check if the row is a page header (contains page header keywords)
+        for cell in row:
+            cell_str = str(cell).strip() if cell else ""
+            if any(h.lower() == cell_str.lower() for h in page_header_keywords):
+                return True
+        # Check for page number header: first column is a digit, rest are empty or header-like
+        if str(row[0]).strip().isdigit():
+            nonempty = [str(cell).strip() for cell in row[1:]]
+            # If all other columns are empty or header keywords, skip
+            if all(cell == "" or cell in header_keywords for cell in nonempty):
+                return True
+            # If row is very short (2 columns or less), likely a page header
+            if len([cell for cell in row if cell and str(cell).strip() != ""]) <= 2:
+                return True
+        return False
+
+    def strip_bullets(self, text):
+        if not text:
+            return ""
+        return re.sub(r"[•\u2022]", "", text).strip()
+
+    def extract_sew_error_codes_detailed(self, start_page, end_page):
+        """
+        Improved SEW error code extraction: robustly handles multi-row error codes, suberrors, and merges split rows.
+        Adds debug output for each row processed.
+        """
+        import pdfplumber
+        sew_errors = []
+        last_error_code = last_error_designation = last_response = None
+        last_suberror_code = last_suberror_designation = None
+        last_possible_cause = last_measure = None
+        with pdfplumber.open(self.pdf_path) as pdf:
+            total_pages = len(pdf.pages)
+            print(f"PDF has {total_pages} pages. Extracting from {start_page} to {end_page} (inclusive)...")
+            for i in range(start_page - 1, end_page):
+                page_num = i + 1
+                page = pdf.pages[i]
+                tables = page.extract_tables()
+                print(f"Processing page {page_num} (index {i})...")
+                for t_idx, table in enumerate(tables):
+                    print(f"  Found table {t_idx+1} on page {page_num} with {len(table)} rows.")
+                    row_idx = 0
+                    while row_idx < len(table):
+                        row = (table[row_idx] + [None] * 7)[:7]
+                        if self.is_header_or_page_row(row):
+                            print(f"    Skipping header row {row_idx+1} on page {page_num}, table {t_idx+1}: {row}")
+                            row_idx += 1
+                            continue
+                        error_code = None
+                        error_designation = None
+                        response = None
+                        suberror_code = None
+                        suberror_designation = None
+                        possible_cause = None
+                        measure = None
+                        if row[0] and str(row[0]).strip().isdigit():
+                            print(f"    Extracting error code row {row_idx+1} on page {page_num}, table {t_idx+1}: {row}")
+                            error_code = str(row[0]).strip()
+                            error_designation = str(row[1]).strip() if row[1] else last_error_designation
+                            response = str(row[2]).strip() if row[2] else last_response
+                            suberror_code = str(row[3]).strip() if row[3] else "0"
+                            suberror_designation = str(row[4]).strip() if row[4] else ""
+                            possible_cause = str(row[5]).strip() if row[5] else last_possible_cause
+                            measure = str(row[6]).strip() if row[6] else last_measure
+                        elif row[1] and str(row[1]).strip().isdigit():
+                            print(f"    Extracting error code row {row_idx+1} on page {page_num}, table {t_idx+1}: {row}")
+                            error_code = str(row[1]).strip()
+                            error_designation = str(row[2]).strip() if row[2] else last_error_designation
+                            response = str(row[3]).strip() if row[3] else last_response
+                            suberror_code = str(row[4]).strip() if row[4] else "0"
+                            suberror_designation = str(row[5]).strip() if row[5] else ""
+                            possible_cause = str(row[6]).strip() if row[6] else last_possible_cause
+                            measure = ""
+                            # If next row has possible cause/measure, merge
+                            if row_idx + 1 < len(table):
+                                next_row = (table[row_idx + 1] + [None] * 7)[:7]
+                                if not self.is_header_or_page_row(next_row):
+                                    if next_row[5]:
+                                        possible_cause = str(next_row[5]).strip()
+                                    if next_row[6]:
+                                        measure = str(next_row[6]).strip()
+                        elif row[3] and str(row[3]).strip().isdigit():
+                            print(f"    Extracting suberror code row {row_idx+1} on page {page_num}, table {t_idx+1}: {row}")
+                            error_code = last_error_code
+                            error_designation = last_error_designation
+                            response = last_response
+                            suberror_code = str(row[3]).strip()
+                            suberror_designation = str(row[4]).strip() if row[4] else ""
+                            possible_cause = str(row[5]).strip() if row[5] else last_possible_cause
+                            measure = str(row[6]).strip() if row[6] else last_measure
+                        elif row[4] and str(row[4]).strip().isdigit():
+                            print(f"    Extracting suberror code row {row_idx+1} on page {page_num}, table {t_idx+1}: {row}")
+                            error_code = last_error_code
+                            error_designation = last_error_designation
+                            response = last_response
+                            suberror_code = str(row[4]).strip()
+                            suberror_designation = str(row[5]).strip() if row[5] else ""
+                            possible_cause = str(row[6]).strip() if row[6] else last_possible_cause
+                            measure = ""
+                            # If next row has possible cause/measure, merge
+                            if row_idx + 1 < len(table):
+                                next_row = (table[row_idx + 1] + [None] * 7)[:7]
+                                if not self.is_header_or_page_row(next_row):
+                                    if next_row[5]:
+                                        possible_cause = str(next_row[5]).strip()
+                                    if next_row[6]:
+                                        measure = str(next_row[6]).strip()
+                        else:
+                            print(f"    Skipping non-numeric error code row {row_idx+1} on page {page_num}, table {t_idx+1}: {row}")
+                            row_idx += 1
+                            continue
+                        # Update last seen values
+                        last_error_code = error_code if error_code else last_error_code
+                        last_error_designation = error_designation if error_designation else last_error_designation
+                        last_response = response if response else last_response
+                        last_suberror_code = suberror_code if suberror_code else last_suberror_code
+                        last_suberror_designation = suberror_designation if suberror_designation else last_suberror_designation
+                        last_possible_cause = possible_cause if possible_cause else last_possible_cause
+                        last_measure = measure if measure else last_measure
+                        sew_errors.append({
+                            "error_code": error_code or last_error_code,
+                            "error_designation": error_designation or last_error_designation,
+                            "response": response or last_response,
+                            "suberror_code": suberror_code or last_suberror_code,
+                            "suberror_designation": self.strip_bullets(suberror_designation or last_suberror_designation),
+                            "possible_cause": self.strip_bullets(possible_cause or last_possible_cause),
+                            "measure": self.strip_bullets(measure or last_measure),
+                            "page": page_num,
+                            "table_index": t_idx + 1,
+                            "row_index": row_idx + 1
+                        })
+                        row_idx += 1
+            print(f"Extracted {len(sew_errors)} error codes.")
+        return sew_errors
+
+
+class SEWDatabaseManager(DatabaseManager):
+    """
+    Extends DatabaseManager for detailed SEW error code table creation and insertion.
+    """
+    def create_sew_error_table_detailed(self):
+        cursor = self.conn.cursor()
+        cursor.execute("DROP TABLE IF EXISTS sew_error_codes_detailed")
+        cursor.execute("""
+            CREATE TABLE sew_error_codes_detailed (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                error_code TEXT,
+                error_designation TEXT,
+                response TEXT,
+                suberror_code TEXT,
+                suberror_designation TEXT,
+                possible_cause TEXT,
+                measure TEXT
+            )
+        """)
+        self.conn.commit()
+
+    def insert_sew_error_codes_detailed(self, sew_errors):
+        cursor = self.conn.cursor()
+        for err in sew_errors:
+            cursor.execute(
+                "INSERT INTO sew_error_codes_detailed (error_code, error_designation, response, suberror_code, suberror_designation, possible_cause, measure) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                (
+                    err["error_code"],
+                    err["error_designation"],
+                    err["response"],
+                    err["suberror_code"],
+                    err["suberror_designation"],
+                    err["possible_cause"],
+                    err["measure"]
+                )
+            )
+        self.conn.commit()
+
+
 def main():
     """
     Main function to run the PDF extraction and database insertion process.
@@ -148,10 +346,20 @@ def main():
     parser.add_argument("--table-name", required=True, help="Name of the table to store error codes.")
     parser.add_argument("--start-page", required=True, type=int, help="The first page to process (inclusive).")
     parser.add_argument("--end-page", required=True, type=int, help="The last page to process (inclusive).")
+    parser.add_argument("--sew-mode", action="store_true", help="Enable SEW error code extraction mode.")
     args = parser.parse_args()
 
     print("--- Starting PDF Processing ---")
     try:
+        if args.sew_mode:
+            extractor = SEWErrorCodeExtractor(args.pdf_path)
+            sew_errors = extractor.extract_sew_error_codes_detailed(args.start_page, args.end_page)
+            with SEWDatabaseManager(DB_PATH) as db:
+                db.create_sew_error_table_detailed()
+                db.insert_sew_error_codes_detailed(sew_errors)
+            print(f"Extracted and stored {len(sew_errors)} detailed SEW error codes.")
+            return
+
         # 1. Extract data from PDF
         extractor = PDFTableExtractor(args.pdf_path)
         tables_data = extractor.extract_tables(args.start_page, args.end_page)

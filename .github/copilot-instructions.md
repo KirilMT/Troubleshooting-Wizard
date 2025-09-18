@@ -128,3 +128,14 @@ This project is a Python-based GUI application for industrial equipment troubles
 - I will only proceed to the next sub-task after the current one is fully resolved.
 - After completing a sub-task, I will provide a summary of the changes and wait for your confirmation to proceed.
 
+## SEW Error Code Extraction Workflow
+
+- The PDF extraction utility (`src/process_pdf.py`) now supports a `--sew-mode` CLI option for SEW Drive Systems.
+- When enabled, SEW error codes (fault code, suberror code, description) are extracted from PDF tables and stored in the `sew_error_codes` table in `src/errorCodesTechnologies.db`.
+- The table schema is:
+  - `id` (INTEGER PRIMARY KEY AUTOINCREMENT)
+  - `fault_code` (TEXT)
+  - `suberror_code` (TEXT)
+  - `description` (TEXT)
+- This workflow is robust to SEW's complex error code numbering and description formats.
+- Update `example_data.json` to add SEW configuration examples for future extensibility.

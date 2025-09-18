@@ -119,6 +119,33 @@
             }
           }
         ]
+      },
+      "SEW": {
+        "button_text": "SEW Drive Systems",
+        "title": "Troubleshooting - SEW Drive Systems",
+        "width": 370,
+        "height": 210,
+        "sew_manual_url_path": "https://example.com/path/to/sew_manual.pdf",
+        "tasks": [
+          {
+            "SEW Error Codes": {
+              "task_type": "error_codes",
+              "button_text": "SEW Error Codes",
+              "title": "Troubleshooting - SEW Drive Systems - Error Codes",
+              "width": 800,
+              "height": 650,
+              "url_path": "{{sew_manual_url_path}}",
+              "url_wait_time": 3,
+              "image_path": "../media/SEW_MoviPro_movitools_parameters.jpg"
+            }
+          },
+          {
+            "SEW Manual": {
+              "task_type": "open_url",
+              "url_path": "{{sew_manual_url_path}}"
+            }
+          }
+        ]
       }
     }
   }

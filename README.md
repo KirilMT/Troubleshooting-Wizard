@@ -137,6 +137,27 @@ python src/process_pdf.py --pdf-path "path/to/manual.pdf" --table-name "error_co
 - `--start-page`: First page to process (1-based)
 - `--end-page`: Last page to process (1-based)
 
+## SEW Error Code Extraction
+
+This application now supports robust extraction and storage of SEW Drive System error codes from PDF manuals.
+
+### How to Extract SEW Error Codes
+
+Run the PDF extraction utility with the `--sew-mode` option:
+
+```bash
+python src/process_pdf.py --pdf-path <path_to_sew_pdf> --start-page <first_page> --end-page <last_page> --sew-mode
+```
+
+This will extract SEW error codes (fault code, suberror code, description) and store them in the `sew_error_codes` table in `src/errorCodesTechnologies.db`.
+
+### SEW Error Code Table Schema
+
+- `id` (INTEGER PRIMARY KEY AUTOINCREMENT)
+- `fault_code` (TEXT)
+- `suberror_code` (TEXT)
+- `description` (TEXT)
+
 ## Project Structure
 
 ```
