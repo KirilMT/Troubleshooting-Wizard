@@ -128,6 +128,18 @@
         "sew_manual_url_path": "https://example.com/path/to/sew_manual.pdf",
         "tasks": [
           {
+            "Error Codes - MoviPro": {
+              "task_type": "error_codes",
+              "button_text": "Error Codes - MoviPro",
+              "title": "Troubleshooting - SEW Drive Systems - MoviPro Error Codes",
+              "width": 1000,
+              "height": 800,
+              "url_path": "{{sew_manual_url_path}}",
+              "url_wait_time": 3,
+              "image_path": "../media/SEW_MoviPro_movitools_parameters.jpg"
+            }
+          },
+          {
             "SEW Error Codes": {
               "task_type": "error_codes",
               "button_text": "SEW Error Codes",

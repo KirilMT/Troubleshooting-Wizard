@@ -6,6 +6,66 @@ import webbrowser
 import time
 import pyautogui
 import os
+import sqlite3
+from tkinter import scrolledtext
+
+
+class SEWDatabaseManager:
+    """Manages SEW error code database operations."""
+
+    def __init__(self, db_path):
+        self.db_path = db_path
+
+    def search_error_codes(self, error_code=None, suberror_code=None, error_designation=None):
+        """
+        Search for SEW error codes based on provided criteria.
+
+        Args:
+            error_code (str): Main error code to search for
+            suberror_code (str): Suberror code to search for
+            error_designation (str): Error designation to search for
+
+        Returns:
+            list: List of matching error code records
+        """
+        try:
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+
+            # Build dynamic query based on provided criteria
+            conditions = []
+            params = []
+
+            if error_code and error_code.strip():
+                conditions.append("error_code LIKE ?")
+                params.append(f"%{error_code.strip()}%")
+
+            if suberror_code and suberror_code.strip():
+                conditions.append("suberror_code LIKE ?")
+                params.append(f"%{suberror_code.strip()}%")
+
+            if error_designation and error_designation.strip():
+                conditions.append("error_designation LIKE ?")
+                params.append(f"%{error_designation.strip()}%")
+
+            if not conditions:
+                # If no search criteria provided, return empty list
+                return []
+
+            query = "SELECT * FROM sew_error_codes_detailed WHERE " + " AND ".join(conditions)
+            cursor.execute(query, params)
+            results = cursor.fetchall()
+
+            # Convert to list of dictionaries for easier handling
+            columns = [desc[0] for desc in cursor.description]
+            return [dict(zip(columns, row)) for row in results]
+
+        except sqlite3.Error as e:
+            print(f"Database error: {e}")
+            return []
+        finally:
+            if conn:
+                conn.close()
 
 
 class MainApplication:
@@ -146,6 +206,9 @@ class MainApplication:
         error_codes_height = task_attributes.get("height", 730)
         image_path = task_attributes.get("image_path", "")
 
+        # Check if this is SEW technology for database functionality
+        is_sew_technology = tech_data.get("button_text", "").lower().find("sew") != -1
+
         error_codes_frame = ttk.Frame(self.root)
         error_codes_frame.pack(fill="both", expand=True)
         self.current_view = error_codes_frame
@@ -154,27 +217,25 @@ class MainApplication:
         self._set_window_dimensions(error_codes_width, error_codes_height)
 
         button_frame = ttk.Frame(error_codes_frame)
-        button_frame.pack(side="top", anchor="nw", padx=10, pady=10)  # Place the button frame at the top-left corner
+        button_frame.pack(side="top", anchor="nw", padx=10, pady=10)
 
         home_button = ttk.Button(
             button_frame,
             text="< Back to Technologies",
-            command=self.show_main_program  # Navigate to the main program
+            command=self.show_main_program
         )
-        home_button.pack(side="left", padx=10)  # Place "Technologies" button on the left side of the button frame
+        home_button.pack(side="left", padx=10)
 
         back_button = ttk.Button(
             button_frame,
             text="< Back to Tasks",
-            command=self.show_previous_view  # Use the previous view function
+            command=self.show_previous_view
         )
-        back_button.pack(side="left", padx=10)  # Place "Tasks" button on the left side of the button frame
+        back_button.pack(side="left", padx=10)
 
         try:
             if image_path:
-                # Construct absolute path for the image relative to the script's directory
                 abs_image_path = os.path.abspath(os.path.join(self.script_dir, image_path))
-                # Load and display an image
                 image = Image.open(abs_image_path)
                 photo = ImageTk.PhotoImage(image)
                 image_label = ttk.Label(error_codes_frame, image=photo)
@@ -183,7 +244,16 @@ class MainApplication:
         except Exception as e:
             print(f"Error loading image: {e}")
 
-        label_frame = ttk.Frame(error_codes_frame)
+        # Show SEW database search interface if this is SEW technology
+        if is_sew_technology:
+            self._show_sew_database_interface(error_codes_frame)
+        else:
+            # Show traditional PDF search interface for other technologies
+            self._show_traditional_search_interface(error_codes_frame, task_attributes)
+
+    def _show_traditional_search_interface(self, parent_frame, task_attributes):
+        """Show the traditional PDF search interface for non-SEW technologies."""
+        label_frame = ttk.Frame(parent_frame)
         label_frame.pack(pady=10)
 
         label_style = ttk.Style()
@@ -196,14 +266,111 @@ class MainApplication:
         search_entry = ttk.Entry(label_frame, style="Large.TEntry", width=65)
         search_entry.pack(side="left", padx=10)
 
-        search_button_style = ttk.Style()
-        search_button_style.configure("Large.TButton", font=("Helvetica", 12))
         search_button = ttk.Button(
-            error_codes_frame,
+            parent_frame,
             text="Search",
             command=lambda: self._search_pdf(search_entry.get(), task_attributes.get("url_path"))
         )
         search_button.pack(side="right", padx=10)
+
+    def _show_sew_database_interface(self, parent_frame):
+        """Show the SEW database search interface."""
+        # Title
+        sew_title = ttk.Label(parent_frame, text="SEW Error Code Database Search",
+                             font=("Helvetica", 16, "bold"))
+        sew_title.pack(pady=10)
+
+        # Search form
+        search_frame = ttk.LabelFrame(parent_frame, text="Search Criteria", padding=10)
+        search_frame.pack(pady=10, padx=20, fill="x")
+
+        # Error Code field
+        ttk.Label(search_frame, text="Error Code:").grid(row=0, column=0, sticky="w", pady=5)
+        self.sew_error_code_entry = ttk.Entry(search_frame, width=30)
+        self.sew_error_code_entry.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+
+        # Suberror Code field
+        ttk.Label(search_frame, text="Suberror Code:").grid(row=1, column=0, sticky="w", pady=5)
+        self.sew_suberror_code_entry = ttk.Entry(search_frame, width=30)
+        self.sew_suberror_code_entry.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+
+        # Error Designation field
+        ttk.Label(search_frame, text="Error Designation:").grid(row=2, column=0, sticky="w", pady=5)
+        self.sew_error_designation_entry = ttk.Entry(search_frame, width=30)
+        self.sew_error_designation_entry.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
+
+        # Configure column weight for resizing
+        search_frame.columnconfigure(1, weight=1)
+
+        # Search button
+        search_button = ttk.Button(
+            search_frame,
+            text="Search SEW Error Codes",
+            command=self.search_sew_error_codes
+        )
+        search_button.grid(row=3, column=0, columnspan=2, pady=15)
+
+        # Results area
+        results_frame = ttk.LabelFrame(parent_frame, text="Search Results", padding=10)
+        results_frame.pack(pady=10, padx=20, fill="both", expand=True)
+
+        self.sew_results_text = scrolledtext.ScrolledText(
+            results_frame,
+            wrap=tk.WORD,
+            height=15,
+            font=("Consolas", 10)
+        )
+        self.sew_results_text.pack(fill="both", expand=True)
+
+        # Instructions
+        instructions = """Instructions:
+• Enter at least one search criterion (Error Code, Suberror Code, or Error Designation)
+• You can use partial matches - e.g., enter "01" to find all error codes containing "01"
+• Leave fields empty to ignore them in the search
+• Error Code: Main fault code (e.g., "01", "02", "03")
+• Suberror Code: Additional error specification (e.g., "0", "1", "5")
+• Error Designation: Error name/description (e.g., "Overcurrent", "Overvoltage")"""
+
+        self.sew_results_text.insert(tk.END, instructions)
+
+    def search_sew_error_codes(self):
+        """Search for SEW error codes and display results in the text box."""
+        error_code = self.sew_error_code_entry.get()
+        suberror_code = self.sew_suberror_code_entry.get()
+        error_designation = self.sew_error_designation_entry.get()
+
+        # Construct the correct database path
+        db_path = os.path.join(self.script_dir, "errorCodesTechnologies.db")
+
+        # Initialize the database manager
+        db_manager = SEWDatabaseManager(db_path)
+
+        # Search for error codes
+        results = db_manager.search_error_codes(error_code, suberror_code, error_designation)
+
+        # Clear previous results
+        self.sew_results_text.delete(1.0, tk.END)
+
+        if results:
+            self.sew_results_text.insert(tk.END, f"Found {len(results)} matching error code(s):\n")
+            self.sew_results_text.insert(tk.END, "=" * 80 + "\n\n")
+
+            for i, result in enumerate(results, 1):
+                self.sew_results_text.insert(tk.END, f"RESULT {i}:\n")
+                self.sew_results_text.insert(tk.END, f"Error Code: {result['error_code']}\n")
+                self.sew_results_text.insert(tk.END, f"Error Designation: {result['error_designation']}\n")
+                self.sew_results_text.insert(tk.END, f"Error Response: {result['error_response']}\n")
+                self.sew_results_text.insert(tk.END, f"Suberror Code: {result['suberror_code']}\n")
+                self.sew_results_text.insert(tk.END, f"Suberror Designation: {result['suberror_designation']}\n")
+                self.sew_results_text.insert(tk.END, f"\nPossible Cause:\n{result['possible_cause']}\n")
+                self.sew_results_text.insert(tk.END, f"\nRecommended Measure:\n{result['measure']}\n")
+                self.sew_results_text.insert(tk.END, "\n" + "=" * 80 + "\n\n")
+        else:
+            self.sew_results_text.insert(tk.END, "No matching error codes found.\n\n")
+            self.sew_results_text.insert(tk.END, "Please check your search criteria:\n")
+            self.sew_results_text.insert(tk.END, "• Make sure at least one field is filled\n")
+            self.sew_results_text.insert(tk.END, "• Try using partial matches (e.g., '01' instead of '01.0')\n")
+            self.sew_results_text.insert(tk.END, "• Check spelling of error designations\n")
 
     def _replace_variables(self, text):
         """Replace variables in double curly braces with their values from the JSON configuration."""
