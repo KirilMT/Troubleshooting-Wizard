@@ -1,5 +1,6 @@
 import tkinter as tk
 from tkinter import ttk
+from tkinter import messagebox
 from PIL import Image, ImageTk
 import json
 import webbrowser
@@ -7,7 +8,6 @@ import time
 import pyautogui
 import os
 import sqlite3
-from tkinter import scrolledtext
 
 
 class SEWDatabaseManager:
@@ -28,6 +28,7 @@ class SEWDatabaseManager:
         Returns:
             list: List of matching error code records
         """
+        conn = None  # Ensure conn is initialized
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
@@ -204,7 +205,7 @@ class MainApplication:
 
         error_codes_width = task_attributes.get("width", 800)
         error_codes_height = task_attributes.get("height", 730)
-        image_path = task_attributes.get("image_path", "")
+        # image_path = task_attributes.get("image_path", "")  # REMOVE: No image in main view
 
         # Check if this is SEW technology for database functionality
         is_sew_technology = tech_data.get("button_text", "").lower().find("sew") != -1
@@ -233,16 +234,18 @@ class MainApplication:
         )
         back_button.pack(side="left", padx=10)
 
-        try:
-            if image_path:
-                abs_image_path = os.path.abspath(os.path.join(self.script_dir, image_path))
-                image = Image.open(abs_image_path)
-                photo = ImageTk.PhotoImage(image)
-                image_label = ttk.Label(error_codes_frame, image=photo)
-                image_label.image = photo
-                image_label.pack(pady=10)
-        except Exception as e:
-            print(f"Error loading image: {e}")
+        # REMOVE: No image shown in main view
+        # self.sew_image_label = None
+        # try:
+        #     if image_path:
+        #         abs_image_path = os.path.abspath(os.path.join(self.script_dir, image_path))
+        #         image = Image.open(abs_image_path)
+        #         photo = ImageTk.PhotoImage(image)
+        #         self.sew_image_label = tk.Label(error_codes_frame, image=photo)
+        #         self.sew_image_label.image = photo
+        #         self.sew_image_label.pack(pady=10)
+        # except Exception as e:
+        #     print(f"Error loading image: {e}")
 
         # Show SEW database search interface if this is SEW technology
         if is_sew_technology:
@@ -274,70 +277,292 @@ class MainApplication:
         search_button.pack(side="right", padx=10)
 
     def _show_sew_database_interface(self, parent_frame):
-        """Show the SEW database search interface."""
-        # Title
-        sew_title = ttk.Label(parent_frame, text="SEW Error Code Database Search",
-                             font=("Helvetica", 16, "bold"))
-        sew_title.pack(pady=10)
+        """Show the SEW database search interface with improved responsive layout and help image modal."""
+        # Main container with padding
+        main_container = ttk.Frame(parent_frame)
+        main_container.pack(fill="both", expand=True, padx=20, pady=10)
+        parent_frame.update_idletasks()
+        # Remove explicit minsize and grid_propagate for dynamic sizing
+        # parent_frame.winfo_toplevel().minsize(700, 500)
+        # parent_frame.grid_propagate(False)
 
-        # Search form
-        search_frame = ttk.LabelFrame(parent_frame, text="Search Criteria", padding=10)
-        search_frame.pack(pady=10, padx=20, fill="x")
+        # Title section with help button
+        title_frame = ttk.Frame(main_container)
+        title_frame.pack(fill="x", pady=(0, 10))
+        title_frame.columnconfigure(0, weight=1)
+        title_label = ttk.Label(
+            title_frame,
+            text="SEW MoviPro Error Code Database",
+            font=("Segoe UI", 18, "bold"),
+            foreground="#2E86AB",
+            anchor="center",
+            justify="center"
+        )
+        title_label.grid(row=0, column=0, sticky="ew")
+        help_btn = ttk.Button(
+            title_frame,
+            text="?",
+            width=2,
+            command=self._show_help_image,
+            style="Help.TButton"
+        )
+        help_btn.grid(row=0, column=1, sticky="e", padx=(10, 0))
+        style = ttk.Style()
+        style.configure("Help.TButton", font=("Segoe UI", 12, "bold"), foreground="#2E86AB")
 
-        # Error Code field
-        ttk.Label(search_frame, text="Error Code:").grid(row=0, column=0, sticky="w", pady=5)
-        self.sew_error_code_entry = ttk.Entry(search_frame, width=30)
-        self.sew_error_code_entry.grid(row=0, column=1, padx=10, pady=5, sticky="ew")
+        subtitle_label = ttk.Label(
+            main_container,
+            text="Search and troubleshoot SEW drive system error codes",
+            font=("Segoe UI", 10),
+            foreground="#666666",
+            anchor="center",
+            justify="center"
+        )
+        subtitle_label.pack(fill="x", pady=(0, 10))
 
-        # Suberror Code field
-        ttk.Label(search_frame, text="Suberror Code:").grid(row=1, column=0, sticky="w", pady=5)
-        self.sew_suberror_code_entry = ttk.Entry(search_frame, width=30)
-        self.sew_suberror_code_entry.grid(row=1, column=1, padx=10, pady=5, sticky="ew")
+        # Search section
+        search_container = ttk.LabelFrame(main_container, text="Search Criteria", padding=15)
+        search_container.pack(fill="x", pady=(0, 10))
+        search_container.columnconfigure(1, weight=1)
+        search_container.columnconfigure(3, weight=1)
 
-        # Error Designation field
-        ttk.Label(search_frame, text="Error Designation:").grid(row=2, column=0, sticky="w", pady=5)
-        self.sew_error_designation_entry = ttk.Entry(search_frame, width=30)
-        self.sew_error_designation_entry.grid(row=2, column=1, padx=10, pady=5, sticky="ew")
-
-        # Configure column weight for resizing
-        search_frame.columnconfigure(1, weight=1)
-
-        # Search button
+        ttk.Label(search_container, text="Error Code:", font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w", pady=8, padx=(0, 10))
+        self.sew_error_code_entry = ttk.Entry(search_container, width=15, font=("Segoe UI", 10))
+        self.sew_error_code_entry.grid(row=0, column=1, sticky="ew", pady=8, padx=(0, 20))
+        ttk.Label(search_container, text="Suberror Code:", font=("Segoe UI", 10, "bold")).grid(row=0, column=2, sticky="w", pady=8, padx=(0, 10))
+        self.sew_suberror_code_entry = ttk.Entry(search_container, width=15, font=("Segoe UI", 10))
+        self.sew_suberror_code_entry.grid(row=0, column=3, sticky="ew", pady=8)
+        ttk.Label(search_container, text="Error Description:", font=("Segoe UI", 10, "bold")).grid(row=1, column=0, sticky="w", pady=(16, 8), padx=(0, 10))
+        self.sew_error_designation_entry = ttk.Entry(search_container, font=("Segoe UI", 10))
+        self.sew_error_designation_entry.grid(row=1, column=1, columnspan=3, sticky="ew", pady=(16, 8))
+        button_frame = ttk.Frame(search_container)
+        button_frame.grid(row=2, column=0, columnspan=4, pady=(20, 0))
         search_button = ttk.Button(
-            search_frame,
-            text="Search SEW Error Codes",
-            command=self.search_sew_error_codes
+            button_frame,
+            text="🔍 Search Error Code",
+            command=self.search_sew_error_codes,
+            style="Accent.TButton"
         )
-        search_button.grid(row=3, column=0, columnspan=2, pady=15)
+        search_button.pack()
+        style.configure("Accent.TButton", font=("Segoe UI", 11, "bold"))
+        self.sew_error_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
+        self.sew_suberror_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
+        self.sew_error_designation_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
 
-        # Results area
-        results_frame = ttk.LabelFrame(parent_frame, text="Search Results", padding=10)
-        results_frame.pack(pady=10, padx=20, fill="both", expand=True)
+        # Results section - Single error card display, no scrollbars
+        results_container = ttk.LabelFrame(main_container, text="Error Code Details", padding=15)
+        results_container.pack(fill="both", expand=True, pady=(0, 10))
+        self.results_frame = ttk.Frame(results_container)
+        self.results_frame.pack(fill="both", expand=True)
+        self._show_search_instructions()
 
-        self.sew_results_text = scrolledtext.ScrolledText(
-            results_frame,
-            wrap=tk.WORD,
-            height=15,
-            font=("Consolas", 10)
+        # Dynamically resize window to fit content
+        self.root.update_idletasks()
+        self.root.geometry("")
+
+    def _show_help_image(self):
+        """Show the help image in a modal popup window."""
+        image_path = os.path.join(self.script_dir, "..", "media", "SEW_MoviPro_movitools_parameters.jpg")
+        if not os.path.exists(image_path):
+            image_path = os.path.join(self.script_dir, "media", "SEW_MoviPro_movitools_parameters.jpg")
+        try:
+            help_win = tk.Toplevel(self.root)
+            help_win.title("SEW MoviPro Help")
+            help_win.transient(self.root)
+            help_win.grab_set()
+            help_win.geometry("700x400")
+            help_win.resizable(False, False)
+            img = Image.open(image_path)
+            img = img.resize((680, 320), Image.LANCZOS)
+            photo = ImageTk.PhotoImage(img)
+            img_label = tk.Label(help_win, image=photo)
+            img_label.image = photo
+            img_label.pack(padx=10, pady=10)
+            close_btn = ttk.Button(help_win, text="Close", command=help_win.destroy)
+            close_btn.pack(pady=(0, 10))
+        except Exception as e:
+            messagebox.showerror("Help Image Error", f"Could not load help image: {e}")
+
+        # Center the help image popup on the screen (should be outside the except block)
+        help_win.update_idletasks()
+        popup_width = help_win.winfo_width()
+        popup_height = help_win.winfo_height()
+        screen_width = help_win.winfo_screenwidth()
+        screen_height = help_win.winfo_screenheight()
+        x = int((screen_width - popup_width) / 2)
+        y = int((screen_height - popup_height) / 2)
+        help_win.geometry(f"{popup_width}x{popup_height}+{x}+{y}")
+
+    def _show_search_instructions(self):
+        """Show initial search instructions."""
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
+        instructions_frame = ttk.Frame(self.results_frame)
+        instructions_frame.pack(fill="x", padx=20, pady=20)
+        icon_label = ttk.Label(
+            instructions_frame,
+            text="🔍",
+            font=("Segoe UI", 24)
         )
-        self.sew_results_text.pack(fill="both", expand=True)
+        icon_label.pack(pady=(0, 10))
+        title_label = ttk.Label(
+            instructions_frame,
+            text="Search for SEW Error Codes",
+            font=("Segoe UI", 14, "bold"),
+            foreground="#2E86AB"
+        )
+        title_label.pack(pady=(0, 15))
+        instructions_text = """Enter search criteria above and click 'Search Error Code':\n\n• Error Code: Main fault code (e.g., '01', '02', '03')\n• Suberror Code: Additional specification (e.g., '0', '1', '5')\n• Error Description: Partial description (e.g., 'Overcurrent')\n\nUse partial matches for better results."""
+        instructions_label = ttk.Label(
+            instructions_frame,
+            text=instructions_text,
+            font=("Segoe UI", 10),
+            foreground="#666666",
+            justify="left"
+        )
+        instructions_label.pack()
 
-        # Instructions
-        instructions = """Instructions:
-• Enter at least one search criterion (Error Code, Suberror Code, or Error Designation)
-• You can use partial matches - e.g., enter "01" to find all error codes containing "01"
-• Leave fields empty to ignore them in the search
-• Error Code: Main fault code (e.g., "01", "02", "03")
-• Suberror Code: Additional error specification (e.g., "0", "1", "5")
-• Error Designation: Error name/description (e.g., "Overcurrent", "Overvoltage")"""
+    def _show_error_card(self, error_data):
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
+        card_frame = ttk.Frame(self.results_frame)
+        card_frame.pack(fill="x", padx=10, pady=10)
+        header_frame = ttk.Frame(card_frame)
+        header_frame.pack(fill="x", pady=(0, 10))
+        error_code_frame = ttk.Frame(header_frame)
+        error_code_frame.pack(anchor="w")
+        code_text = f"Error Code: {error_data.get('error_code', 'N/A')}"
+        if error_data.get('suberror_code'):
+            code_text += f".{error_data.get('suberror_code')}"
+        ttk.Label(
+            error_code_frame,
+            text=code_text,
+            font=("Segoe UI", 14, "bold"),
+            foreground="#FFFFFF",
+            background="#E74C3C",
+            padding=(10, 5)
+        ).pack(side="left")
+        designation_label = ttk.Label(
+            header_frame,
+            text=error_data.get('error_designation', 'Unknown Error'),
+            font=("Segoe UI", 16, "bold"),
+            foreground="#2C3E50"
+        )
+        designation_label.pack(anchor="w", pady=(10, 0))
+        if error_data.get('error_response'):
+            response_label = ttk.Label(
+                header_frame,
+                text=f"Response: {error_data.get('error_response')}",
+                font=("Segoe UI", 11),
+                foreground="#E67E22"
+            )
+            response_label.pack(anchor="w", pady=(5, 0))
+        separator = ttk.Separator(card_frame, orient="horizontal")
+        separator.pack(fill="x", pady=10)
+        content_frame = ttk.Frame(card_frame)
+        content_frame.pack(fill="x")
+        if error_data.get('possible_cause'):
+            causes_frame = ttk.LabelFrame(content_frame, text="🔍 Possible Causes", padding=10)
+            causes_frame.pack(fill="x", pady=(0, 10))
+            causes_text = tk.Label(
+                causes_frame,
+                text=self._format_text_content(error_data.get('possible_cause', '')),
+                font=("Segoe UI", 10),
+                background="#FFF5F5",
+                foreground="#2C3E50",
+                anchor="w",
+                justify="left"
+            )
+            causes_text.pack(fill="x")
+        if error_data.get('measure'):
+            actions_frame = ttk.LabelFrame(content_frame, text="✅ Recommended Actions", padding=10)
+            actions_frame.pack(fill="x")
+            actions_text = tk.Label(
+                actions_frame,
+                text=self._format_text_content(error_data.get('measure', '')),
+                font=("Segoe UI", 10),
+                background="#F0FFF4",
+                foreground="#2C3E50",
+                anchor="w",
+                justify="left"
+            )
+            actions_text.pack(fill="x")
 
-        self.sew_results_text.insert(tk.END, instructions)
+    def _format_text_content(self, text):
+        """Format text content for better readability."""
+        if not text or text.strip() == "":
+            return "Not specified"
+
+        # Clean up the text
+        text = text.replace("•", "\n•").replace("\\n", "\n")
+        lines = [line.strip() for line in text.split("\n") if line.strip()]
+
+        formatted_lines = []
+        for line in lines:
+            if line.startswith("•"):
+                formatted_lines.append(line)
+            else:
+                # Add bullet point if not present
+                formatted_lines.append(f"• {line}")
+
+        return "\n".join(formatted_lines) if formatted_lines else "Not specified"
+
+    def _show_no_results(self):
+        """Show no results found message."""
+        # Clear any existing content
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
+
+        no_results_frame = ttk.Frame(self.results_frame)
+        no_results_frame.pack(fill="x", padx=20, pady=40)
+
+        # Icon
+        icon_label = ttk.Label(
+            no_results_frame,
+            text="❌",
+            font=("Segoe UI", 24)
+        )
+        icon_label.pack(pady=(0, 10))
+
+        # Message
+        title_label = ttk.Label(
+            no_results_frame,
+            text="No Error Code Found",
+            font=("Segoe UI", 14, "bold"),
+            foreground="#E74C3C"
+        )
+        title_label.pack(pady=(0, 15))
+
+        suggestions_text = """Try these suggestions:
+
+• Use partial matches (e.g., "01" instead of "01.0")
+• Check spelling of error descriptions
+• Try searching with just the main error code
+• Verify the error code exists in the database"""
+
+        suggestions_label = ttk.Label(
+            no_results_frame,
+            text=suggestions_text,
+            font=("Segoe UI", 10),
+            foreground="#666666",
+            justify="left"
+        )
+        suggestions_label.pack()
 
     def search_sew_error_codes(self):
-        """Search for SEW error codes and display results in the text box."""
-        error_code = self.sew_error_code_entry.get()
-        suberror_code = self.sew_suberror_code_entry.get()
-        error_designation = self.sew_error_designation_entry.get()
+        """Search for SEW error codes and display the first matching result."""
+        # Remove the image if present
+        if hasattr(self, 'sew_image_label') and self.sew_image_label:
+            self.sew_image_label.destroy()
+            self.sew_image_label = None
+
+        error_code = self.sew_error_code_entry.get().strip()
+        suberror_code = self.sew_suberror_code_entry.get().strip()
+        error_designation = self.sew_error_designation_entry.get().strip()
+
+        if not any([error_code, suberror_code, error_designation]):
+            self._show_search_instructions()
+            return
 
         # Construct the correct database path
         db_path = os.path.join(self.script_dir, "errorCodesTechnologies.db")
@@ -348,29 +573,11 @@ class MainApplication:
         # Search for error codes
         results = db_manager.search_error_codes(error_code, suberror_code, error_designation)
 
-        # Clear previous results
-        self.sew_results_text.delete(1.0, tk.END)
-
         if results:
-            self.sew_results_text.insert(tk.END, f"Found {len(results)} matching error code(s):\n")
-            self.sew_results_text.insert(tk.END, "=" * 80 + "\n\n")
-
-            for i, result in enumerate(results, 1):
-                self.sew_results_text.insert(tk.END, f"RESULT {i}:\n")
-                self.sew_results_text.insert(tk.END, f"Error Code: {result['error_code']}\n")
-                self.sew_results_text.insert(tk.END, f"Error Designation: {result['error_designation']}\n")
-                self.sew_results_text.insert(tk.END, f"Error Response: {result['error_response']}\n")
-                self.sew_results_text.insert(tk.END, f"Suberror Code: {result['suberror_code']}\n")
-                self.sew_results_text.insert(tk.END, f"Suberror Designation: {result['suberror_designation']}\n")
-                self.sew_results_text.insert(tk.END, f"\nPossible Cause:\n{result['possible_cause']}\n")
-                self.sew_results_text.insert(tk.END, f"\nRecommended Measure:\n{result['measure']}\n")
-                self.sew_results_text.insert(tk.END, "\n" + "=" * 80 + "\n\n")
+            # Show only the first matching result
+            self._show_error_card(results[0])
         else:
-            self.sew_results_text.insert(tk.END, "No matching error codes found.\n\n")
-            self.sew_results_text.insert(tk.END, "Please check your search criteria:\n")
-            self.sew_results_text.insert(tk.END, "• Make sure at least one field is filled\n")
-            self.sew_results_text.insert(tk.END, "• Try using partial matches (e.g., '01' instead of '01.0')\n")
-            self.sew_results_text.insert(tk.END, "• Check spelling of error designations\n")
+            self._show_no_results()
 
     def _replace_variables(self, text):
         """Replace variables in double curly braces with their values from the JSON configuration."""
