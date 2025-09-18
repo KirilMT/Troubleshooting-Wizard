@@ -90,7 +90,7 @@ The application uses a dual-file configuration system designed for security and 
       "TechnologyName": {
         "button_text": "Display Name",
         "url_variable_name": "https://your-actual-url.com/path/to/file.pdf",
-        "tasks": [...]
+        "tasks": ["..."]
       }
     }
   }
@@ -175,6 +175,10 @@ python src/process_pdf.py --pdf-path "path/to/manual.pdf" --table-name "error_co
 ### Code Style
 
 This project follows PEP 8 Python style guidelines and uses object-oriented programming patterns.
+
+### AI Assistant Instructions
+
+Project-specific instructions for GitHub Copilot and other AI assistants are located in `.github/copilot-instructions.md`.
 
 ### Contributing
 
