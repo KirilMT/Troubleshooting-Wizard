@@ -205,10 +205,22 @@ class MainApplication:
 
         error_codes_width = task_attributes.get("width", 800)
         error_codes_height = task_attributes.get("height", 730)
-        # image_path = task_attributes.get("image_path", "")  # REMOVE: No image in main view
-
-        # Check if this is SEW technology for database functionality
         is_sew_technology = tech_data.get("button_text", "").lower().find("sew") != -1
+
+        # --- NEW LOGIC: Pre-calculate required size for SEW view ---
+        if is_sew_technology:
+            # Create a hidden frame to measure required size
+            temp_frame = ttk.Frame(self.root)
+            temp_frame.pack_forget()
+            self._show_sew_database_interface(temp_frame, measure_only=True)
+            temp_frame.update_idletasks()
+            req_width = temp_frame.winfo_reqwidth()
+            req_height = temp_frame.winfo_reqheight()
+            temp_frame.destroy()
+            # Center window with measured size
+            self._set_window_dimensions(req_width, req_height)
+            error_codes_width = req_width
+            error_codes_height = req_height
 
         error_codes_frame = ttk.Frame(self.root)
         error_codes_frame.pack(fill="both", expand=True)
@@ -234,24 +246,9 @@ class MainApplication:
         )
         back_button.pack(side="left", padx=10)
 
-        # REMOVE: No image shown in main view
-        # self.sew_image_label = None
-        # try:
-        #     if image_path:
-        #         abs_image_path = os.path.abspath(os.path.join(self.script_dir, image_path))
-        #         image = Image.open(abs_image_path)
-        #         photo = ImageTk.PhotoImage(image)
-        #         self.sew_image_label = tk.Label(error_codes_frame, image=photo)
-        #         self.sew_image_label.image = photo
-        #         self.sew_image_label.pack(pady=10)
-        # except Exception as e:
-        #     print(f"Error loading image: {e}")
-
-        # Show SEW database search interface if this is SEW technology
         if is_sew_technology:
             self._show_sew_database_interface(error_codes_frame)
         else:
-            # Show traditional PDF search interface for other technologies
             self._show_traditional_search_interface(error_codes_frame, task_attributes)
 
     def _show_traditional_search_interface(self, parent_frame, task_attributes):
@@ -276,17 +273,12 @@ class MainApplication:
         )
         search_button.pack(side="right", padx=10)
 
-    def _show_sew_database_interface(self, parent_frame):
-        """Show the SEW database search interface with improved responsive layout and help image modal."""
-        # Main container with padding
+    def _show_sew_database_interface(self, parent_frame, measure_only=False):
+        """Show the SEW database search interface. If measure_only=True, just pack widgets for size calculation."""
         main_container = ttk.Frame(parent_frame)
         main_container.pack(fill="both", expand=True, padx=20, pady=10)
         parent_frame.update_idletasks()
-        # Remove explicit minsize and grid_propagate for dynamic sizing
-        # parent_frame.winfo_toplevel().minsize(700, 500)
-        # parent_frame.grid_propagate(False)
 
-        # Title section with help button
         title_frame = ttk.Frame(main_container)
         title_frame.pack(fill="x", pady=(0, 10))
         title_frame.columnconfigure(0, weight=1)
@@ -320,7 +312,6 @@ class MainApplication:
         )
         subtitle_label.pack(fill="x", pady=(0, 10))
 
-        # Search section
         search_container = ttk.LabelFrame(main_container, text="Search Criteria", padding=15)
         search_container.pack(fill="x", pady=(0, 10))
         search_container.columnconfigure(1, weight=1)
@@ -349,16 +340,15 @@ class MainApplication:
         self.sew_suberror_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
         self.sew_error_designation_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
 
-        # Results section - Single error card display, no scrollbars
         results_container = ttk.LabelFrame(main_container, text="Error Code Details", padding=15)
         results_container.pack(fill="both", expand=True, pady=(0, 10))
         self.results_frame = ttk.Frame(results_container)
         self.results_frame.pack(fill="both", expand=True)
         self._show_search_instructions()
 
-        # Dynamically resize window to fit content
-        self.root.update_idletasks()
-        self.root.geometry("")
+        if not measure_only:
+            self.root.update_idletasks()
+            self.root.geometry("")
 
     def _show_help_image(self):
         """Show the help image in a modal popup window."""
@@ -562,6 +552,19 @@ class MainApplication:
 
         if not any([error_code, suberror_code, error_designation]):
             self._show_search_instructions()
+            # --- Measure the full SEW error code view and resize/center window to its default size ---
+            temp_frame = ttk.Frame(self.root)
+            temp_frame.pack_forget()
+            self._show_sew_database_interface(temp_frame, measure_only=True)
+            temp_frame.update_idletasks()
+            req_width = temp_frame.winfo_reqwidth()
+            req_height = temp_frame.winfo_reqheight()
+            temp_frame.destroy()
+            screen_width = self.root.winfo_screenwidth()
+            screen_height = self.root.winfo_screenheight()
+            x = (screen_width - req_width) // 2
+            y = (screen_height - req_height) // 2
+            self.root.geometry(f"{req_width}x{req_height}+{x}+{y}")
             return
 
         # Construct the correct database path
@@ -578,6 +581,16 @@ class MainApplication:
             self._show_error_card(results[0])
         else:
             self._show_no_results()
+
+        # --- Center window after resizing for results or no results ---
+        self.root.update_idletasks()
+        new_width = self.root.winfo_width()
+        new_height = self.root.winfo_height()
+        screen_width = self.root.winfo_screenwidth()
+        screen_height = self.root.winfo_screenheight()
+        x = (screen_width - new_width) // 2
+        y = (screen_height - new_height) // 2
+        self.root.geometry(f"{new_width}x{new_height}+{x}+{y}")
 
     def _replace_variables(self, text):
         """Replace variables in double curly braces with their values from the JSON configuration."""
