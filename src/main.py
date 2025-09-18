@@ -479,23 +479,49 @@ class MainApplication:
             actions_text.pack(fill="x")
 
     def _format_text_content(self, text):
-        """Format text content for better readability."""
+        """Format text content for better readability while preserving structure and joining broken sentences."""
         if not text or text.strip() == "":
             return "Not specified"
 
-        # Clean up the text
-        text = text.replace("•", "\n•").replace("\\n", "\n")
-        lines = [line.strip() for line in text.split("\n") if line.strip()]
+        # Replace literal \n with actual newlines
+        text = text.replace("\\n", "\n")
 
-        formatted_lines = []
+        # Split into lines and process them
+        lines = text.split("\n")
+        processed_lines = []
+        current_line = ""
+
         for line in lines:
-            if line.startswith("•"):
-                formatted_lines.append(line)
-            else:
-                # Add bullet point if not present
-                formatted_lines.append(f"• {line}")
+            line = line.strip()
+            if not line:  # Skip empty lines
+                continue
 
-        return "\n".join(formatted_lines) if formatted_lines else "Not specified"
+            # If this line starts with a bullet point, finish the current line and start a new one
+            if line.startswith("•"):
+                if current_line:
+                    processed_lines.append(current_line.strip())
+                current_line = line
+            else:
+                # This line doesn't start with a bullet point
+                if current_line:
+                    # If we have a current line, check if this should be joined to it
+                    # Join if the current line doesn't end with punctuation that indicates end of sentence
+                    if current_line.rstrip().endswith(('.', ':', '!', '?')):
+                        # Current line ends with punctuation, start a new line
+                        processed_lines.append(current_line.strip())
+                        current_line = line
+                    else:
+                        # Join to current line with a space
+                        current_line += " " + line
+                else:
+                    # No current line, start with this line
+                    current_line = line
+
+        # Don't forget the last line
+        if current_line:
+            processed_lines.append(current_line.strip())
+
+        return "\n".join(processed_lines) if processed_lines else "Not specified"
 
     def _show_no_results(self):
         """Show no results found message."""
