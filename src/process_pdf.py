@@ -175,12 +175,32 @@ class SEWErrorCodeExtractor:
     def strip_bullets(self, text):
         if not text:
             return ""
-        return re.sub(r"[•\u2022]", "", text).strip()
+        # Remove bullet character (•) only once in the regex
+        return re.sub(r"[•]", "", text).strip()
+
+    def clean_text(self, text):
+        """
+        Clean up text by:
+        - Joining lines where a word is split with a hyphen at the end of a line (e.g., 'com-\nmand' -> 'command').
+        - Preserving all original formatting (bullets, dashes, numbers, paragraphs).
+        - Stripping leading/trailing whitespace and normalizing spaces.
+        """
+        if not text:
+            return ""
+        # Join hyphenated line breaks (word split across lines)
+        # This regex finds a word ending with a hyphen at the end of a line, followed by a newline and a word on the next line
+        # It replaces 'com-\nmand' with 'command'
+        text = re.sub(r'(\w+)-\s*\n\s*(\w+)', r'\1\2', text)
+        # Replace multiple spaces with a single space, preserve newlines
+        text = re.sub(r'[ ]+', ' ', text)
+        # Normalize newlines (remove trailing spaces on each line)
+        lines = [line.rstrip() for line in text.splitlines()]
+        return '\n'.join(lines).strip()
 
     def extract_sew_error_codes_detailed(self, start_page, end_page):
         """
-        Improved SEW error code extraction: robustly handles multi-row error codes, suberrors, and merges split rows.
-        Adds debug output for each row processed.
+        SEW error code extraction: robustly handles multi-row error codes, suberrors, and merges split rows.
+        Debug output removed for production use.
         """
         import pdfplumber
         sew_errors = []
@@ -188,20 +208,15 @@ class SEWErrorCodeExtractor:
         last_suberror_code = last_suberror_designation = None
         last_possible_cause = last_measure = None
         with pdfplumber.open(self.pdf_path) as pdf:
-            total_pages = len(pdf.pages)
-            print(f"PDF has {total_pages} pages. Extracting from {start_page} to {end_page} (inclusive)...")
             for i in range(start_page - 1, end_page):
                 page_num = i + 1
                 page = pdf.pages[i]
                 tables = page.extract_tables()
-                print(f"Processing page {page_num} (index {i})...")
                 for t_idx, table in enumerate(tables):
-                    print(f"  Found table {t_idx+1} on page {page_num} with {len(table)} rows.")
                     row_idx = 0
                     while row_idx < len(table):
                         row = (table[row_idx] + [None] * 7)[:7]
                         if self.is_header_or_page_row(row):
-                            print(f"    Skipping header row {row_idx+1} on page {page_num}, table {t_idx+1}: {row}")
                             row_idx += 1
                             continue
                         error_code = None
@@ -212,7 +227,6 @@ class SEWErrorCodeExtractor:
                         possible_cause = None
                         measure = None
                         if row[0] and str(row[0]).strip().isdigit():
-                            print(f"    Extracting error code row {row_idx+1} on page {page_num}, table {t_idx+1}: {row}")
                             error_code = str(row[0]).strip()
                             error_designation = str(row[1]).strip() if row[1] else last_error_designation
                             response = str(row[2]).strip() if row[2] else last_response
@@ -221,7 +235,6 @@ class SEWErrorCodeExtractor:
                             possible_cause = str(row[5]).strip() if row[5] else last_possible_cause
                             measure = str(row[6]).strip() if row[6] else last_measure
                         elif row[1] and str(row[1]).strip().isdigit():
-                            print(f"    Extracting error code row {row_idx+1} on page {page_num}, table {t_idx+1}: {row}")
                             error_code = str(row[1]).strip()
                             error_designation = str(row[2]).strip() if row[2] else last_error_designation
                             response = str(row[3]).strip() if row[3] else last_response
@@ -229,7 +242,6 @@ class SEWErrorCodeExtractor:
                             suberror_designation = str(row[5]).strip() if row[5] else ""
                             possible_cause = str(row[6]).strip() if row[6] else last_possible_cause
                             measure = ""
-                            # If next row has possible cause/measure, merge
                             if row_idx + 1 < len(table):
                                 next_row = (table[row_idx + 1] + [None] * 7)[:7]
                                 if not self.is_header_or_page_row(next_row):
@@ -238,7 +250,6 @@ class SEWErrorCodeExtractor:
                                     if next_row[6]:
                                         measure = str(next_row[6]).strip()
                         elif row[3] and str(row[3]).strip().isdigit():
-                            print(f"    Extracting suberror code row {row_idx+1} on page {page_num}, table {t_idx+1}: {row}")
                             error_code = last_error_code
                             error_designation = last_error_designation
                             response = last_response
@@ -247,7 +258,6 @@ class SEWErrorCodeExtractor:
                             possible_cause = str(row[5]).strip() if row[5] else last_possible_cause
                             measure = str(row[6]).strip() if row[6] else last_measure
                         elif row[4] and str(row[4]).strip().isdigit():
-                            print(f"    Extracting suberror code row {row_idx+1} on page {page_num}, table {t_idx+1}: {row}")
                             error_code = last_error_code
                             error_designation = last_error_designation
                             response = last_response
@@ -255,7 +265,6 @@ class SEWErrorCodeExtractor:
                             suberror_designation = str(row[5]).strip() if row[5] else ""
                             possible_cause = str(row[6]).strip() if row[6] else last_possible_cause
                             measure = ""
-                            # If next row has possible cause/measure, merge
                             if row_idx + 1 < len(table):
                                 next_row = (table[row_idx + 1] + [None] * 7)[:7]
                                 if not self.is_header_or_page_row(next_row):
@@ -264,10 +273,8 @@ class SEWErrorCodeExtractor:
                                     if next_row[6]:
                                         measure = str(next_row[6]).strip()
                         else:
-                            print(f"    Skipping non-numeric error code row {row_idx+1} on page {page_num}, table {t_idx+1}: {row}")
                             row_idx += 1
                             continue
-                        # Update last seen values
                         last_error_code = error_code if error_code else last_error_code
                         last_error_designation = error_designation if error_designation else last_error_designation
                         last_response = response if response else last_response
@@ -276,19 +283,18 @@ class SEWErrorCodeExtractor:
                         last_possible_cause = possible_cause if possible_cause else last_possible_cause
                         last_measure = measure if measure else last_measure
                         sew_errors.append({
-                            "error_code": error_code or last_error_code,
-                            "error_designation": error_designation or last_error_designation,
-                            "response": response or last_response,
-                            "suberror_code": suberror_code or last_suberror_code,
-                            "suberror_designation": self.strip_bullets(suberror_designation or last_suberror_designation),
-                            "possible_cause": self.strip_bullets(possible_cause or last_possible_cause),
-                            "measure": self.strip_bullets(measure or last_measure),
+                            "error_code": self.clean_text(error_code or last_error_code),
+                            "error_designation": self.clean_text(error_designation or last_error_designation),
+                            "error_response": self.clean_text(response or last_response),
+                            "suberror_code": self.clean_text(suberror_code or last_suberror_code),
+                            "suberror_designation": self.clean_text(self.strip_bullets(suberror_designation or last_suberror_designation)),
+                            "possible_cause": self.clean_text(possible_cause or last_possible_cause),
+                            "measure": self.clean_text(measure or last_measure),
                             "page": page_num,
                             "table_index": t_idx + 1,
                             "row_index": row_idx + 1
                         })
                         row_idx += 1
-            print(f"Extracted {len(sew_errors)} error codes.")
         return sew_errors
 
 
@@ -304,7 +310,7 @@ class SEWDatabaseManager(DatabaseManager):
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 error_code TEXT,
                 error_designation TEXT,
-                response TEXT,
+                error_response TEXT,
                 suberror_code TEXT,
                 suberror_designation TEXT,
                 possible_cause TEXT,
@@ -317,11 +323,11 @@ class SEWDatabaseManager(DatabaseManager):
         cursor = self.conn.cursor()
         for err in sew_errors:
             cursor.execute(
-                "INSERT INTO sew_error_codes_detailed (error_code, error_designation, response, suberror_code, suberror_designation, possible_cause, measure) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO sew_error_codes_detailed (error_code, error_designation, error_response, suberror_code, suberror_designation, possible_cause, measure) VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     err["error_code"],
                     err["error_designation"],
-                    err["response"],
+                    err["error_response"],
                     err["suberror_code"],
                     err["suberror_designation"],
                     err["possible_cause"],
