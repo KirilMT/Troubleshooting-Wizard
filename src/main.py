@@ -412,6 +412,13 @@ class MainApplication:
         )
         instructions_label.pack()
 
+    def _format_single_line_content(self, text):
+        """Format text content for single-line display (remove artificial newlines)."""
+        if not text or text.strip() == "":
+            return "Not specified"
+        # Replace literal \n and actual newlines with a space, then collapse multiple spaces
+        return ' '.join(text.replace("\\n", " ").replace("\n", " ").split())
+
     def _show_error_card(self, error_data):
         for widget in self.results_frame.winfo_children():
             widget.destroy()
@@ -434,7 +441,7 @@ class MainApplication:
         ).pack(side="left")
         designation_label = ttk.Label(
             header_frame,
-            text=error_data.get('error_designation', 'Unknown Error'),
+            text=self._format_single_line_content(error_data.get('error_designation', 'Unknown Error')),
             font=("Segoe UI", 16, "bold"),
             foreground="#2C3E50"
         )
@@ -442,7 +449,7 @@ class MainApplication:
         if error_data.get('error_response'):
             response_label = ttk.Label(
                 header_frame,
-                text=f"Response: {error_data.get('error_response')}",
+                text=f"Response: {self._format_single_line_content(error_data.get('error_response'))}",
                 font=("Segoe UI", 11),
                 foreground="#E67E22"
             )
