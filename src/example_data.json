@@ -1,12 +1,12 @@
 {
   "MainApplication": {
-    "title": "Industrial Troubleshooting Application",
+    "title": "Troubleshooting-Wizard",
     "width": 350,
     "height": 470,
     "Technologies": {
       "WTC": {
         "button_text": "WTC Controllers",
-        "title": "Troubleshooting - WTC Controllers",
+        "title": "Troubleshooting-Wizard - WTC Controllers",
         "width": 370,
         "height": 210,
         "wtc_flowchart_url_path": "https://example.com/path/to/wtc_flowchart.pdf",
@@ -17,7 +17,7 @@
             "WTC Error Codes": {
               "task_type": "error_codes",
               "button_text": "WTC Error Codes",
-              "title": "Troubleshooting - WTC Controllers - Error Codes",
+              "title": "Troubleshooting-Wizard - WTC Controllers - Error Codes",
               "width": 800,
               "height": 650,
               "url_path": "{{wtc_manual_url_path}}",
@@ -47,7 +47,7 @@
       },
       "Lenze": {
         "button_text": "Lenze Drives",
-        "title": "Troubleshooting - Lenze Drives",
+        "title": "Troubleshooting-Wizard - Lenze Drives",
         "width": 370,
         "height": 300,
         "lenze_manual_url_path": "https://example.com/path/to/lenze_manual.pdf",
@@ -59,7 +59,7 @@
             "Lenze Error Codes": {
               "task_type": "error_codes",
               "button_text": "Lenze Error Codes",
-              "title": "Troubleshooting - Lenze Drives - Error Codes",
+              "title": "Troubleshooting-Wizard - Lenze Drives - Error Codes",
               "width": 800,
               "height": 730,
               "url_path": "{{lenze_manual_url_path}}",
@@ -102,7 +102,7 @@
       },
       "FANUC": {
         "button_text": "FANUC Robotics",
-        "title": "Troubleshooting - FANUC Robotics",
+        "title": "Troubleshooting-Wizard - FANUC Robotics",
         "width": 370,
         "height": 200,
         "fanuc_error_manual_url_path": "https://example.com/path/to/fanuc_error_codes.pdf",
@@ -110,7 +110,7 @@
           {
             "FANUC Alarm Codes": {
               "task_type": "error_codes",
-              "title": "Troubleshooting - FANUC Robotics - Alarm Codes",
+              "title": "Troubleshooting-Wizard - FANUC Robotics - Alarm Codes",
               "width": 800,
               "height": 750,
               "url_path": "{{fanuc_error_manual_url_path}}",
@@ -122,7 +122,7 @@
       },
       "SEW": {
         "button_text": "SEW Drive Systems",
-        "title": "Troubleshooting - SEW Drive Systems",
+        "title": "Troubleshooting-Wizard - SEW Drive Systems",
         "width": 370,
         "height": 210,
         "sew_manual_url_path": "https://example.com/path/to/sew_manual.pdf",
@@ -131,7 +131,7 @@
             "Error Codes - MoviPro": {
               "task_type": "error_codes",
               "button_text": "Error Codes - MoviPro",
-              "title": "Troubleshooting - SEW Drive Systems - MoviPro Error Codes",
+              "title": "Troubleshooting-Wizard - SEW Drive Systems - MoviPro Error Codes",
               "width": 1000,
               "height": 800,
               "url_path": "{{sew_manual_url_path}}",
@@ -143,7 +143,7 @@
             "SEW Error Codes": {
               "task_type": "error_codes",
               "button_text": "SEW Error Codes",
-              "title": "Troubleshooting - SEW Drive Systems - Error Codes",
+              "title": "Troubleshooting-Wizard - SEW Drive Systems - Error Codes",
               "width": 800,
               "height": 650,
               "url_path": "{{sew_manual_url_path}}",

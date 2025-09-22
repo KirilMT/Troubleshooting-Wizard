@@ -1,4 +1,4 @@
-# AI Assistant Instructions for Industrial Troubleshooting Application
+# AI Assistant Instructions for Troubleshooting-Wizard
 
 This document provides project-specific context to guide AI code generation.
 
@@ -22,6 +22,7 @@ This is a Python-based GUI application for industrial equipment troubleshooting 
 ## Project Structure
 
 ```
+Troubleshooting-Wizard/
 ├── src/
 │   ├── main.py              # Main GUI application
 │   ├── process_pdf.py       # PDF processing utility

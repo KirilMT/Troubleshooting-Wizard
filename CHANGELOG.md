@@ -15,7 +15,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.0.0] - 2024-07-31
 
 ### Added
-- **Initial Project Setup**: First version of the Industrial Troubleshooting Application.
+- **Initial Project Setup**: First version of the Troubleshooting-Wizard.
 - **Core Features**:
     - Multi-technology support for various industrial systems.
     - Interactive error code search with PDF processing.

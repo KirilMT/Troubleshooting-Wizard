@@ -1,4 +1,4 @@
-# Industrial Troubleshooting Application
+# Troubleshooting-Wizard
 
 A Python-based GUI application for industrial equipment troubleshooting and error code management. This tool provides a centralized interface for accessing error codes, manuals, and troubleshooting resources for various manufacturing technologies.
 
@@ -36,6 +36,7 @@ A Python-based GUI application for industrial equipment troubleshooting and erro
 ## 📁 Project Structure
 
 ```
+Troubleshooting-Wizard/
 ├── src/
 │   ├── main.py              # Main GUI application
 │   ├── process_pdf.py       # PDF processing utility

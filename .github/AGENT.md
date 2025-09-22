@@ -4,7 +4,7 @@ This document provides project-specific context and instructions for Gemini Code
 
 ## Project Overview
 
-This is a Python-based GUI application for industrial equipment troubleshooting and error code management. It uses `tkinter` for the user interface and `SQLite` to store data extracted from PDF manuals. The application is highly configurable through a `data.json` file, allowing users to add new technologies and resources easily.
+This project, Troubleshooting-Wizard, is a Python-based GUI application for industrial equipment troubleshooting and error code management. It uses `tkinter` for the user interface and `SQLite` to store data extracted from PDF manuals. The application is highly configurable through a `data.json` file, allowing users to add new technologies and resources easily.
 
 ### Key Features
 - **Multi-Technology Support**: Configurable for various industrial systems (WTC, Lenze, FANUC, etc.).
@@ -22,6 +22,7 @@ This is a Python-based GUI application for industrial equipment troubleshooting 
 ## Project Structure
 
 ```
+Troubleshooting-Wizard/
 ├── src/
 │   ├── main.py              # Main GUI application
 │   ├── process_pdf.py       # PDF processing utility

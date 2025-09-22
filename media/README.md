@@ -1,6 +1,6 @@
 # Media Files Directory
 
-This directory contains image files used by the Industrial Troubleshooting Application to display error code references and system diagrams.
+This directory contains image files used by the Troubleshooting-Wizard to display error code references and system diagrams.
 
 ## File Structure
 
