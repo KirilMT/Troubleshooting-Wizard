@@ -150,7 +150,7 @@ class MainApplication:
 
         back_button = ttk.Button(
             tech_frame,
-            text="< Back to Technologies",
+            text=self.json_data["labels"]["back_to_technologies"],
             command=self.show_previous_view  # Use the previous view function
         )
         back_button.pack(side="left", anchor="nw", padx=10, pady=10)  # Move to the top-left corner
@@ -234,14 +234,14 @@ class MainApplication:
 
         home_button = ttk.Button(
             button_frame,
-            text="< Back to Technologies",
+            text=self.json_data["labels"]["back_to_technologies"],
             command=self.show_main_program
         )
         home_button.pack(side="left", padx=10)
 
         back_button = ttk.Button(
             button_frame,
-            text="< Back to Tasks",
+            text=self.json_data["labels"]["back_to_tasks"],
             command=self.show_previous_view
         )
         back_button.pack(side="left", padx=10)
@@ -258,7 +258,7 @@ class MainApplication:
 
         label_style = ttk.Style()
         label_style.configure("Bold.TLabel", font=("Helvetica", 15, "bold"))
-        ttk.Label(label_frame, text="Insert fault code/message:", style="Bold.TLabel").pack(side="left")
+        ttk.Label(label_frame, text=self.json_data["labels"]["insert_fault_code"], style="Bold.TLabel").pack(side="left")
 
         entry_style = ttk.Style()
         entry_style.configure("Large.TEntry", font=("Helvetica", 16))
@@ -268,7 +268,7 @@ class MainApplication:
 
         search_button = ttk.Button(
             parent_frame,
-            text="Search",
+            text=self.json_data["labels"]["search"],
             command=lambda: self._search_pdf(search_entry.get(), task_attributes.get("url_path"))
         )
         search_button.pack(side="right", padx=10)
@@ -284,7 +284,7 @@ class MainApplication:
         title_frame.columnconfigure(0, weight=1)
         title_label = ttk.Label(
             title_frame,
-            text="SEW MoviPro Error Code Database",
+            text=self.json_data["labels"]["sew_db_title"],
             font=("Segoe UI", 18, "bold"),
             foreground="#2E86AB",
             anchor="center",
@@ -293,7 +293,7 @@ class MainApplication:
         title_label.grid(row=0, column=0, sticky="ew")
         help_btn = ttk.Button(
             title_frame,
-            text="?",
+            text=self.json_data["labels"]["sew_db_help_button"],
             width=2,
             command=self._show_help_image,
             style="Help.TButton"
@@ -304,7 +304,7 @@ class MainApplication:
 
         subtitle_label = ttk.Label(
             main_container,
-            text="Search and troubleshoot SEW drive system error codes",
+            text=self.json_data["labels"]["sew_db_subtitle"],
             font=("Segoe UI", 10),
             foreground="#666666",
             anchor="center",
@@ -312,25 +312,25 @@ class MainApplication:
         )
         subtitle_label.pack(fill="x", pady=(0, 10))
 
-        search_container = ttk.LabelFrame(main_container, text="Search Criteria", padding=15)
+        search_container = ttk.LabelFrame(main_container, text=self.json_data["labels"]["sew_db_search_criteria_label"], padding=15)
         search_container.pack(fill="x", pady=(0, 10))
         search_container.columnconfigure(1, weight=1)
         search_container.columnconfigure(3, weight=1)
 
-        ttk.Label(search_container, text="Error Code:", font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w", pady=8, padx=(0, 10))
+        ttk.Label(search_container, text=self.json_data["labels"]["sew_db_error_code_label"], font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w", pady=8, padx=(0, 10))
         self.sew_error_code_entry = ttk.Entry(search_container, width=15, font=("Segoe UI", 10))
         self.sew_error_code_entry.grid(row=0, column=1, sticky="ew", pady=8, padx=(0, 20))
-        ttk.Label(search_container, text="Suberror Code:", font=("Segoe UI", 10, "bold")).grid(row=0, column=2, sticky="w", pady=8, padx=(0, 10))
+        ttk.Label(search_container, text=self.json_data["labels"]["sew_db_suberror_code_label"], font=("Segoe UI", 10, "bold")).grid(row=0, column=2, sticky="w", pady=8, padx=(0, 10))
         self.sew_suberror_code_entry = ttk.Entry(search_container, width=15, font=("Segoe UI", 10))
         self.sew_suberror_code_entry.grid(row=0, column=3, sticky="ew", pady=8)
-        ttk.Label(search_container, text="Error Description:", font=("Segoe UI", 10, "bold")).grid(row=1, column=0, sticky="w", pady=(16, 8), padx=(0, 10))
+        ttk.Label(search_container, text=self.json_data["labels"]["sew_db_error_designation_label"], font=("Segoe UI", 10, "bold")).grid(row=1, column=0, sticky="w", pady=(16, 8), padx=(0, 10))
         self.sew_error_designation_entry = ttk.Entry(search_container, font=("Segoe UI", 10))
         self.sew_error_designation_entry.grid(row=1, column=1, columnspan=3, sticky="ew", pady=(16, 8))
         button_frame = ttk.Frame(search_container)
         button_frame.grid(row=2, column=0, columnspan=4, pady=(20, 0))
         search_button = ttk.Button(
             button_frame,
-            text="🔍 Search Error Code",
+            text=self.json_data["labels"]["sew_db_search_button"],
             command=self.search_sew_error_codes,
             style="Accent.TButton"
         )
@@ -340,7 +340,7 @@ class MainApplication:
         self.sew_suberror_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
         self.sew_error_designation_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
 
-        results_container = ttk.LabelFrame(main_container, text="Error Code Details", padding=15)
+        results_container = ttk.LabelFrame(main_container, text=self.json_data["labels"]["sew_db_results_label"], padding=15)
         results_container.pack(fill="both", expand=True, pady=(0, 10))
         self.results_frame = ttk.Frame(results_container)
         self.results_frame.pack(fill="both", expand=True)
@@ -357,7 +357,7 @@ class MainApplication:
             image_path = os.path.join(self.script_dir, "media", "SEW_MoviPro_movitools_parameters.jpg")
         try:
             help_win = tk.Toplevel(self.root)
-            help_win.title("SEW MoviPro Help")
+            help_win.title(self.json_data["labels"]["sew_db_help_title"])
             help_win.transient(self.root)
             help_win.grab_set()
             help_win.geometry("700x400")
@@ -368,10 +368,10 @@ class MainApplication:
             img_label = tk.Label(help_win, image=photo)
             img_label.image = photo
             img_label.pack(padx=10, pady=10)
-            close_btn = ttk.Button(help_win, text="Close", command=help_win.destroy)
+            close_btn = ttk.Button(help_win, text=self.json_data["labels"]["sew_db_help_close_button"], command=help_win.destroy)
             close_btn.pack(pady=(0, 10))
         except Exception as e:
-            messagebox.showerror("Help Image Error", f"Could not load help image: {e}")
+            messagebox.showerror(self.json_data["labels"]["sew_db_help_error_title"], self.json_data["labels"]["sew_db_help_error_message"].format(e=e))
 
         # Center the help image popup on the screen (should be outside the except block)
         help_win.update_idletasks()
@@ -391,18 +391,18 @@ class MainApplication:
         instructions_frame.pack(fill="x", padx=20, pady=20)
         icon_label = ttk.Label(
             instructions_frame,
-            text="🔍",
+            text=self.json_data["labels"]["sew_db_search_instructions_icon"],
             font=("Segoe UI", 24)
         )
         icon_label.pack(pady=(0, 10))
         title_label = ttk.Label(
             instructions_frame,
-            text="Search for SEW Error Codes",
+            text=self.json_data["labels"]["sew_db_search_instructions_title"],
             font=("Segoe UI", 14, "bold"),
             foreground="#2E86AB"
         )
         title_label.pack(pady=(0, 15))
-        instructions_text = """Enter search criteria above and click 'Search Error Code':\n\n• Error Code: Main fault code (e.g., '01', '02', '03')\n• Suberror Code: Additional specification (e.g., '0', '1', '5')\n• Error Description: Partial description (e.g., 'Overcurrent')\n\nUse partial matches for better results."""
+        instructions_text = self.json_data["labels"]["sew_db_search_instructions"]
         instructions_label = ttk.Label(
             instructions_frame,
             text=instructions_text,
@@ -415,7 +415,7 @@ class MainApplication:
     def _format_single_line_content(self, text):
         """Format text content for single-line display (remove artificial newlines)."""
         if not text or text.strip() == "":
-            return "Not specified"
+            return self.json_data["labels"]["sew_db_not_specified"]
         # Replace literal \n and actual newlines with a space, then collapse multiple spaces
         return ' '.join(text.replace("\\n", " ").replace("\n", " ").split())
 
@@ -428,7 +428,7 @@ class MainApplication:
         header_frame.pack(fill="x", pady=(0, 10))
         error_code_frame = ttk.Frame(header_frame)
         error_code_frame.pack(anchor="w")
-        code_text = f"Error Code: {error_data.get('error_code', 'N/A')}"
+        code_text = self.json_data["labels"]["sew_db_error_card_error_code_label"].format(error_code=error_data.get('error_code', 'N/A'))
         if error_data.get('suberror_code'):
             code_text += f".{error_data.get('suberror_code')}"
         ttk.Label(
@@ -441,7 +441,7 @@ class MainApplication:
         ).pack(side="left")
         designation_label = ttk.Label(
             header_frame,
-            text=self._format_single_line_content(error_data.get('error_designation', 'Unknown Error')),
+            text=self._format_single_line_content(error_data.get('error_designation', self.json_data["labels"]["sew_db_error_card_unknown_error"])),
             font=("Segoe UI", 16, "bold"),
             foreground="#2C3E50"
         )
@@ -449,7 +449,7 @@ class MainApplication:
         if error_data.get('error_response'):
             response_label = ttk.Label(
                 header_frame,
-                text=f"Response: {self._format_single_line_content(error_data.get('error_response'))}",
+                text=self.json_data["labels"]["sew_db_error_card_response_label"].format(response=self._format_single_line_content(error_data.get('error_response'))),
                 font=("Segoe UI", 11),
                 foreground="#E67E22"
             )
@@ -459,7 +459,7 @@ class MainApplication:
         content_frame = ttk.Frame(card_frame)
         content_frame.pack(fill="x")
         if error_data.get('possible_cause'):
-            causes_frame = ttk.LabelFrame(content_frame, text="🔍 Possible Causes", padding=10)
+            causes_frame = ttk.LabelFrame(content_frame, text=self.json_data["labels"]["sew_db_error_card_possible_causes_label"], padding=10)
             causes_frame.pack(fill="x", pady=(0, 10))
             causes_text = tk.Label(
                 causes_frame,
@@ -472,7 +472,7 @@ class MainApplication:
             )
             causes_text.pack(fill="x")
         if error_data.get('measure'):
-            actions_frame = ttk.LabelFrame(content_frame, text="✅ Recommended Actions", padding=10)
+            actions_frame = ttk.LabelFrame(content_frame, text=self.json_data["labels"]["sew_db_error_card_recommended_actions_label"], padding=10)
             actions_frame.pack(fill="x")
             actions_text = tk.Label(
                 actions_frame,
@@ -488,7 +488,7 @@ class MainApplication:
     def _format_text_content(self, text):
         """Format text content for better readability while preserving structure and joining broken sentences."""
         if not text or text.strip() == "":
-            return "Not specified"
+            return self.json_data["labels"]["sew_db_not_specified"]
 
         # Replace literal \n with actual newlines
         text = text.replace("\\n", "\n")
@@ -528,7 +528,7 @@ class MainApplication:
         if current_line:
             processed_lines.append(current_line.strip())
 
-        return "\n".join(processed_lines) if processed_lines else "Not specified"
+        return "\n".join(processed_lines) if processed_lines else self.json_data["labels"]["sew_db_not_specified"]
 
     def _show_no_results(self):
         """Show no results found message."""
@@ -542,7 +542,7 @@ class MainApplication:
         # Icon
         icon_label = ttk.Label(
             no_results_frame,
-            text="❌",
+            text=self.json_data["labels"]["sew_db_no_results_icon"],
             font=("Segoe UI", 24)
         )
         icon_label.pack(pady=(0, 10))
@@ -550,18 +550,13 @@ class MainApplication:
         # Message
         title_label = ttk.Label(
             no_results_frame,
-            text="No Error Code Found",
+            text=self.json_data["labels"]["sew_db_no_results_title"],
             font=("Segoe UI", 14, "bold"),
             foreground="#E74C3C"
         )
         title_label.pack(pady=(0, 15))
 
-        suggestions_text = """Try these suggestions:
-
-• Use partial matches (e.g., "01" instead of "01.0")
-• Check spelling of error descriptions
-• Try searching with just the main error code
-• Verify the error code exists in the database"""
+        suggestions_text = self.json_data["labels"]["sew_db_no_results_suggestions"]
 
         suggestions_label = ttk.Label(
             no_results_frame,
@@ -666,7 +661,7 @@ if __name__ == "__main__":
     if not os.path.exists(data_file_path):
         data_file_path = os.path.join(script_dir, "example_data.json")
 
-    with open(data_file_path, "r") as json_file:
+    with open(data_file_path, "r", encoding="utf-8") as json_file:
         json_data = json.load(json_file)
 
     app = MainApplication(root, json_data, script_dir)
