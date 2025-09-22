@@ -1,6 +1,6 @@
-# AI Assistant Instructions for Industrial Troubleshooting Application
+# Gemini Code Assist Instructions
 
-This document provides project-specific context to guide AI code generation.
+This document provides project-specific context and instructions for Gemini Code Assist.
 
 ## Project Overview
 
@@ -55,3 +55,12 @@ This is a Python-based GUI application for industrial equipment troubleshooting 
 1.  **Run the application**: `python src/main.py`
 2.  **Navigate the UI**: Select a technology and choose a task.
 3.  **Test PDF Processing**: `python src/process_pdf.py --pdf-path "path/to/manual.pdf" ...`
+
+## Interaction & Workflow
+
+When you ask me to work on an issue, I will adhere to the following process:
+
+1.  **Follow the Workflow:** I will first consult the `GIT_WORKFLOW.md` file to understand the prescribed development workflow.
+2.  **Use Tools Proactively**: I will use my available tools to get information about the project before asking you for details.
+3.  **Command Execution Protocol:** If terminal commands are required, I will provide them and wait for confirmation before proceeding.
+4.  **Issue and Sub-Tasks Prioritization:** I will address issues and their sub-tasks sequentially, providing a plan and asking for your approval before making changes.

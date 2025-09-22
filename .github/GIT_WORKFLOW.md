@@ -10,10 +10,10 @@ If you are starting on a new computer or don't have the project locally, you nee
 
 ```sh
 # Clone the repository from GitHub to your local machine
-git clone https://github.com/KirilMT/WeekendPlanningProject.git
+git clone <repository-url>
 
 # Navigate into the newly created project directory
-cd WeekendPlanningProject
+cd <repository-folder>
 ```
 
 ---
@@ -93,7 +93,7 @@ git push -u origin new-feature-name
 
 ### 4. Versioning
 
-This project follows Semantic Versioning (SemVer). When you create a pull request, you should update the version number in the `README.md` file according to the changes you've made.
+This project follows Semantic Versioning (SemVer). When you create a pull request, you should consider if the version number needs to be updated based on the changes.
 
 **Format:** `MAJOR.MINOR.PATCH` (e.g., `1.1.0`)
 
@@ -101,13 +101,11 @@ This project follows Semantic Versioning (SemVer). When you create a pull reques
 -   **MINOR (`x.1.x`):** Increment for new, backward-compatible features.
 -   **PATCH (`x.x.1`):** Increment for backward-compatible bug fixes.
 
-This version number reflects the state of the application and will be used for creating Git tags and releases.
-
 ---
 
 ### 5. Finishing Your Work (Creating a Pull Request)
 
-Once your feature is complete and pushed to GitHub, you will create a Pull Request (PR) to merge it into the `master` branch. This is the standard way to propose changes and allow for review.
+Once your feature is complete and pushed to GitHub, you will create a Pull Request (PR) to merge it into the `master` branch. This is the standard way to propose changes and allow for review. For detailed guidelines on contributing, including commit message conventions and the review process, please refer to the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.
 
 **Step 5.1: Open a Pull Request on GitHub**
 
@@ -115,7 +113,7 @@ Once your feature is complete and pushed to GitHub, you will create a Pull Reque
 2.  You will likely see a yellow banner with your recently pushed branch and a button that says **"Compare & pull request"**. Click it.
 3.  If you don't see the banner, go to the **"Pull requests"** tab and click **"New pull request"**.
 4.  Set the `base` branch to `master` and the `compare` branch to your feature branch (`new-feature-name`).
-5.  Give the PR a clear title (e.g., "Fixes #32: Error in REP tasks modal") and a description of the changes.
+5.  Give the PR a clear title (e.g., "Fixes #32: Error in search functionality") and a description of the changes.
 6.  Click **"Create pull request"**.
 
 **Step 5.2: Review and Merge the Pull Request**
@@ -135,14 +133,14 @@ If your work is not yet finished but you want to get feedback, or simply want to
 
 *   **Clear Communication:** It makes it obvious that the code is not ready for a final review or merging.
 *   **Early Feedback:** You can ask for feedback on your approach before you are too far into the work.
-*   **Track Your Work:** It provides a clear link between your branch and the issue you are working on (e.g., issue #33).
+*   **Track Your Work:** It provides a clear link between your branch and the issue you are working on.
 
 **Step 6.1: How to Create a Draft Pull Request**
 
 1.  Follow the same steps as opening a regular pull request (Step 5.1).
 2.  On the "Open a pull request" screen, instead of clicking the "Create pull request" button, click the dropdown arrow next to it.
 3.  Select **"Create draft pull request"** from the dropdown menu.
-4.  In the title or description, it's a good practice to add "WIP:" (Work in Progress) and link the issue you are working on (e.g., `Fixes #33`).
+4.  In the title or description, it's a good practice to add "WIP:" (Work in Progress) and link the issue you are working on.
 
 **Step 6.2: How to Continue Working on a Draft PR**
 
@@ -203,4 +201,3 @@ git branch -d new-feature-name
 ```
 
 This completes the workflow. You are now ready to start on the next task by creating a new branch from your up-to-date `master`.
-
