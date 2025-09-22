@@ -28,7 +28,9 @@
     "sew_db_error_card_recommended_actions_label": "✅ Recommended Actions",
     "sew_db_no_results_icon": "❌",
     "sew_db_no_results_title": "No Error Code Found",
-    "sew_db_no_results_suggestions": "Try these suggestions:\n\n• Use partial matches (e.g., \"01\" instead of \"01.0\")\n• Check spelling of error descriptions\n• Try searching with just the main error code\n• Verify the error code exists in the database"
+    "sew_db_no_results_suggestions": "Try these suggestions:\n\n• Use partial matches (e.g., \"01\" instead of \"01.0\")\n• Check spelling of error descriptions\n• Try searching with just the main error code\n• Verify the error code exists in the database",
+    "search_no_results_title": "Search Results",
+    "search_no_results_message": "The search term was not found in the document."
   },
   "MainApplication": {
     "title": "Troubleshooting-Wizard",
@@ -40,9 +42,9 @@
         "title": "Troubleshooting-Wizard - WTC Controllers",
         "width": 370,
         "height": 210,
-        "wtc_flowchart_url_path": "https://example.com/path/to/wtc_flowchart.pdf",
-        "wtc_manual_url_path": "https://example.com/path/to/wtc_manual.pdf",
-        "wtc_advanced_manual_url_path": "https://example.com/path/to/wtc_advanced_manual.pdf",
+        "wtc_flowchart_url_path": "manuals/wtc_flowchart.pdf",
+        "wtc_manual_url_path": "manuals/wtc_manual.pdf",
+        "wtc_advanced_manual_url_path": "manuals/wtc_advanced_manual.pdf",
         "tasks": [
           {
             "WTC Error Codes": {
@@ -52,8 +54,7 @@
               "width": 800,
               "height": 650,
               "url_path": "{{wtc_manual_url_path}}",
-              "url_wait_time": 3,
-              "image_path": "../media/example_wtc_errors.png"
+              "image_path": "media/example_wtc_errors.png"
             }
           },
           {
@@ -81,10 +82,10 @@
         "title": "Troubleshooting-Wizard - Lenze Drives",
         "width": 370,
         "height": 300,
-        "lenze_manual_url_path": "https://example.com/path/to/lenze_manual.pdf",
-        "lenze_diagnostic_training_url_path": "https://example.com/path/to/lenze_diagnostic_training.pdf",
-        "lenze_replacement_guide_url_path": "https://example.com/path/to/lenze_replacement_guide.pdf",
-        "lenze_training_docs_url_path": "https://example.com/path/to/lenze_training_documentation",
+        "lenze_manual_url_path": "manuals/lenze_manual.pdf",
+        "lenze_diagnostic_training_url_path": "manuals/lenze_diagnostic_training.pdf",
+        "lenze_replacement_guide_url_path": "manuals/lenze_replacement_guide.pdf",
+        "lenze_training_docs_url_path": "manuals/lenze_training_documentation",
         "tasks": [
           {
             "Lenze Error Codes": {
@@ -94,8 +95,7 @@
               "width": 800,
               "height": 730,
               "url_path": "{{lenze_manual_url_path}}",
-              "url_wait_time": 6,
-              "image_path": "../media/example_lenze_errors.png"
+              "image_path": "media/example_lenze_errors.png"
             }
           },
           {
@@ -136,7 +136,7 @@
         "title": "Troubleshooting-Wizard - FANUC Robotics",
         "width": 370,
         "height": 200,
-        "fanuc_error_manual_url_path": "https://example.com/path/to/fanuc_error_codes.pdf",
+        "fanuc_error_manual_url_path": "manuals/fanuc_error_codes.pdf",
         "tasks": [
           {
             "FANUC Alarm Codes": {
@@ -145,8 +145,7 @@
               "width": 800,
               "height": 750,
               "url_path": "{{fanuc_error_manual_url_path}}",
-              "url_wait_time": 5,
-              "image_path": "../media/example_fanuc_alarms.png"
+              "image_path": "media/example_fanuc_alarms.png"
             }
           }
         ]
@@ -156,7 +155,7 @@
         "title": "Troubleshooting-Wizard - SEW Drive Systems",
         "width": 370,
         "height": 210,
-        "sew_manual_url_path": "https://example.com/path/to/sew_manual.pdf",
+        "sew_manual_url_path": "manuals/sew_manual.pdf",
         "tasks": [
           {
             "Error Codes - MoviPro": {
@@ -166,8 +165,7 @@
               "width": 1000,
               "height": 800,
               "url_path": "{{sew_manual_url_path}}",
-              "url_wait_time": 3,
-              "image_path": "../media/SEW_MoviPro_movitools_parameters.jpg"
+              "image_path": "media/SEW_MoviPro_movitools_parameters.jpg"
             }
           },
           {
@@ -178,8 +176,7 @@
               "width": 800,
               "height": 650,
               "url_path": "{{sew_manual_url_path}}",
-              "url_wait_time": 3,
-              "image_path": "../media/SEW_MoviPro_movitools_parameters.jpg"
+              "image_path": "media/SEW_MoviPro_movitools_parameters.jpg"
             }
           },
           {

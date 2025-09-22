@@ -3,11 +3,193 @@ from tkinter import ttk
 from tkinter import messagebox
 from PIL import Image, ImageTk
 import json
-import webbrowser
-import time
-import pyautogui
 import os
 import sqlite3
+import io
+import fitz  # PyMuPDF
+import pdfplumber
+
+
+class PDFViewerWindow(tk.Toplevel):
+    """A sophisticated in-app PDF viewer with interactive search and navigation."""
+
+    def __init__(self, parent, file_path, initial_page, search_term=""):
+        super().__init__(parent)
+        self.file_path = file_path
+        self.search_term = search_term
+        self.doc = fitz.open(file_path)
+        self.current_page = initial_page - 1  # 0-indexed
+        self.matches = []
+        self.current_match_index = -1
+        self.dpi = 200
+
+        self.title(f"PDF Viewer - {os.path.basename(file_path)}")
+        self.state('zoomed')  # Open the window maximized
+        self.transient(parent)
+        self.grab_set()
+
+        self._create_toolbar()
+        self._create_canvas()
+
+        self.update_idletasks()
+        self.load_page()
+
+    def _create_toolbar(self):
+        toolbar = ttk.Frame(self, padding=5)
+        toolbar.pack(side=tk.TOP, fill=tk.X)
+
+        self.prev_page_btn = ttk.Button(toolbar, text="<< Prev Page", command=self.prev_page)
+        self.prev_page_btn.pack(side=tk.LEFT, padx=5)
+
+        self.page_label = ttk.Label(toolbar, text="")
+        self.page_label.pack(side=tk.LEFT, padx=5)
+
+        self.next_page_btn = ttk.Button(toolbar, text="Next Page >>", command=self.next_page)
+        self.next_page_btn.pack(side=tk.LEFT, padx=5)
+
+        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
+
+        self.search_entry = ttk.Entry(toolbar, width=30)
+        self.search_entry.insert(0, self.search_term)
+        self.search_entry.pack(side=tk.LEFT, padx=5)
+
+        search_btn = ttk.Button(toolbar, text="Search", command=self.search_in_page)
+        search_btn.pack(side=tk.LEFT, padx=5)
+
+        self.prev_match_btn = ttk.Button(toolbar, text="< Prev", command=self.prev_match)
+        self.prev_match_btn.pack(side=tk.LEFT, padx=5)
+
+        self.next_match_btn = ttk.Button(toolbar, text="Next >", command=self.next_match)
+        self.next_match_btn.pack(side=tk.LEFT, padx=5)
+
+        self.match_label = ttk.Label(toolbar, text="")
+        self.match_label.pack(side=tk.LEFT, padx=5)
+
+    def _create_canvas(self):
+        canvas_frame = ttk.Frame(self)
+        canvas_frame.pack(fill=tk.BOTH, expand=True)
+
+        self.canvas = tk.Canvas(canvas_frame)
+        v_scrollbar = ttk.Scrollbar(canvas_frame, orient=tk.VERTICAL, command=self.canvas.yview)
+        h_scrollbar = ttk.Scrollbar(canvas_frame, orient=tk.HORIZONTAL, command=self.canvas.xview)
+        self.canvas.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
+
+        v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        self.canvas.bind("<MouseWheel>", self._on_mousewheel)
+
+    def _on_mousewheel(self, event):
+        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+
+    def load_page(self):
+        if not (0 <= self.current_page < len(self.doc)):
+            return
+
+        page = self.doc.load_page(self.current_page)
+
+        for annot in page.annots():
+            page.delete_annot(annot)
+
+        self.matches = []
+        if self.search_term:
+            self.matches = page.search_for(self.search_term, quads=True)
+            for quad in self.matches:
+                page.add_highlight_annot(quad)
+
+        self.update_match_label()
+        self.current_match_index = -1
+
+        pix = page.get_pixmap(dpi=self.dpi)
+        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+
+        # --- Aspect Ratio Correction --- 
+        canvas_width = self.canvas.winfo_width()
+        if img.width > 0:
+            img_aspect = img.height / img.width
+            new_height = int(canvas_width * img_aspect)
+            self.img_resized = img.resize((canvas_width, new_height), Image.LANCZOS)
+        else:
+            self.img_resized = img
+        
+        self.photo = ImageTk.PhotoImage(self.img_resized)
+
+        self.canvas.delete("all")
+        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo)
+        self.canvas.config(scrollregion=self.canvas.bbox(tk.ALL))
+
+        self.update_page_label()
+        self.update_button_states()
+
+        if self.matches:
+            self.after(100, self.next_match)
+
+    def search_in_page(self):
+        self.search_term = self.search_entry.get()
+        self.load_page()
+
+    def next_match(self):
+        if not self.matches:
+            return
+        self.current_match_index = (self.current_match_index + 1) % len(self.matches)
+        self.scroll_to_current_match()
+        self.update_match_label()
+
+    def prev_match(self):
+        if not self.matches:
+            return
+        self.current_match_index = (self.current_match_index - 1 + len(self.matches)) % len(self.matches)
+        self.scroll_to_current_match()
+        self.update_match_label()
+
+    def scroll_to_current_match(self):
+        if self.current_match_index != -1:
+            page = self.doc.load_page(self.current_page)
+            if page.rect.width == 0:
+                return
+            # Calculate the scaling factor based on the resized image vs original PDF page size
+            scale_factor = self.img_resized.width / page.rect.width
+
+            match_quad = self.matches[self.current_match_index]
+            rect = match_quad.rect
+
+            # Y position on the *resized* image
+            canvas_y = rect.y1 * scale_factor
+            canvas_height = self.canvas.winfo_height()
+
+            if self.img_resized.height > 0:
+                scroll_fraction = (canvas_y - (canvas_height / 2)) / self.img_resized.height
+                self.canvas.yview_moveto(max(0, min(1, scroll_fraction))) # Clamp between 0 and 1
+
+    def next_page(self):
+        if self.current_page < len(self.doc) - 1:
+            self.current_page += 1
+            self.load_page()
+
+    def prev_page(self):
+        if self.current_page > 0:
+            self.current_page -= 1
+            self.load_page()
+
+    def update_page_label(self):
+        self.page_label.config(text=f"Page {self.current_page + 1} of {len(self.doc)}")
+
+    def update_match_label(self):
+        if self.matches:
+            self.match_label.config(text=f"Match {self.current_match_index + 1} of {len(self.matches)}")
+        else:
+            self.match_label.config(text="No matches")
+
+    def update_button_states(self):
+        self.prev_page_btn.config(state=tk.NORMAL if self.current_page > 0 else tk.DISABLED)
+        self.next_page_btn.config(state=tk.NORMAL if self.current_page < len(self.doc) - 1 else tk.DISABLED)
+        self.prev_match_btn.config(state=tk.NORMAL if self.matches else tk.DISABLED)
+        self.next_match_btn.config(state=tk.NORMAL if self.matches else tk.DISABLED)
+
+    def destroy(self):
+        self.doc.close()
+        super().destroy()
 
 
 class SEWDatabaseManager:
@@ -17,50 +199,27 @@ class SEWDatabaseManager:
         self.db_path = db_path
 
     def search_error_codes(self, error_code=None, suberror_code=None, error_designation=None):
-        """
-        Search for SEW error codes based on provided criteria.
-
-        Args:
-            error_code (str): Main error code to search for
-            suberror_code (str): Suberror code to search for
-            error_designation (str): Error designation to search for
-
-        Returns:
-            list: List of matching error code records
-        """
-        conn = None  # Ensure conn is initialized
+        conn = None
         try:
             conn = sqlite3.connect(self.db_path)
             cursor = conn.cursor()
-
-            # Build dynamic query based on provided criteria
-            conditions = []
-            params = []
-
+            conditions, params = [], []
             if error_code and error_code.strip():
                 conditions.append("error_code LIKE ?")
                 params.append(f"%{error_code.strip()}%")
-
             if suberror_code and suberror_code.strip():
                 conditions.append("suberror_code LIKE ?")
                 params.append(f"%{suberror_code.strip()}%")
-
             if error_designation and error_designation.strip():
                 conditions.append("error_designation LIKE ?")
                 params.append(f"%{error_designation.strip()}%")
-
             if not conditions:
-                # If no search criteria provided, return empty list
                 return []
-
             query = "SELECT * FROM sew_error_codes_detailed WHERE " + " AND ".join(conditions)
             cursor.execute(query, params)
             results = cursor.fetchall()
-
-            # Convert to list of dictionaries for easier handling
             columns = [desc[0] for desc in cursor.description]
             return [dict(zip(columns, row)) for row in results]
-
         except sqlite3.Error as e:
             print(f"Database error: {e}")
             return []
@@ -74,22 +233,16 @@ class MainApplication:
         self.root = root_window
         self.root.title(initial_json_data["MainApplication"]["title"])
         self.script_dir = script_dir
-
-        # Get the window dimensions from JSON data
         self.initial_width = initial_json_data["MainApplication"]["width"]
         self.initial_height = initial_json_data["MainApplication"]["height"]
-        self._set_window_dimensions(self.initial_width, self.initial_height)  # Center the window
-
+        self._set_window_dimensions(self.initial_width, self.initial_height)
         self.json_data = initial_json_data
         self.current_view = None
-        self.view_stack = []  # Stack to manage view history
-
-        self.variables = {}  # Initialize variables dictionary
-
-        self.show_main_program()  # Show the Main Program initially
+        self.view_stack = []
+        self.variables = {}
+        self.show_main_program()
 
     def _set_window_dimensions(self, width, height):
-        """Set window dimensions and center it on screen."""
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         x = (screen_width - width) // 2
@@ -97,119 +250,78 @@ class MainApplication:
         self.root.geometry(f"{width}x{height}+{x}+{y}")
 
     def _search_pdf(self, fault_message, url_path):
-        """Open PDF and search for fault message using browser automation."""
-        # Open the PDF file in a web browser
-        webbrowser.open(url_path)
+        """Performs a live search in a PDF and launches the viewer."""
+        absolute_path = os.path.abspath(os.path.join(self.script_dir, "..", url_path))
+        if not fault_message or not fault_message.strip():
+            messagebox.showwarning("Invalid Search", "Please enter a fault message to search for.")
+            return
+        
+        if not os.path.exists(absolute_path):
+            messagebox.showerror("File Not Found", f"The PDF file could not be found at: {absolute_path}")
+            return
 
-        # Wait for the specified wait time for the PDF file to load
-        time.sleep(2)
-
-        # Simulate pressing Ctrl + F
-        pyautogui.hotkey('ctrl', 'f')
-        time.sleep(1)
-
-        # Type the search string and press Enter
-        pyautogui.typewrite(fault_message)
-        pyautogui.press('enter')
+        try:
+            with pdfplumber.open(absolute_path) as pdf:
+                for i, page in enumerate(pdf.pages):
+                    text = page.extract_text(x_tolerance=1)
+                    if text and fault_message.lower() in text.lower():
+                        page_number = i + 1
+                        PDFViewerWindow(self.root, absolute_path, page_number, fault_message)
+                        return
+            messagebox.showinfo("Search Not Found", f"The fault message '{fault_message}' was not found in '{os.path.basename(url_path)}'.")
+        except Exception as e:
+            messagebox.showerror("PDF Error", f"An error occurred while searching the PDF: {e}")
 
     def show_main_program(self):
         self.destroy_current_view()
-        self.view_stack.clear()  # Clear the view history
+        self.view_stack.clear()
         self._set_window_dimensions(self.initial_width, self.initial_height)
-
         main_program_frame = ttk.Frame(self.root)
         main_program_frame.pack(fill="both", expand=True)
         self.current_view = main_program_frame
-
         technologies_data = self.json_data["MainApplication"]["Technologies"]
         for tech_name, tech_data in technologies_data.items():
-            tech_button = ttk.Button(
-                main_program_frame,
-                text=tech_data.get("button_text", ""),
-                command=lambda data=tech_data: self.show_technology(data)
-            )
-            tech_button.pack(padx=10, pady=10)  # Place the Technologies button vertically
+            tech_button = ttk.Button(main_program_frame, text=tech_data.get("button_text", ""), command=lambda data=tech_data: self.show_technology(data))
+            tech_button.pack(padx=10, pady=10)
 
     def show_technology(self, tech_data):
         self.destroy_current_view()
         self.view_stack.append((self.show_main_program, None))
-
         tech_width = tech_data.get("width", self.initial_width)
         tech_height = tech_data.get("height", self.initial_height)
-
         tech_frame = ttk.Frame(self.root)
         tech_frame.pack(fill="both", expand=True)
         self.current_view = tech_frame
-
         if tech_width and tech_height:
-            # Set dimensions only if they are provided in the JSON data
             self._set_window_dimensions(tech_width, tech_height)
-
-        # Extract variables data for the current technology from the JSON configuration
         self.variables = tech_data
-
-        back_button = ttk.Button(
-            tech_frame,
-            text=self.json_data["labels"]["back_to_technologies"],
-            command=self.show_previous_view  # Use the previous view function
-        )
-        back_button.pack(side="left", anchor="nw", padx=10, pady=10)  # Move to the top-left corner
-
-        self._modify_tasks(tech_data)  # Modify and create task buttons
+        back_button = ttk.Button(tech_frame, text=self.json_data["labels"]["back_to_technologies"], command=self.show_previous_view)
+        back_button.pack(side="left", anchor="nw", padx=10, pady=10)
+        self._modify_tasks(tech_data)
 
     def _modify_tasks(self, tech_data):
-        """Create task buttons for the current technology."""
         tasks = tech_data.get("tasks", [])
         for index, task_data in enumerate(tasks):
-            # Extract task attributes from the task_data dictionary
             task_title = list(task_data.keys())[0]
             task_attributes = task_data[task_title]
-
-            # Replace variables in the URL paths with their values
             task_attributes["url_path"] = self._replace_variables(task_attributes.get("url_path", ""))
-
-            # Define custom style for the first button with a yellow background
             style = ttk.Style()
             style.configure("Yellow.TButton", background="yellow")
-
-            button = ttk.Button(
-                self.current_view,  # Use the current view frame
-                text=task_title,
-                command=lambda attrs=task_attributes, tech=tech_data: self.show_task(attrs, tech),
-                style="Yellow.TButton" if index == 0 else None  # Apply custom style to the first button
-            )
+            button = ttk.Button(self.current_view, text=task_title, command=lambda attrs=task_attributes, tech=tech_data: self.show_task(attrs, tech), style="Yellow.TButton" if index == 0 else None)
             button.pack(pady=10)
 
     def show_task(self, task_attributes, tech_data):
         task_type = task_attributes.get("task_type")
-
         if task_type == "error_codes":
             self.show_error_codes(task_attributes, tech_data)
-        elif task_type == "open_url":
-            self._open_url(task_attributes.get("url_path"), task_attributes.get("pdf_page_number"))
-
-    def _open_url(self, url_path, pdf_page_number=None):
-        """Open URL or PDF with optional page number."""
-        # If a page number is provided, construct the URL with the page number
-        if pdf_page_number is not None:
-            url_with_page = self._replace_variables(f"{url_path}#page={pdf_page_number}")
-            webbrowser.open(url_with_page)
-        else:
-            # Open the PDF with the default web browser
-            url_path = self._replace_variables(url_path)
-            webbrowser.open(url_path)
 
     def show_error_codes(self, task_attributes, tech_data):
         self.destroy_current_view()
         self.view_stack.append((self.show_technology, tech_data))
-
         error_codes_width = task_attributes.get("width", 800)
         error_codes_height = task_attributes.get("height", 730)
         is_sew_technology = tech_data.get("button_text", "").lower().find("sew") != -1
-
-        # --- NEW LOGIC: Pre-calculate required size for SEW view ---
         if is_sew_technology:
-            # Create a hidden frame to measure required size
             temp_frame = ttk.Frame(self.root)
             temp_frame.pack_forget()
             self._show_sew_database_interface(temp_frame, measure_only=True)
@@ -217,106 +329,56 @@ class MainApplication:
             req_width = temp_frame.winfo_reqwidth()
             req_height = temp_frame.winfo_reqheight()
             temp_frame.destroy()
-            # Center window with measured size
             self._set_window_dimensions(req_width, req_height)
             error_codes_width = req_width
             error_codes_height = req_height
-
         error_codes_frame = ttk.Frame(self.root)
         error_codes_frame.pack(fill="both", expand=True)
         self.current_view = error_codes_frame
-
-        # Center the error_codes window
         self._set_window_dimensions(error_codes_width, error_codes_height)
-
         button_frame = ttk.Frame(error_codes_frame)
         button_frame.pack(side="top", anchor="nw", padx=10, pady=10)
-
-        home_button = ttk.Button(
-            button_frame,
-            text=self.json_data["labels"]["back_to_technologies"],
-            command=self.show_main_program
-        )
+        home_button = ttk.Button(button_frame, text=self.json_data["labels"]["back_to_technologies"], command=self.show_main_program)
         home_button.pack(side="left", padx=10)
-
-        back_button = ttk.Button(
-            button_frame,
-            text=self.json_data["labels"]["back_to_tasks"],
-            command=self.show_previous_view
-        )
+        back_button = ttk.Button(button_frame, text=self.json_data["labels"]["back_to_tasks"], command=self.show_previous_view)
         back_button.pack(side="left", padx=10)
-
         if is_sew_technology:
             self._show_sew_database_interface(error_codes_frame)
         else:
             self._show_traditional_search_interface(error_codes_frame, task_attributes)
 
     def _show_traditional_search_interface(self, parent_frame, task_attributes):
-        """Show the traditional PDF search interface for non-SEW technologies."""
         label_frame = ttk.Frame(parent_frame)
         label_frame.pack(pady=10)
-
         label_style = ttk.Style()
         label_style.configure("Bold.TLabel", font=("Helvetica", 15, "bold"))
         ttk.Label(label_frame, text=self.json_data["labels"]["insert_fault_code"], style="Bold.TLabel").pack(side="left")
-
         entry_style = ttk.Style()
         entry_style.configure("Large.TEntry", font=("Helvetica", 16))
-
         search_entry = ttk.Entry(label_frame, style="Large.TEntry", width=65)
         search_entry.pack(side="left", padx=10)
-
-        search_button = ttk.Button(
-            parent_frame,
-            text=self.json_data["labels"]["search"],
-            command=lambda: self._search_pdf(search_entry.get(), task_attributes.get("url_path"))
-        )
+        search_button = ttk.Button(parent_frame, text=self.json_data["labels"]["search"], command=lambda: self._search_pdf(search_entry.get(), task_attributes.get("url_path")))
         search_button.pack(side="right", padx=10)
 
     def _show_sew_database_interface(self, parent_frame, measure_only=False):
-        """Show the SEW database search interface. If measure_only=True, just pack widgets for size calculation."""
         main_container = ttk.Frame(parent_frame)
         main_container.pack(fill="both", expand=True, padx=20, pady=10)
         parent_frame.update_idletasks()
-
         title_frame = ttk.Frame(main_container)
         title_frame.pack(fill="x", pady=(0, 10))
         title_frame.columnconfigure(0, weight=1)
-        title_label = ttk.Label(
-            title_frame,
-            text=self.json_data["labels"]["sew_db_title"],
-            font=("Segoe UI", 18, "bold"),
-            foreground="#2E86AB",
-            anchor="center",
-            justify="center"
-        )
+        title_label = ttk.Label(title_frame, text=self.json_data["labels"]["sew_db_title"], font=("Segoe UI", 18, "bold"), foreground="#2E86AB", anchor="center", justify="center")
         title_label.grid(row=0, column=0, sticky="ew")
-        help_btn = ttk.Button(
-            title_frame,
-            text=self.json_data["labels"]["sew_db_help_button"],
-            width=2,
-            command=self._show_help_image,
-            style="Help.TButton"
-        )
+        help_btn = ttk.Button(title_frame, text=self.json_data["labels"]["sew_db_help_button"], width=2, command=self._show_help_image, style="Help.TButton")
         help_btn.grid(row=0, column=1, sticky="e", padx=(10, 0))
         style = ttk.Style()
         style.configure("Help.TButton", font=("Segoe UI", 12, "bold"), foreground="#2E86AB")
-
-        subtitle_label = ttk.Label(
-            main_container,
-            text=self.json_data["labels"]["sew_db_subtitle"],
-            font=("Segoe UI", 10),
-            foreground="#666666",
-            anchor="center",
-            justify="center"
-        )
+        subtitle_label = ttk.Label(main_container, text=self.json_data["labels"]["sew_db_subtitle"], font=("Segoe UI", 10), foreground="#666666", anchor="center", justify="center")
         subtitle_label.pack(fill="x", pady=(0, 10))
-
         search_container = ttk.LabelFrame(main_container, text=self.json_data["labels"]["sew_db_search_criteria_label"], padding=15)
         search_container.pack(fill="x", pady=(0, 10))
         search_container.columnconfigure(1, weight=1)
         search_container.columnconfigure(3, weight=1)
-
         ttk.Label(search_container, text=self.json_data["labels"]["sew_db_error_code_label"], font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w", pady=8, padx=(0, 10))
         self.sew_error_code_entry = ttk.Entry(search_container, width=15, font=("Segoe UI", 10))
         self.sew_error_code_entry.grid(row=0, column=1, sticky="ew", pady=8, padx=(0, 20))
@@ -328,30 +390,22 @@ class MainApplication:
         self.sew_error_designation_entry.grid(row=1, column=1, columnspan=3, sticky="ew", pady=(16, 8))
         button_frame = ttk.Frame(search_container)
         button_frame.grid(row=2, column=0, columnspan=4, pady=(20, 0))
-        search_button = ttk.Button(
-            button_frame,
-            text=self.json_data["labels"]["sew_db_search_button"],
-            command=self.search_sew_error_codes,
-            style="Accent.TButton"
-        )
+        search_button = ttk.Button(button_frame, text=self.json_data["labels"]["sew_db_search_button"], command=self.search_sew_error_codes, style="Accent.TButton")
         search_button.pack()
         style.configure("Accent.TButton", font=("Segoe UI", 11, "bold"))
         self.sew_error_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
         self.sew_suberror_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
         self.sew_error_designation_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
-
         results_container = ttk.LabelFrame(main_container, text=self.json_data["labels"]["sew_db_results_label"], padding=15)
         results_container.pack(fill="both", expand=True, pady=(0, 10))
         self.results_frame = ttk.Frame(results_container)
         self.results_frame.pack(fill="both", expand=True)
         self._show_search_instructions()
-
         if not measure_only:
             self.root.update_idletasks()
             self.root.geometry("")
 
     def _show_help_image(self):
-        """Show the help image in a modal popup window."""
         image_path = os.path.join(self.script_dir, "..", "media", "SEW_MoviPro_movitools_parameters.jpg")
         if not os.path.exists(image_path):
             image_path = os.path.join(self.script_dir, "media", "SEW_MoviPro_movitools_parameters.jpg")
@@ -372,8 +426,6 @@ class MainApplication:
             close_btn.pack(pady=(0, 10))
         except Exception as e:
             messagebox.showerror(self.json_data["labels"]["sew_db_help_error_title"], self.json_data["labels"]["sew_db_help_error_message"].format(e=e))
-
-        # Center the help image popup on the screen (should be outside the except block)
         help_win.update_idletasks()
         popup_width = help_win.winfo_width()
         popup_height = help_win.winfo_height()
@@ -384,39 +436,21 @@ class MainApplication:
         help_win.geometry(f"{popup_width}x{popup_height}+{x}+{y}")
 
     def _show_search_instructions(self):
-        """Show initial search instructions."""
         for widget in self.results_frame.winfo_children():
             widget.destroy()
         instructions_frame = ttk.Frame(self.results_frame)
         instructions_frame.pack(fill="x", padx=20, pady=20)
-        icon_label = ttk.Label(
-            instructions_frame,
-            text=self.json_data["labels"]["sew_db_search_instructions_icon"],
-            font=("Segoe UI", 24)
-        )
+        icon_label = ttk.Label(instructions_frame, text=self.json_data["labels"]["sew_db_search_instructions_icon"], font=("Segoe UI", 24))
         icon_label.pack(pady=(0, 10))
-        title_label = ttk.Label(
-            instructions_frame,
-            text=self.json_data["labels"]["sew_db_search_instructions_title"],
-            font=("Segoe UI", 14, "bold"),
-            foreground="#2E86AB"
-        )
+        title_label = ttk.Label(instructions_frame, text=self.json_data["labels"]["sew_db_search_instructions_title"], font=("Segoe UI", 14, "bold"), foreground="#2E86AB")
         title_label.pack(pady=(0, 15))
         instructions_text = self.json_data["labels"]["sew_db_search_instructions"]
-        instructions_label = ttk.Label(
-            instructions_frame,
-            text=instructions_text,
-            font=("Segoe UI", 10),
-            foreground="#666666",
-            justify="left"
-        )
+        instructions_label = ttk.Label(instructions_frame, text=instructions_text, font=("Segoe UI", 10), foreground="#666666", justify="left")
         instructions_label.pack()
 
     def _format_single_line_content(self, text):
-        """Format text content for single-line display (remove artificial newlines)."""
         if not text or text.strip() == "":
             return self.json_data["labels"]["sew_db_not_specified"]
-        # Replace literal \n and actual newlines with a space, then collapse multiple spaces
         return ' '.join(text.replace("\\n", " ").replace("\n", " ").split())
 
     def _show_error_card(self, error_data):
@@ -431,28 +465,11 @@ class MainApplication:
         code_text = self.json_data["labels"]["sew_db_error_card_error_code_label"].format(error_code=error_data.get('error_code', 'N/A'))
         if error_data.get('suberror_code'):
             code_text += f".{error_data.get('suberror_code')}"
-        ttk.Label(
-            error_code_frame,
-            text=code_text,
-            font=("Segoe UI", 14, "bold"),
-            foreground="#FFFFFF",
-            background="#E74C3C",
-            padding=(10, 5)
-        ).pack(side="left")
-        designation_label = ttk.Label(
-            header_frame,
-            text=self._format_single_line_content(error_data.get('error_designation', self.json_data["labels"]["sew_db_error_card_unknown_error"])),
-            font=("Segoe UI", 16, "bold"),
-            foreground="#2C3E50"
-        )
+        ttk.Label(error_code_frame, text=code_text, font=("Segoe UI", 14, "bold"), foreground="#FFFFFF", background="#E74C3C", padding=(10, 5)).pack(side="left")
+        designation_label = ttk.Label(header_frame, text=self._format_single_line_content(error_data.get('error_designation', self.json_data["labels"]["sew_db_error_card_unknown_error"])), font=("Segoe UI", 16, "bold"), foreground="#2C3E50")
         designation_label.pack(anchor="w", pady=(10, 0))
         if error_data.get('error_response'):
-            response_label = ttk.Label(
-                header_frame,
-                text=self.json_data["labels"]["sew_db_error_card_response_label"].format(response=self._format_single_line_content(error_data.get('error_response'))),
-                font=("Segoe UI", 11),
-                foreground="#E67E22"
-            )
+            response_label = ttk.Label(header_frame, text=self.json_data["labels"]["sew_db_error_card_response_label"].format(response=self._format_single_line_content(error_data.get('error_response'))), font=("Segoe UI", 11), foreground="#E67E22")
             response_label.pack(anchor="w", pady=(5, 0))
         separator = ttk.Separator(card_frame, orient="horizontal")
         separator.pack(fill="x", pady=10)
@@ -461,126 +478,64 @@ class MainApplication:
         if error_data.get('possible_cause'):
             causes_frame = ttk.LabelFrame(content_frame, text=self.json_data["labels"]["sew_db_error_card_possible_causes_label"], padding=10)
             causes_frame.pack(fill="x", pady=(0, 10))
-            causes_text = tk.Label(
-                causes_frame,
-                text=self._format_text_content(error_data.get('possible_cause', '')),
-                font=("Segoe UI", 10),
-                background="#FFF5F5",
-                foreground="#2C3E50",
-                anchor="w",
-                justify="left"
-            )
+            causes_text = tk.Label(causes_frame, text=self._format_text_content(error_data.get('possible_cause', '')), font=("Segoe UI", 10), background="#FFF5F5", foreground="#2C3E50", anchor="w", justify="left")
             causes_text.pack(fill="x")
         if error_data.get('measure'):
             actions_frame = ttk.LabelFrame(content_frame, text=self.json_data["labels"]["sew_db_error_card_recommended_actions_label"], padding=10)
             actions_frame.pack(fill="x")
-            actions_text = tk.Label(
-                actions_frame,
-                text=self._format_text_content(error_data.get('measure', '')),
-                font=("Segoe UI", 10),
-                background="#F0FFF4",
-                foreground="#2C3E50",
-                anchor="w",
-                justify="left"
-            )
+            actions_text = tk.Label(actions_frame, text=self._format_text_content(error_data.get('measure', '')), font=("Segoe UI", 10), background="#F0FFF4", foreground="#2C3E50", anchor="w", justify="left")
             actions_text.pack(fill="x")
 
     def _format_text_content(self, text):
-        """Format text content for better readability while preserving structure and joining broken sentences."""
         if not text or text.strip() == "":
             return self.json_data["labels"]["sew_db_not_specified"]
-
-        # Replace literal \n with actual newlines
         text = text.replace("\\n", "\n")
-
-        # Split into lines and process them
         lines = text.split("\n")
         processed_lines = []
         current_line = ""
-
         for line in lines:
             line = line.strip()
-            if not line:  # Skip empty lines
+            if not line:
                 continue
-
-            # If this line starts with a bullet point, finish the current line and start a new one
             if line.startswith("•"):
                 if current_line:
                     processed_lines.append(current_line.strip())
                 current_line = line
             else:
-                # This line doesn't start with a bullet point
                 if current_line:
-                    # If we have a current line, check if this should be joined to it
-                    # Join if the current line doesn't end with punctuation that indicates end of sentence
                     if current_line.rstrip().endswith(('.', ':', '!', '?')):
-                        # Current line ends with punctuation, start a new line
                         processed_lines.append(current_line.strip())
                         current_line = line
                     else:
-                        # Join to current line with a space
                         current_line += " " + line
                 else:
-                    # No current line, start with this line
                     current_line = line
-
-        # Don't forget the last line
         if current_line:
             processed_lines.append(current_line.strip())
-
         return "\n".join(processed_lines) if processed_lines else self.json_data["labels"]["sew_db_not_specified"]
 
     def _show_no_results(self):
-        """Show no results found message."""
-        # Clear any existing content
         for widget in self.results_frame.winfo_children():
             widget.destroy()
-
         no_results_frame = ttk.Frame(self.results_frame)
         no_results_frame.pack(fill="x", padx=20, pady=40)
-
-        # Icon
-        icon_label = ttk.Label(
-            no_results_frame,
-            text=self.json_data["labels"]["sew_db_no_results_icon"],
-            font=("Segoe UI", 24)
-        )
+        icon_label = ttk.Label(no_results_frame, text=self.json_data["labels"]["sew_db_no_results_icon"], font=("Segoe UI", 24))
         icon_label.pack(pady=(0, 10))
-
-        # Message
-        title_label = ttk.Label(
-            no_results_frame,
-            text=self.json_data["labels"]["sew_db_no_results_title"],
-            font=("Segoe UI", 14, "bold"),
-            foreground="#E74C3C"
-        )
+        title_label = ttk.Label(no_results_frame, text=self.json_data["labels"]["sew_db_no_results_title"], font=("Segoe UI", 14, "bold"), foreground="#E74C3C")
         title_label.pack(pady=(0, 15))
-
         suggestions_text = self.json_data["labels"]["sew_db_no_results_suggestions"]
-
-        suggestions_label = ttk.Label(
-            no_results_frame,
-            text=suggestions_text,
-            font=("Segoe UI", 10),
-            foreground="#666666",
-            justify="left"
-        )
+        suggestions_label = ttk.Label(no_results_frame, text=suggestions_text, font=("Segoe UI", 10), foreground="#666666", justify="left")
         suggestions_label.pack()
 
     def search_sew_error_codes(self):
-        """Search for SEW error codes and display the first matching result."""
-        # Remove the image if present
         if hasattr(self, 'sew_image_label') and self.sew_image_label:
             self.sew_image_label.destroy()
             self.sew_image_label = None
-
         error_code = self.sew_error_code_entry.get().strip()
         suberror_code = self.sew_suberror_code_entry.get().strip()
         error_designation = self.sew_error_designation_entry.get().strip()
-
         if not any([error_code, suberror_code, error_designation]):
             self._show_search_instructions()
-            # --- Measure the full SEW error code view and resize/center window to its default size ---
             temp_frame = ttk.Frame(self.root)
             temp_frame.pack_forget()
             self._show_sew_database_interface(temp_frame, measure_only=True)
@@ -594,23 +549,13 @@ class MainApplication:
             y = (screen_height - req_height) // 2
             self.root.geometry(f"{req_width}x{req_height}+{x}+{y}")
             return
-
-        # Construct the correct database path
         db_path = os.path.join(self.script_dir, "errorCodesTechnologies.db")
-
-        # Initialize the database manager
         db_manager = SEWDatabaseManager(db_path)
-
-        # Search for error codes
         results = db_manager.search_error_codes(error_code, suberror_code, error_designation)
-
         if results:
-            # Show only the first matching result
             self._show_error_card(results[0])
         else:
             self._show_no_results()
-
-        # --- Center window after resizing for results or no results ---
         self.root.update_idletasks()
         new_width = self.root.winfo_width()
         new_height = self.root.winfo_height()
@@ -621,7 +566,6 @@ class MainApplication:
         self.root.geometry(f"{new_width}x{new_height}+{x}+{y}")
 
     def _replace_variables(self, text):
-        """Replace variables in double curly braces with their values from the JSON configuration."""
         while "{{" in text and "}}" in text:
             start_index = text.find("{{")
             end_index = text.find("}}")
@@ -652,17 +596,11 @@ class MainApplication:
 
 if __name__ == "__main__":
     root = tk.Tk()
-
-    # Get the directory where the script is located
     script_dir = os.path.dirname(os.path.abspath(__file__))
-
-    # Try to load the local data file, fall back to the example file
     data_file_path = os.path.join(script_dir, "data.json")
     if not os.path.exists(data_file_path):
         data_file_path = os.path.join(script_dir, "example_data.json")
-
     with open(data_file_path, "r", encoding="utf-8") as json_file:
         json_data = json.load(json_file)
-
     app = MainApplication(root, json_data, script_dir)
     root.mainloop()
