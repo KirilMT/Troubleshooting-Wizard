@@ -8,36 +8,47 @@ import sqlite3
 import io
 import fitz  # PyMuPDF
 import pdfplumber
+import logging
+
+# --- Setup Logging ---
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class PDFViewerWindow(tk.Toplevel):
-    """A sophisticated in-app PDF viewer with interactive search and navigation."""
+    """A stable, page-by-page PDF viewer with search and navigation."""
 
     def __init__(self, parent, file_path, initial_page, search_term=""):
         super().__init__(parent)
+        logging.info(f"--- Initializing PDFViewerWindow for file: {file_path} ---")
         self.file_path = file_path
-        self.search_term = search_term
+        self.search_term = tk.StringVar(value=search_term)
         self.doc = fitz.open(file_path)
+        self.total_pages = len(self.doc)
         self.current_page = initial_page - 1  # 0-indexed
-        self.matches = []
-        self.current_match_index = -1
-        self.dpi = 200
+        self.photo_image = None  # Keep a reference to the current page image
 
         self.title(f"PDF Viewer - {os.path.basename(file_path)}")
-        self.state('zoomed')  # Open the window maximized
+        self.geometry("1200x900")
         self.transient(parent)
         self.grab_set()
 
         self._create_toolbar()
         self._create_canvas()
 
-        self.update_idletasks()
-        self.load_page()
+        self.protocol("WM_DELETE_WINDOW", self.on_close)
+
+        # Defer loading to ensure the main window has time to draw itself correctly.
+        self.after(100, self.initial_load)
+
+    def initial_load(self):
+        """Load the initial page and perform the initial search if a term is provided."""
+        self.display_page(self.current_page, search=True)
 
     def _create_toolbar(self):
         toolbar = ttk.Frame(self, padding=5)
         toolbar.pack(side=tk.TOP, fill=tk.X)
 
+        # Page Navigation Controls
         self.prev_page_btn = ttk.Button(toolbar, text="<< Prev Page", command=self.prev_page)
         self.prev_page_btn.pack(side=tk.LEFT, padx=5)
 
@@ -47,149 +58,109 @@ class PDFViewerWindow(tk.Toplevel):
         self.next_page_btn = ttk.Button(toolbar, text="Next Page >>", command=self.next_page)
         self.next_page_btn.pack(side=tk.LEFT, padx=5)
 
+        # Go-to-page entry
+        self.page_entry = ttk.Entry(toolbar, width=5)
+        self.page_entry.pack(side=tk.LEFT, padx=(10, 0))
+        self.page_entry.bind("<Return>", self.go_to_page)
+        go_btn = ttk.Button(toolbar, text="Go", command=self.go_to_page)
+        go_btn.pack(side=tk.LEFT, padx=5)
+
         ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
 
-        self.search_entry = ttk.Entry(toolbar, width=30)
-        self.search_entry.insert(0, self.search_term)
+        # Search Controls
+        self.search_entry = ttk.Entry(toolbar, width=30, textvariable=self.search_term)
         self.search_entry.pack(side=tk.LEFT, padx=5)
-
-        search_btn = ttk.Button(toolbar, text="Search", command=self.search_in_page)
+        search_btn = ttk.Button(toolbar, text="Search", command=lambda: self.display_page(self.current_page, search=True))
         search_btn.pack(side=tk.LEFT, padx=5)
-
-        self.prev_match_btn = ttk.Button(toolbar, text="< Prev", command=self.prev_match)
-        self.prev_match_btn.pack(side=tk.LEFT, padx=5)
-
-        self.next_match_btn = ttk.Button(toolbar, text="Next >", command=self.next_match)
-        self.next_match_btn.pack(side=tk.LEFT, padx=5)
 
         self.match_label = ttk.Label(toolbar, text="")
         self.match_label.pack(side=tk.LEFT, padx=5)
 
     def _create_canvas(self):
-        canvas_frame = ttk.Frame(self)
-        canvas_frame.pack(fill=tk.BOTH, expand=True)
+        self.canvas = tk.Canvas(self, bg="#505050") # Dark gray background
+        self.canvas.pack(fill=tk.BOTH, expand=True)
 
-        self.canvas = tk.Canvas(canvas_frame)
-        v_scrollbar = ttk.Scrollbar(canvas_frame, orient=tk.VERTICAL, command=self.canvas.yview)
-        h_scrollbar = ttk.Scrollbar(canvas_frame, orient=tk.HORIZONTAL, command=self.canvas.xview)
-        self.canvas.configure(yscrollcommand=v_scrollbar.set, xscrollcommand=h_scrollbar.set)
-
-        v_scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
-        h_scrollbar.pack(side=tk.BOTTOM, fill=tk.X)
-        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
-
-        self.canvas.bind("<MouseWheel>", self._on_mousewheel)
-
-    def _on_mousewheel(self, event):
-        self.canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-
-    def load_page(self):
-        if not (0 <= self.current_page < len(self.doc)):
+    def display_page(self, page_num, search=False):
+        """Renders and displays a single page, optionally highlighting a search term."""
+        if not (0 <= page_num < self.total_pages):
+            logging.warning(f"Attempted to display invalid page number: {page_num}")
             return
 
-        page = self.doc.load_page(self.current_page)
-
-        for annot in page.annots():
-            page.delete_annot(annot)
-
-        self.matches = []
-        if self.search_term:
-            self.matches = page.search_for(self.search_term, quads=True)
-            for quad in self.matches:
-                page.add_highlight_annot(quad)
-
-        self.update_match_label()
-        self.current_match_index = -1
-
-        pix = page.get_pixmap(dpi=self.dpi)
-        img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-
-        # --- Aspect Ratio Correction --- 
-        canvas_width = self.canvas.winfo_width()
-        if img.width > 0:
-            img_aspect = img.height / img.width
-            new_height = int(canvas_width * img_aspect)
-            self.img_resized = img.resize((canvas_width, new_height), Image.LANCZOS)
-        else:
-            self.img_resized = img
-        
-        self.photo = ImageTk.PhotoImage(self.img_resized)
-
+        self.current_page = page_num
         self.canvas.delete("all")
-        self.canvas.create_image(0, 0, anchor=tk.NW, image=self.photo)
-        self.canvas.config(scrollregion=self.canvas.bbox(tk.ALL))
 
-        self.update_page_label()
-        self.update_button_states()
-
-        if self.matches:
-            self.after(100, self.next_match)
-
-    def search_in_page(self):
-        self.search_term = self.search_entry.get()
-        self.load_page()
-
-    def next_match(self):
-        if not self.matches:
-            return
-        self.current_match_index = (self.current_match_index + 1) % len(self.matches)
-        self.scroll_to_current_match()
-        self.update_match_label()
-
-    def prev_match(self):
-        if not self.matches:
-            return
-        self.current_match_index = (self.current_match_index - 1 + len(self.matches)) % len(self.matches)
-        self.scroll_to_current_match()
-        self.update_match_label()
-
-    def scroll_to_current_match(self):
-        if self.current_match_index != -1:
+        try:
             page = self.doc.load_page(self.current_page)
-            if page.rect.width == 0:
-                return
-            # Calculate the scaling factor based on the resized image vs original PDF page size
-            scale_factor = self.img_resized.width / page.rect.width
 
-            match_quad = self.matches[self.current_match_index]
-            rect = match_quad.rect
+            # Highlight search term if provided
+            search_term = self.search_term.get()
+            match_count = 0
+            if search and search_term:
+                matches = page.search_for(search_term)
+                match_count = len(matches)
+                for inst in matches:
+                    highlight = page.add_highlight_annot(inst)
+                    highlight.update()
+            
+            self.match_label.config(text=f"{match_count} matches on this page" if search and search_term else "")
 
-            # Y position on the *resized* image
-            canvas_y = rect.y1 * scale_factor
+            # --- Rendering with correct aspect ratio ---
+            self.update_idletasks() # Ensure canvas dimensions are current
+            canvas_width = self.canvas.winfo_width()
             canvas_height = self.canvas.winfo_height()
 
-            if self.img_resized.height > 0:
-                scroll_fraction = (canvas_y - (canvas_height / 2)) / self.img_resized.height
-                self.canvas.yview_moveto(max(0, min(1, scroll_fraction))) # Clamp between 0 and 1
+            page_rect = page.rect
+            zoom_x = (canvas_width - 20) / page_rect.width if page_rect.width > 0 else 1
+            zoom_y = (canvas_height - 20) / page_rect.height if page_rect.height > 0 else 1
+            zoom = min(zoom_x, zoom_y)  # Use the smaller zoom factor to fit the page
+
+            matrix = fitz.Matrix(zoom, zoom)
+            pix = page.get_pixmap(matrix=matrix, alpha=False)
+
+            if pix.width <= 0 or pix.height <= 0:
+                logging.error(f"Invalid pixmap dimensions for page {self.current_page + 1}.")
+                return
+
+            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+            self.photo_image = ImageTk.PhotoImage(img) # Keep a reference
+
+            # Center the image on the canvas
+            x_offset = (canvas_width - pix.width) / 2
+            y_offset = (canvas_height - pix.height) / 2
+            self.canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=self.photo_image)
+
+            self.update_navigation()
+
+        except Exception as e:
+            logging.critical(f"Failed to display page {self.current_page + 1}: {e}", exc_info=True)
+            self.canvas.create_text(self.canvas.winfo_width()/2, 100, text=f"Error rendering page {self.current_page + 1}", fill="red", anchor="center")
+
+    def update_navigation(self):
+        """Updates the page label and button states."""
+        self.page_label.config(text=f"Page {self.current_page + 1} of {self.total_pages}")
+        self.prev_page_btn.config(state=tk.NORMAL if self.current_page > 0 else tk.DISABLED)
+        self.next_page_btn.config(state=tk.NORMAL if self.current_page < self.total_pages - 1 else tk.DISABLED)
 
     def next_page(self):
-        if self.current_page < len(self.doc) - 1:
-            self.current_page += 1
-            self.load_page()
+        if self.current_page < self.total_pages - 1:
+            self.display_page(self.current_page + 1, search=True)
 
     def prev_page(self):
         if self.current_page > 0:
-            self.current_page -= 1
-            self.load_page()
+            self.display_page(self.current_page - 1, search=True)
 
-    def update_page_label(self):
-        self.page_label.config(text=f"Page {self.current_page + 1} of {len(self.doc)}")
+    def go_to_page(self, event=None):
+        try:
+            page_num = int(self.page_entry.get())
+            if 1 <= page_num <= self.total_pages:
+                self.display_page(page_num - 1, search=True)
+        except ValueError:
+            logging.warning("Invalid page number entered.")
 
-    def update_match_label(self):
-        if self.matches:
-            self.match_label.config(text=f"Match {self.current_match_index + 1} of {len(self.matches)}")
-        else:
-            self.match_label.config(text="No matches")
-
-    def update_button_states(self):
-        self.prev_page_btn.config(state=tk.NORMAL if self.current_page > 0 else tk.DISABLED)
-        self.next_page_btn.config(state=tk.NORMAL if self.current_page < len(self.doc) - 1 else tk.DISABLED)
-        self.prev_match_btn.config(state=tk.NORMAL if self.matches else tk.DISABLED)
-        self.next_match_btn.config(state=tk.NORMAL if self.matches else tk.DISABLED)
-
-    def destroy(self):
+    def on_close(self):
+        logging.info("--- Closing PDFViewerWindow ---")
         self.doc.close()
-        super().destroy()
+        self.destroy()
 
 
 class SEWDatabaseManager:
@@ -221,7 +192,7 @@ class SEWDatabaseManager:
             columns = [desc[0] for desc in cursor.description]
             return [dict(zip(columns, row)) for row in results]
         except sqlite3.Error as e:
-            print(f"Database error: {e}")
+            logging.error(f"Database error: {e}")
             return []
         finally:
             if conn:
@@ -250,7 +221,7 @@ class MainApplication:
         self.root.geometry(f"{width}x{height}+{x}+{y}")
 
     def _search_pdf(self, fault_message, url_path):
-        """Performs a live search in a PDF and launches the viewer."""
+        """Performs a live search in a PDF and launches the viewer.""" 
         absolute_path = os.path.abspath(os.path.join(self.script_dir, "..", url_path))
         if not fault_message or not fault_message.strip():
             messagebox.showwarning("Invalid Search", "Please enter a fault message to search for.")
@@ -266,10 +237,12 @@ class MainApplication:
                     text = page.extract_text(x_tolerance=1)
                     if text and fault_message.lower() in text.lower():
                         page_number = i + 1
+                        logging.info(f"Found search term on page {page_number}. Launching viewer.")
                         PDFViewerWindow(self.root, absolute_path, page_number, fault_message)
                         return
             messagebox.showinfo("Search Not Found", f"The fault message '{fault_message}' was not found in '{os.path.basename(url_path)}'.")
         except Exception as e:
+            logging.error(f"An error occurred while searching the PDF: {e}", exc_info=True)
             messagebox.showerror("PDF Error", f"An error occurred while searching the PDF: {e}")
 
     def show_main_program(self):
@@ -428,7 +401,7 @@ class MainApplication:
             messagebox.showerror(self.json_data["labels"]["sew_db_help_error_title"], self.json_data["labels"]["sew_db_help_error_message"].format(e=e))
         help_win.update_idletasks()
         popup_width = help_win.winfo_width()
-        popup_height = help_win.winfo_height()
+        popup_height = help_win.winfo_screenheight()
         screen_width = help_win.winfo_screenwidth()
         screen_height = help_win.winfo_screenheight()
         x = int((screen_width - popup_width) / 2)
@@ -451,7 +424,7 @@ class MainApplication:
     def _format_single_line_content(self, text):
         if not text or text.strip() == "":
             return self.json_data["labels"]["sew_db_not_specified"]
-        return ' '.join(text.replace("\\n", " ").replace("\n", " ").split())
+        return ' '.join(text.replace("\n", " ").replace("\n", " ").split())
 
     def _show_error_card(self, error_data):
         for widget in self.results_frame.winfo_children():
@@ -489,7 +462,7 @@ class MainApplication:
     def _format_text_content(self, text):
         if not text or text.strip() == "":
             return self.json_data["labels"]["sew_db_not_specified"]
-        text = text.replace("\\n", "\n")
+        text = text.replace("\n", "\n")
         lines = text.split("\n")
         processed_lines = []
         current_line = ""
