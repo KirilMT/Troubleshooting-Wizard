@@ -28,9 +28,17 @@ class PDFViewerWindow(tk.Toplevel):
         self.photo_image = None  # Keep a reference to the current page image
 
         self.title(f"PDF Viewer - {os.path.basename(file_path)}")
-        self.geometry("1200x900")
-        self.transient(parent)
-        self.grab_set()
+
+        try:
+            # Maximize window for a "full screen" feel with controls
+            self.state('zoomed')
+        except tk.TclError:
+            # Fallback for other window managers
+            width = self.winfo_screenwidth()
+            height = self.winfo_screenheight()
+            self.geometry(f'{width}x{height}+0+0')
+
+        # Removed self.transient(parent) and self.grab_set() to allow standard window behavior
 
         self._create_toolbar()
         self._create_canvas()
