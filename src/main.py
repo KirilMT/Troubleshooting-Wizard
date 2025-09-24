@@ -30,6 +30,7 @@ class PDFViewerWindow(tk.Toplevel):
         self.page_images = {}  # Cache for PhotoImage objects {page_num: photo_image}
         self.page_layout_info = []  # List of {'y': y_pos, 'w': width, 'h': height} for each page
         self.rendering_scheduled = False
+        self.page_entry_var = tk.StringVar()
 
         # --- Zoom Functionality ---
         self.zoom_level = 1.0
@@ -62,7 +63,6 @@ class PDFViewerWindow(tk.Toplevel):
     def initial_load(self):
         """Setup the canvas layout and then perform the initial search/centering."""
         self._calculate_layout(fit_to_width=True)
-        # Use 'after' to ensure the main window is fully initialized before calculating scroll positions.
         self.after(150, self.search_and_highlight)
 
     def on_resize(self, event):
@@ -80,17 +80,20 @@ class PDFViewerWindow(tk.Toplevel):
         toolbar = ttk.Frame(self, padding=5)
         toolbar.pack(side=tk.TOP, fill=tk.X)
 
-        self.page_label = ttk.Label(toolbar, text="")
-        self.page_label.pack(side=tk.LEFT, padx=10)
+        # --- Page Navigation ---
+        page_nav_frame = ttk.Frame(toolbar)
+        page_nav_frame.pack(side=tk.LEFT, padx=10)
 
-        self.page_entry = ttk.Entry(toolbar, width=5)
-        self.page_entry.pack(side=tk.LEFT, padx=(10, 0))
-        self.page_entry.bind("<Return>", lambda event: self.go_to_page())
-        go_btn = ttk.Button(toolbar, text="Go", command=self.go_to_page)
-        go_btn.pack(side=tk.LEFT, padx=5)
+        self.page_entry = ttk.Entry(page_nav_frame, width=4, textvariable=self.page_entry_var, justify='right')
+        self.page_entry.pack(side=tk.LEFT)
+        self.page_entry.bind("<Return>", self._go_to_page_from_entry)
+
+        total_pages_label = ttk.Label(page_nav_frame, text=f" / {self.total_pages}")
+        total_pages_label.pack(side=tk.LEFT)
 
         ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
 
+        # --- Search ---
         self.search_entry = ttk.Entry(toolbar, width=30, textvariable=self.search_term)
         self.search_entry.pack(side=tk.LEFT, padx=5)
         search_btn = ttk.Button(toolbar, text="Search", command=self.search_and_highlight)
@@ -101,6 +104,7 @@ class PDFViewerWindow(tk.Toplevel):
 
         ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
 
+        # --- Zoom ---
         zoom_out_btn = ttk.Button(toolbar, text="-", command=self.zoom_out, width=3)
         zoom_out_btn.pack(side=tk.LEFT, padx=2)
 
@@ -201,7 +205,7 @@ class PDFViewerWindow(tk.Toplevel):
                     self.canvas.create_image(x_offset, page_top, anchor=tk.NW, image=photo)
 
     def _update_page_label(self, *args):
-        """Updates the page label based on scroll position."""
+        """Updates the page entry widget based on scroll position."""
         scroll_region = self.canvas.cget('scrollregion')
         if not scroll_region: return
         total_height = float(scroll_region.split(' ')[3])
@@ -214,7 +218,8 @@ class PDFViewerWindow(tk.Toplevel):
             if current_y >= layout['y'] - 10:
                 current_page = i + 1
         
-        self.page_label.config(text=f"Page {current_page} of {self.total_pages}")
+        if self.focus_get() != self.page_entry:
+            self.page_entry_var.set(current_page)
 
     def zoom_in(self, event=None):
         self.zoom_level += self.ZOOM_INCREMENT
@@ -234,15 +239,28 @@ class PDFViewerWindow(tk.Toplevel):
         if event.delta > 0: self.zoom_in()
         else: self.zoom_out()
 
-    def go_to_page(self, event=None, page_num=None):
+    def _go_to_page_from_entry(self, event=None):
+        """Validates and scrolls to the page number from the entry widget."""
         try:
-            if page_num is None: page_num = int(self.page_entry.get())
+            page_num = int(self.page_entry_var.get())
+            self.go_to_page(page_num)
+        except ValueError:
+            # If input is invalid, revert to the current page
+            self._update_page_label()
+        finally:
+            # Move focus away from the entry so it updates on scroll
+            self.canvas.focus_set()
 
-            if 1 <= page_num <= self.total_pages and self.page_layout_info:
-                y_pos = self.page_layout_info[page_num - 1]['y']
-                total_height = float(self.canvas.cget('scrollregion').split(' ')[3])
-                if total_height > 0: self.canvas.yview_moveto(y_pos / total_height)
-        except (ValueError, IndexError): logging.warning("Invalid page number entered.")
+    def go_to_page(self, page_num):
+        """Scrolls the canvas to the top of the given page number."""
+        if 1 <= page_num <= self.total_pages and self.page_layout_info:
+            y_pos = self.page_layout_info[page_num - 1]['y']
+            total_height = float(self.canvas.cget('scrollregion').split(' ')[3])
+            if total_height > 0:
+                self.canvas.yview_moveto(y_pos / total_height)
+        else:
+            # Revert to the current page if input is invalid
+            self._update_page_label()
 
     def search_and_highlight(self):
         """Finds the first match and centers the view on it."""
@@ -267,9 +285,10 @@ class PDFViewerWindow(tk.Toplevel):
                 transformed_rect = first_match_rect.transform(transform_matrix)
 
                 match_center_y = page_layout['y'] + (transformed_rect.y0 + transformed_rect.y1) / 2
-
+                
                 self.update_idletasks()
                 canvas_height = self.canvas.winfo_height()
+                
                 scroll_to_y = match_center_y - (canvas_height / 2)
 
                 total_height = float(self.canvas.cget('scrollregion').split(' ')[3])
@@ -277,7 +296,8 @@ class PDFViewerWindow(tk.Toplevel):
                     scroll_fraction = max(0, min(1, scroll_to_y / total_height))
                     self.canvas.yview_moveto(scroll_fraction)
 
-                self.match_label.config(text=f"Found on page {i + 1}")
+                self.match_label.config(text=f"Found on page {i+1}")
+                self._update_visible_pages() # Re-render after scrolling
                 return
 
         self.match_label.config(text="Not found")
