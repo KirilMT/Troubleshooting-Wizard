@@ -27,30 +27,42 @@ class PDFViewerWindow(tk.Toplevel):
         self.current_page = initial_page - 1  # 0-indexed
         self.photo_image = None  # Keep a reference to the current page image
 
+        # --- Zoom Functionality ---
+        self.zoom_level = 1.0
+        self.base_zoom = 1.0
+        self.ZOOM_INCREMENT = 0.1
+
         self.title(f"PDF Viewer - {os.path.basename(file_path)}")
 
         try:
-            # Maximize window for a "full screen" feel with controls
             self.state('zoomed')
         except tk.TclError:
-            # Fallback for other window managers
             width = self.winfo_screenwidth()
             height = self.winfo_screenheight()
             self.geometry(f'{width}x{height}+0+0')
-
-        # Removed self.transient(parent) and self.grab_set() to allow standard window behavior
 
         self._create_toolbar()
         self._create_canvas()
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
-        # Defer loading to ensure the main window has time to draw itself correctly.
+        # --- Bindings for Zoom ---
+        self.bind("<Control-plus>", self.zoom_in)
+        self.bind("<Control-equal>", self.zoom_in) # Also bind '=' for convenience
+        self.bind("<Control-minus>", self.zoom_out)
+        self.canvas.bind("<Control-MouseWheel>", self.handle_zoom_scroll)
+        self.bind("<Configure>", self.on_resize)
+
+
         self.after(100, self.initial_load)
 
     def initial_load(self):
         """Load the initial page and perform the initial search if a term is provided."""
-        self.display_page(self.current_page, search=True)
+        self.display_page(self.current_page, search=True, fit_page=True)
+
+    def on_resize(self, event):
+        """Recalculate base zoom and redraw the page on window resize."""
+        self.display_page(self.current_page, search=False, fit_page=True)
 
     def _create_toolbar(self):
         toolbar = ttk.Frame(self, padding=5)
@@ -78,17 +90,33 @@ class PDFViewerWindow(tk.Toplevel):
         # Search Controls
         self.search_entry = ttk.Entry(toolbar, width=30, textvariable=self.search_term)
         self.search_entry.pack(side=tk.LEFT, padx=5)
-        search_btn = ttk.Button(toolbar, text="Search", command=lambda: self.display_page(self.current_page, search=True))
+        search_btn = ttk.Button(toolbar, text="Search", command=lambda: self.display_page(self.current_page, search=True, fit_page=False))
         search_btn.pack(side=tk.LEFT, padx=5)
 
         self.match_label = ttk.Label(toolbar, text="")
         self.match_label.pack(side=tk.LEFT, padx=5)
 
+        ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
+
+        # --- Zoom Controls ---
+        zoom_out_btn = ttk.Button(toolbar, text="-", command=self.zoom_out, width=3)
+        zoom_out_btn.pack(side=tk.LEFT, padx=2)
+
+        self.zoom_label = ttk.Label(toolbar, text="100%")
+        self.zoom_label.pack(side=tk.LEFT, padx=2)
+
+        zoom_in_btn = ttk.Button(toolbar, text="+", command=self.zoom_in, width=3)
+        zoom_in_btn.pack(side=tk.LEFT, padx=2)
+        
+        reset_zoom_btn = ttk.Button(toolbar, text="Reset", command=self.reset_zoom)
+        reset_zoom_btn.pack(side=tk.LEFT, padx=5)
+
+
     def _create_canvas(self):
-        self.canvas = tk.Canvas(self, bg="#505050") # Dark gray background
+        self.canvas = tk.Canvas(self, bg="#505050")
         self.canvas.pack(fill=tk.BOTH, expand=True)
 
-    def display_page(self, page_num, search=False):
+    def display_page(self, page_num, search=False, fit_page=False):
         """Renders and displays a single page, optionally highlighting a search term."""
         if not (0 <= page_num < self.total_pages):
             logging.warning(f"Attempted to display invalid page number: {page_num}")
@@ -103,26 +131,33 @@ class PDFViewerWindow(tk.Toplevel):
             # Highlight search term if provided
             search_term = self.search_term.get()
             match_count = 0
-            if search and search_term:
+            if search_term:
                 matches = page.search_for(search_term)
                 match_count = len(matches)
                 for inst in matches:
                     highlight = page.add_highlight_annot(inst)
                     highlight.update()
             
-            self.match_label.config(text=f"{match_count} matches on this page" if search and search_term else "")
+            if search: # Only update label on explicit search action
+                self.match_label.config(text=f"{match_count} matches on this page" if search_term else "")
 
-            # --- Rendering with correct aspect ratio ---
-            self.update_idletasks() # Ensure canvas dimensions are current
+            # --- Rendering with correct aspect ratio and zoom ---
+            self.update_idletasks()
             canvas_width = self.canvas.winfo_width()
             canvas_height = self.canvas.winfo_height()
 
             page_rect = page.rect
-            zoom_x = (canvas_width - 20) / page_rect.width if page_rect.width > 0 else 1
-            zoom_y = (canvas_height - 20) / page_rect.height if page_rect.height > 0 else 1
-            zoom = min(zoom_x, zoom_y)  # Use the smaller zoom factor to fit the page
+            
+            if fit_page:
+                zoom_x = (canvas_width - 20) / page_rect.width if page_rect.width > 0 else 1
+                zoom_y = (canvas_height - 20) / page_rect.height if page_rect.height > 0 else 1
+                self.base_zoom = min(zoom_x, zoom_y)
+                self.zoom_level = 1.0
 
-            matrix = fitz.Matrix(zoom, zoom)
+            final_zoom = self.base_zoom * self.zoom_level
+            self.zoom_label.config(text=f"{int(self.zoom_level * 100)}%")
+
+            matrix = fitz.Matrix(final_zoom, final_zoom)
             pix = page.get_pixmap(matrix=matrix, alpha=False)
 
             if pix.width <= 0 or pix.height <= 0:
@@ -130,9 +165,8 @@ class PDFViewerWindow(tk.Toplevel):
                 return
 
             img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            self.photo_image = ImageTk.PhotoImage(img) # Keep a reference
+            self.photo_image = ImageTk.PhotoImage(img)
 
-            # Center the image on the canvas
             x_offset = (canvas_width - pix.width) / 2
             y_offset = (canvas_height - pix.height) / 2
             self.canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=self.photo_image)
@@ -143,6 +177,27 @@ class PDFViewerWindow(tk.Toplevel):
             logging.critical(f"Failed to display page {self.current_page + 1}: {e}", exc_info=True)
             self.canvas.create_text(self.canvas.winfo_width()/2, 100, text=f"Error rendering page {self.current_page + 1}", fill="red", anchor="center")
 
+    def zoom_in(self, event=None):
+        """Increases the zoom level."""
+        self.zoom_level += self.ZOOM_INCREMENT
+        self.display_page(self.current_page, search=False, fit_page=False)
+
+    def zoom_out(self, event=None):
+        """Decreases the zoom level."""
+        self.zoom_level = max(self.ZOOM_INCREMENT, self.zoom_level - self.ZOOM_INCREMENT)
+        self.display_page(self.current_page, search=False, fit_page=False)
+
+    def reset_zoom(self, event=None):
+        """Resets the zoom to 100% (fit to page)."""
+        self.display_page(self.current_page, search=False, fit_page=True)
+
+    def handle_zoom_scroll(self, event):
+        """Handles zooming with the mouse wheel."""
+        if event.delta > 0:
+            self.zoom_in()
+        else:
+            self.zoom_out()
+
     def update_navigation(self):
         """Updates the page label and button states."""
         self.page_label.config(text=f"Page {self.current_page + 1} of {self.total_pages}")
@@ -151,17 +206,17 @@ class PDFViewerWindow(tk.Toplevel):
 
     def next_page(self):
         if self.current_page < self.total_pages - 1:
-            self.display_page(self.current_page + 1, search=True)
+            self.display_page(self.current_page + 1, search=True, fit_page=True)
 
     def prev_page(self):
         if self.current_page > 0:
-            self.display_page(self.current_page - 1, search=True)
+            self.display_page(self.current_page - 1, search=True, fit_page=True)
 
     def go_to_page(self, event=None):
         try:
             page_num = int(self.page_entry.get())
             if 1 <= page_num <= self.total_pages:
-                self.display_page(page_num - 1, search=True)
+                self.display_page(page_num - 1, search=True, fit_page=True)
         except ValueError:
             logging.warning("Invalid page number entered.")
 
