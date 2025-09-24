@@ -15,7 +15,7 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 
 
 class PDFViewerWindow(tk.Toplevel):
-    """A stable, page-by-page PDF viewer with search and navigation."""
+    """A continuous-scrolling PDF viewer with on-demand rendering and zoom."""
 
     def __init__(self, parent, file_path, initial_page, search_term=""):
         super().__init__(parent)
@@ -24,8 +24,12 @@ class PDFViewerWindow(tk.Toplevel):
         self.search_term = tk.StringVar(value=search_term)
         self.doc = fitz.open(file_path)
         self.total_pages = len(self.doc)
-        self.current_page = initial_page - 1  # 0-indexed
-        self.photo_image = None  # Keep a reference to the current page image
+        self.initial_page = initial_page - 1
+
+        # --- Caching and Layout ---
+        self.page_images = {}  # Cache for PhotoImage objects {page_num: photo_image}
+        self.page_layout_info = []  # List of {'y': y_pos, 'w': width, 'h': height} for each page
+        self.rendering_scheduled = False
 
         # --- Zoom Functionality ---
         self.zoom_level = 1.0
@@ -42,55 +46,54 @@ class PDFViewerWindow(tk.Toplevel):
             self.geometry(f'{width}x{height}+0+0')
 
         self._create_toolbar()
-        self._create_canvas()
+        self._create_canvas_with_scrollbar()
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
-        # --- Bindings for Zoom ---
+        # --- Bindings ---
         self.bind("<Control-plus>", self.zoom_in)
-        self.bind("<Control-equal>", self.zoom_in) # Also bind '=' for convenience
+        self.bind("<Control-equal>", self.zoom_in)
         self.bind("<Control-minus>", self.zoom_out)
         self.canvas.bind("<Control-MouseWheel>", self.handle_zoom_scroll)
         self.bind("<Configure>", self.on_resize)
 
-
         self.after(100, self.initial_load)
 
     def initial_load(self):
-        """Load the initial page and perform the initial search if a term is provided."""
-        self.display_page(self.current_page, search=True, fit_page=True)
+        """Setup the canvas layout and then perform the initial search/centering."""
+        self._calculate_layout(fit_to_width=True)
+        # Use 'after' to ensure the main window is fully initialized before calculating scroll positions.
+        self.after(150, self.search_and_highlight)
 
     def on_resize(self, event):
-        """Recalculate base zoom and redraw the page on window resize."""
-        self.display_page(self.current_page, search=False, fit_page=True)
+        """Debounce resize events to avoid excessive re-rendering."""
+        if hasattr(self, '_resize_job'):
+            self.after_cancel(self._resize_job)
+        self._resize_job = self.after(300, self._perform_resize)
+
+    def _perform_resize(self):
+        """Recalculate layout and re-render visible pages on resize."""
+        self._calculate_layout(fit_to_width=True)
+        self._update_visible_pages()
 
     def _create_toolbar(self):
         toolbar = ttk.Frame(self, padding=5)
         toolbar.pack(side=tk.TOP, fill=tk.X)
 
-        # Page Navigation Controls
-        self.prev_page_btn = ttk.Button(toolbar, text="<< Prev Page", command=self.prev_page)
-        self.prev_page_btn.pack(side=tk.LEFT, padx=5)
-
         self.page_label = ttk.Label(toolbar, text="")
-        self.page_label.pack(side=tk.LEFT, padx=5)
+        self.page_label.pack(side=tk.LEFT, padx=10)
 
-        self.next_page_btn = ttk.Button(toolbar, text="Next Page >>", command=self.next_page)
-        self.next_page_btn.pack(side=tk.LEFT, padx=5)
-
-        # Go-to-page entry
         self.page_entry = ttk.Entry(toolbar, width=5)
         self.page_entry.pack(side=tk.LEFT, padx=(10, 0))
-        self.page_entry.bind("<Return>", self.go_to_page)
+        self.page_entry.bind("<Return>", lambda event: self.go_to_page())
         go_btn = ttk.Button(toolbar, text="Go", command=self.go_to_page)
         go_btn.pack(side=tk.LEFT, padx=5)
 
         ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
 
-        # Search Controls
         self.search_entry = ttk.Entry(toolbar, width=30, textvariable=self.search_term)
         self.search_entry.pack(side=tk.LEFT, padx=5)
-        search_btn = ttk.Button(toolbar, text="Search", command=lambda: self.display_page(self.current_page, search=True, fit_page=False))
+        search_btn = ttk.Button(toolbar, text="Search", command=self.search_and_highlight)
         search_btn.pack(side=tk.LEFT, padx=5)
 
         self.match_label = ttk.Label(toolbar, text="")
@@ -98,7 +101,6 @@ class PDFViewerWindow(tk.Toplevel):
 
         ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
 
-        # --- Zoom Controls ---
         zoom_out_btn = ttk.Button(toolbar, text="-", command=self.zoom_out, width=3)
         zoom_out_btn.pack(side=tk.LEFT, padx=2)
 
@@ -108,117 +110,184 @@ class PDFViewerWindow(tk.Toplevel):
         zoom_in_btn = ttk.Button(toolbar, text="+", command=self.zoom_in, width=3)
         zoom_in_btn.pack(side=tk.LEFT, padx=2)
         
-        reset_zoom_btn = ttk.Button(toolbar, text="Reset", command=self.reset_zoom)
+        reset_zoom_btn = ttk.Button(toolbar, text="Reset Zoom", command=self.reset_zoom)
         reset_zoom_btn.pack(side=tk.LEFT, padx=5)
 
+    def _create_canvas_with_scrollbar(self):
+        canvas_container = ttk.Frame(self)
+        canvas_container.pack(fill=tk.BOTH, expand=True)
 
-    def _create_canvas(self):
-        self.canvas = tk.Canvas(self, bg="#505050")
-        self.canvas.pack(fill=tk.BOTH, expand=True)
+        self.canvas = tk.Canvas(canvas_container, bg="#505050")
+        self.v_scroll = ttk.Scrollbar(canvas_container, orient=tk.VERTICAL, command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self._on_vertical_scroll)
 
-    def display_page(self, page_num, search=False, fit_page=False):
-        """Renders and displays a single page, optionally highlighting a search term."""
-        if not (0 <= page_num < self.total_pages):
-            logging.warning(f"Attempted to display invalid page number: {page_num}")
-            return
+        self.v_scroll.pack(side=tk.RIGHT, fill=tk.Y)
+        self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        self.current_page = page_num
+        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
+        self.canvas.bind("<4>", self._on_mousewheel)
+        self.canvas.bind("<5>", self._on_mousewheel)
+
+    def _on_vertical_scroll(self, *args):
+        """Handle scrollbar movement and schedule rendering of visible pages."""
+        self.v_scroll.set(*args)
+        self._update_page_label()
+        if not self.rendering_scheduled:
+            self.rendering_scheduled = True
+            self.after(100, self._update_visible_pages)
+
+    def _calculate_layout(self, fit_to_width=False):
+        """Calculate the dimensions and positions of all pages without rendering them."""
+        self.page_layout_info.clear()
         self.canvas.delete("all")
+        self.page_images.clear()
 
-        try:
-            page = self.doc.load_page(self.current_page)
+        canvas_width = self.winfo_width()
 
-            # Highlight search term if provided
-            search_term = self.search_term.get()
-            match_count = 0
-            if search_term:
-                matches = page.search_for(search_term)
-                match_count = len(matches)
-                for inst in matches:
-                    highlight = page.add_highlight_annot(inst)
-                    highlight.update()
-            
-            if search: # Only update label on explicit search action
-                self.match_label.config(text=f"{match_count} matches on this page" if search_term else "")
+        if fit_to_width:
+            first_page = self.doc.load_page(0)
+            page_rect = first_page.rect
+            self.base_zoom = (canvas_width - 40) / page_rect.width if page_rect.width > 0 else 1
+            self.zoom_level = 1.0
+        
+        final_zoom = self.base_zoom * self.zoom_level
+        self.zoom_label.config(text=f"{int(self.zoom_level * 100)}%")
+        
+        transform_matrix = fitz.Matrix(final_zoom, final_zoom)
+        
+        y_offset = 10
+        for i in range(self.total_pages):
+            page = self.doc.load_page(i)
+            rect = page.rect.transform(transform_matrix)
+            self.page_layout_info.append({'y': y_offset, 'w': rect.width, 'h': rect.height})
+            y_offset += rect.height + 10
 
-            # --- Rendering with correct aspect ratio and zoom ---
-            self.update_idletasks()
-            canvas_width = self.canvas.winfo_width()
-            canvas_height = self.canvas.winfo_height()
+        total_height = y_offset
+        self.canvas.configure(scrollregion=(0, 0, canvas_width, total_height))
 
-            page_rect = page.rect
-            
-            if fit_page:
-                zoom_x = (canvas_width - 20) / page_rect.width if page_rect.width > 0 else 1
-                zoom_y = (canvas_height - 20) / page_rect.height if page_rect.height > 0 else 1
-                self.base_zoom = min(zoom_x, zoom_y)
-                self.zoom_level = 1.0
+    def _update_visible_pages(self):
+        """Render and display only the pages currently visible on the canvas."""
+        self.rendering_scheduled = False
+        canvas_height = self.canvas.winfo_height()
+        canvas_width = self.canvas.winfo_width()
+        
+        scroll_region = self.canvas.cget('scrollregion')
+        if not scroll_region: return
+        total_height = float(scroll_region.split(' ')[3])
 
-            final_zoom = self.base_zoom * self.zoom_level
-            self.zoom_label.config(text=f"{int(self.zoom_level * 100)}%")
+        y_top = self.canvas.yview()[0] * total_height
+        y_bottom = y_top + canvas_height
 
-            matrix = fitz.Matrix(final_zoom, final_zoom)
-            pix = page.get_pixmap(matrix=matrix, alpha=False)
+        search_term = self.search_term.get()
+        final_zoom = self.base_zoom * self.zoom_level
+        transform_matrix = fitz.Matrix(final_zoom, final_zoom)
 
-            if pix.width <= 0 or pix.height <= 0:
-                logging.error(f"Invalid pixmap dimensions for page {self.current_page + 1}.")
-                return
+        for i, layout in enumerate(self.page_layout_info):
+            page_top = layout['y']
+            page_bottom = page_top + layout['h']
 
-            img = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
-            self.photo_image = ImageTk.PhotoImage(img)
+            if page_bottom > y_top and page_top < y_bottom and i not in self.page_images:
+                page = self.doc.load_page(i)
+                
+                annots = page.annots()
+                if annots: [page.delete_annot(a) for a in annots]
+                if search_term: [page.add_highlight_annot(inst) for inst in page.search_for(search_term)]
 
-            x_offset = (canvas_width - pix.width) / 2
-            y_offset = (canvas_height - pix.height) / 2
-            self.canvas.create_image(x_offset, y_offset, anchor=tk.NW, image=self.photo_image)
+                pix = page.get_pixmap(matrix=transform_matrix, alpha=False)
+                if pix.width > 0 and pix.height > 0:
+                    photo = ImageTk.PhotoImage(Image.frombytes("RGB", [pix.width, pix.height], pix.samples))
+                    self.page_images[i] = photo
+                    x_offset = (canvas_width - pix.width) / 2
+                    self.canvas.create_image(x_offset, page_top, anchor=tk.NW, image=photo)
 
-            self.update_navigation()
+    def _update_page_label(self, *args):
+        """Updates the page label based on scroll position."""
+        scroll_region = self.canvas.cget('scrollregion')
+        if not scroll_region: return
+        total_height = float(scroll_region.split(' ')[3])
+        if total_height == 0: return
 
-        except Exception as e:
-            logging.critical(f"Failed to display page {self.current_page + 1}: {e}", exc_info=True)
-            self.canvas.create_text(self.canvas.winfo_width()/2, 100, text=f"Error rendering page {self.current_page + 1}", fill="red", anchor="center")
+        current_y = self.canvas.yview()[0] * total_height
+        
+        current_page = 1
+        for i, layout in enumerate(self.page_layout_info):
+            if current_y >= layout['y'] - 10:
+                current_page = i + 1
+        
+        self.page_label.config(text=f"Page {current_page} of {self.total_pages}")
 
     def zoom_in(self, event=None):
-        """Increases the zoom level."""
         self.zoom_level += self.ZOOM_INCREMENT
-        self.display_page(self.current_page, search=False, fit_page=False)
+        self._calculate_layout(fit_to_width=False)
+        self._update_visible_pages()
 
     def zoom_out(self, event=None):
-        """Decreases the zoom level."""
         self.zoom_level = max(self.ZOOM_INCREMENT, self.zoom_level - self.ZOOM_INCREMENT)
-        self.display_page(self.current_page, search=False, fit_page=False)
+        self._calculate_layout(fit_to_width=False)
+        self._update_visible_pages()
 
     def reset_zoom(self, event=None):
-        """Resets the zoom to 100% (fit to page)."""
-        self.display_page(self.current_page, search=False, fit_page=True)
+        self._calculate_layout(fit_to_width=True)
+        self._update_visible_pages()
 
     def handle_zoom_scroll(self, event):
-        """Handles zooming with the mouse wheel."""
-        if event.delta > 0:
-            self.zoom_in()
-        else:
-            self.zoom_out()
+        if event.delta > 0: self.zoom_in()
+        else: self.zoom_out()
 
-    def update_navigation(self):
-        """Updates the page label and button states."""
-        self.page_label.config(text=f"Page {self.current_page + 1} of {self.total_pages}")
-        self.prev_page_btn.config(state=tk.NORMAL if self.current_page > 0 else tk.DISABLED)
-        self.next_page_btn.config(state=tk.NORMAL if self.current_page < self.total_pages - 1 else tk.DISABLED)
-
-    def next_page(self):
-        if self.current_page < self.total_pages - 1:
-            self.display_page(self.current_page + 1, search=True, fit_page=True)
-
-    def prev_page(self):
-        if self.current_page > 0:
-            self.display_page(self.current_page - 1, search=True, fit_page=True)
-
-    def go_to_page(self, event=None):
+    def go_to_page(self, event=None, page_num=None):
         try:
-            page_num = int(self.page_entry.get())
-            if 1 <= page_num <= self.total_pages:
-                self.display_page(page_num - 1, search=True, fit_page=True)
-        except ValueError:
-            logging.warning("Invalid page number entered.")
+            if page_num is None: page_num = int(self.page_entry.get())
+
+            if 1 <= page_num <= self.total_pages and self.page_layout_info:
+                y_pos = self.page_layout_info[page_num - 1]['y']
+                total_height = float(self.canvas.cget('scrollregion').split(' ')[3])
+                if total_height > 0: self.canvas.yview_moveto(y_pos / total_height)
+        except (ValueError, IndexError): logging.warning("Invalid page number entered.")
+
+    def search_and_highlight(self):
+        """Finds the first match and centers the view on it."""
+        self.page_images.clear()
+        self.canvas.delete("all")
+
+        search_term = self.search_term.get()
+        if not search_term:
+            self.match_label.config(text="")
+            self._update_visible_pages()
+            return
+
+        for i in range(self.total_pages):
+            page = self.doc.load_page(i)
+            matches = page.search_for(search_term)
+            if matches:
+                first_match_rect = matches[0]
+                page_layout = self.page_layout_info[i]
+
+                final_zoom = self.base_zoom * self.zoom_level
+                transform_matrix = fitz.Matrix(final_zoom, final_zoom)
+                transformed_rect = first_match_rect.transform(transform_matrix)
+
+                match_center_y = page_layout['y'] + (transformed_rect.y0 + transformed_rect.y1) / 2
+
+                self.update_idletasks()
+                canvas_height = self.canvas.winfo_height()
+                scroll_to_y = match_center_y - (canvas_height / 2)
+
+                total_height = float(self.canvas.cget('scrollregion').split(' ')[3])
+                if total_height > 0:
+                    scroll_fraction = max(0, min(1, scroll_to_y / total_height))
+                    self.canvas.yview_moveto(scroll_fraction)
+
+                self.match_label.config(text=f"Found on page {i + 1}")
+                return
+
+        self.match_label.config(text="Not found")
+        self._update_visible_pages()
+
+    def _on_mousewheel(self, event):
+        if event.num == 4: delta = -1
+        elif event.num == 5: delta = 1
+        else: delta = -1 * int(event.delta / 120)
+        self.canvas.yview_scroll(delta, "units")
 
     def on_close(self):
         logging.info("--- Closing PDFViewerWindow ---")
@@ -295,18 +364,20 @@ class MainApplication:
             return
 
         try:
+            page_number = 1
             with pdfplumber.open(absolute_path) as pdf:
                 for i, page in enumerate(pdf.pages):
                     text = page.extract_text(x_tolerance=1)
                     if text and fault_message.lower() in text.lower():
                         page_number = i + 1
-                        logging.info(f"Found search term on page {page_number}. Launching viewer.")
-                        PDFViewerWindow(self.root, absolute_path, page_number, fault_message)
-                        return
-            messagebox.showinfo("Search Not Found", f"The fault message '{fault_message}' was not found in '{os.path.basename(url_path)}'.")
+                        break
+            
+            logging.info(f"Launching viewer for search term '{fault_message}'. First match on page {page_number}.")
+            PDFViewerWindow(self.root, absolute_path, page_number, fault_message)
+
         except Exception as e:
             logging.error(f"An error occurred while searching the PDF: {e}", exc_info=True)
-            messagebox.showerror("PDF Error", f"An error occurred while searching the PDF: {e}")
+            messagebox.showerror("PDF Error", f"An error occurred while opening the PDF: {e}")
 
     def show_main_program(self):
         self.destroy_current_view()
