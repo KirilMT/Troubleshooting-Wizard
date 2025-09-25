@@ -87,6 +87,9 @@ class PDFViewerWindow(tk.Toplevel):
         self.bind("<Control-equal>", self.zoom_in)
         self.bind("<Control-minus>", self.zoom_out)
         self.canvas.bind("<Control-MouseWheel>", self.handle_zoom_scroll)
+        self.canvas.bind("<MouseWheel>", self._on_mousewheel) # Changed from bind_all
+        self.canvas.bind("<4>", self._on_mousewheel)
+        self.canvas.bind("<5>", self._on_mousewheel)
         self.bind("<Configure>", self.on_resize)
 
         self.after(100, self.initial_load)
@@ -106,7 +109,7 @@ class PDFViewerWindow(tk.Toplevel):
 
     def _perform_resize(self):
         """Recalculate layout and re-render visible pages on resize."""
-        self._calculate_layout(fit_to_width=True)
+        self._calculate_layout(fit_to_width=False) # Use False to preserve current zoom
         self._update_visible_pages()
 
     def _create_toolbar(self):
@@ -171,10 +174,6 @@ class PDFViewerWindow(tk.Toplevel):
         self.v_scroll.pack(side=tk.RIGHT, fill=tk.Y)
         self.canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
-        self.canvas.bind_all("<MouseWheel>", self._on_mousewheel)
-        self.canvas.bind("<4>", self._on_mousewheel)
-        self.canvas.bind("<5>", self._on_mousewheel)
-
     def _on_vertical_scroll(self, *args):
         """Handle scrollbar movement and schedule rendering of visible pages."""
         self.v_scroll.set(*args)
@@ -183,8 +182,46 @@ class PDFViewerWindow(tk.Toplevel):
             self.rendering_scheduled = True
             self.after(100, self._update_visible_pages)
 
+    def _get_scroll_anchor(self):
+        """Gets the current page and relative position to anchor the view during resizes."""
+        scroll_region = self.canvas.cget('scrollregion')
+        if not scroll_region or not self.page_layout_info: return None
+        
+        total_height = float(scroll_region.split(' ')[3])
+        if total_height == 0: return None
+
+        canvas_height = self.canvas.winfo_height()
+        y_center = (self.canvas.yview()[0] * total_height) + (canvas_height / 2)
+
+        for i, layout in enumerate(self.page_layout_info):
+            if layout['y'] <= y_center < layout['y'] + layout['h']:
+                relative_pos = (y_center - layout['y']) / layout['h']
+                return {'page_index': i, 'relative_pos': relative_pos}
+        return None
+
+    def _restore_scroll_anchor(self, anchor):
+        """Restores the view to the given anchor after a resize/zoom."""
+        if not anchor or not self.page_layout_info: return
+
+        page_index = anchor['page_index']
+        if not 0 <= page_index < len(self.page_layout_info): return
+
+        layout = self.page_layout_info[page_index]
+        new_y_center = layout['y'] + (layout['h'] * anchor['relative_pos'])
+
+        canvas_height = self.canvas.winfo_height()
+        scroll_to_y = new_y_center - (canvas_height / 2)
+
+        total_height = float(self.canvas.cget('scrollregion').split(' ')[3])
+        if total_height > 0:
+            scroll_fraction = max(0, min(1, scroll_to_y / total_height))
+            self.canvas.yview_moveto(scroll_fraction)
+            self.after(50, self._update_page_label)
+
     def _calculate_layout(self, fit_to_width=False):
         """Calculate the dimensions and positions of all pages without rendering them."""
+        anchor = self._get_scroll_anchor()
+
         self.page_layout_info.clear()
         self.canvas.delete("all")
         self.page_images.clear()
@@ -211,6 +248,9 @@ class PDFViewerWindow(tk.Toplevel):
 
         total_height = y_offset
         self.canvas.configure(scrollregion=(0, 0, canvas_width, total_height))
+
+        if anchor:
+            self._restore_scroll_anchor(anchor)
 
     def _update_visible_pages(self):
         """Render and display only the pages currently visible on the canvas."""
@@ -305,7 +345,7 @@ class PDFViewerWindow(tk.Toplevel):
         self._update_visible_pages()
 
     def zoom_out(self, event=None):
-        self.zoom_level = max(self.ZOOM_INCREMENT, self.zoom_level - self.ZOOM_INCREMENT)
+        self.zoom_level = max(0.1, self.zoom_level - self.ZOOM_INCREMENT) # Allow zooming out, with a minimum limit
         self._calculate_layout(fit_to_width=False)
         self._update_visible_pages()
 
