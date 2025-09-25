@@ -1,7 +1,7 @@
 {
   "labels": {
-    "back_to_technologies": "< Back to Technologies",
-    "back_to_tasks": "< Back to Tasks",
+    "back_to_technologies": "Back to Technologies",
+    "back_to_tasks": "Back to Tasks",
     "search": "Search",
     "insert_fault_code": "Insert fault code/message:",
     "sew_db_title": "SEW MoviPro Error Code Database",

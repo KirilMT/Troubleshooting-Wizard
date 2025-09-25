@@ -599,13 +599,126 @@ class MainApplication:
         self.show_main_program()
 
     def _configure_styles(self):
-        """Configures all ttk styles for the application."""
+        """Configures modern styling for the application."""
+        # Modern color palette with navigation hierarchy
+        self.colors = {
+            'technology': '#4A90E2',      # Blue for technology buttons
+            'technology_hover': '#357ABD',
+            'task': '#6C5CE7',            # Purple for task buttons  
+            'task_hover': '#5A4FCF',
+            'error_critical': '#FFB366',   # Lighter orange for error codes
+            'error_critical_hover': '#FF9F4D',
+            'submit': '#00B894',          # Green for submit buttons
+            'submit_hover': '#00A085',
+            'secondary': '#B0B0B0',       # Gray for back buttons
+            'secondary_hover': '#909090',
+            'text_primary': '#333333',
+            'text_secondary': '#666666', 
+            'text_light': '#FFFFFF',
+            'text_error': '#D63031',      # Red text for error buttons
+            'background': '#FAFAFA',
+            'surface': '#FFFFFF',
+            'border': '#E0E0E0',
+            # Themed backgrounds (darker for better visibility)
+            'bg_technology': '#D6E8FF',   # Medium light blue
+            'bg_task': '#E6D9FF',         # Medium light purple
+            'bg_error': '#FFE4C4'         # Medium light orange
+        }
+        
+        # Configure ttk styles for elements that must use ttk
         style = ttk.Style()
-        style.configure("Yellow.TButton", background="yellow")
-        style.configure("Bold.TLabel", font=("Helvetica", 15, "bold"))
-        style.configure("Large.TEntry", font=("Helvetica", 16))
-        style.configure("Help.TButton", font=("Segoe UI", 12, "bold"), foreground="#2E86AB")
-        style.configure("Accent.TButton", font=("Segoe UI", 11, "bold"))
+        style.configure("Modern.TFrame", background=self.colors['background'])
+        style.configure("Modern.TLabel", background=self.colors['background'], foreground=self.colors['text_primary'], font=("Segoe UI", 9))
+        style.configure("ModernBold.TLabel", background=self.colors['background'], foreground=self.colors['text_primary'], font=("Segoe UI", 10, "bold"))
+
+    def _create_modern_button(self, parent, text, command, style='technology', **kwargs):
+        """Creates a modern flat button with consistent styling."""
+        font_weight = "normal"
+        
+        if style == 'technology':
+            bg, fg, hover_bg = self.colors['technology'], self.colors['text_light'], self.colors['technology_hover']
+        elif style == 'task':
+            bg, fg, hover_bg = self.colors['task'], self.colors['text_light'], self.colors['task_hover']
+        elif style == 'error_critical':
+            bg, fg, hover_bg = self.colors['error_critical'], self.colors['text_error'], self.colors['error_critical_hover']
+            font_weight = "bold"
+        elif style == 'submit':
+            bg, fg, hover_bg = self.colors['submit'], self.colors['text_light'], self.colors['submit_hover']
+        elif style == 'secondary':
+            bg, fg, hover_bg = self.colors['secondary'], self.colors['text_primary'], self.colors['secondary_hover']
+        else:
+            bg, fg, hover_bg = self.colors['surface'], self.colors['text_primary'], self.colors['border']
+            
+        return tk.Button(parent, text=text, command=command,
+                        font=("Segoe UI", 9, font_weight), fg=fg, bg=bg,
+                        relief="flat", bd=0, padx=12, pady=8,
+                        activebackground=hover_bg, activeforeground=fg,
+                        cursor="hand2", **kwargs)
+
+    def _create_modern_entry(self, parent, **kwargs):
+        """Creates a modern entry widget with consistent styling."""
+        return tk.Entry(parent, font=("Segoe UI", 9), relief="flat", bd=1,
+                       highlightthickness=1, highlightcolor=self.colors['primary'],
+                       bg=self.colors['surface'], fg=self.colors['text_primary'], **kwargs)
+
+    def _create_modern_label(self, parent, text, bold=False, **kwargs):
+        """Creates a modern label with consistent styling."""
+        font_weight = "bold" if bold else "normal"
+        return tk.Label(parent, text=text, font=("Segoe UI", 9, font_weight),
+                       bg=self.colors['background'], fg=self.colors['text_primary'], **kwargs)
+
+    def _set_window_theme(self, theme='technology'):
+        """Sets the window background color based on theme."""
+        if theme == 'technology':
+            bg_color = self.colors['bg_technology']
+        elif theme == 'task':
+            bg_color = self.colors['bg_task']
+        elif theme == 'error':
+            bg_color = self.colors['bg_error']
+        else:
+            bg_color = self.colors['background']
+        
+        self.root.configure(bg=bg_color)
+        return bg_color
+
+    def _create_back_button_area(self, parent_frame, button_text, command):
+        """Creates a standardized back button area with separator."""
+        back_frame = tk.Frame(parent_frame, bg=parent_frame['bg'])
+        back_frame.pack(fill="x", padx=5, pady=(5, 10))
+        
+        back_button = self._create_modern_button(back_frame, "← " + button_text, 
+                                                command, style='technology')
+        back_button.pack(anchor="w")
+        
+        separator = ttk.Separator(back_frame, orient="horizontal")
+        separator.pack(fill="x", pady=(5, 0))
+        
+        return back_frame
+
+    def _create_dual_back_button_area(self, parent_frame, primary_text, primary_command, secondary_text, secondary_command):
+        """Creates two back buttons on the same row with one separator below both."""
+        back_frame = tk.Frame(parent_frame, bg=parent_frame['bg'])
+        back_frame.pack(fill="x", padx=5, pady=(5, 10))
+        
+        # Button container
+        button_container = tk.Frame(back_frame, bg=parent_frame['bg'])
+        button_container.pack(fill="x")
+        
+        # Primary back button (technology color)
+        primary_button = self._create_modern_button(button_container, "← " + primary_text, 
+                                                   primary_command, style='technology')
+        primary_button.pack(side="left")
+        
+        # Secondary back button (task color)
+        secondary_button = self._create_modern_button(button_container, "← " + secondary_text, 
+                                                     secondary_command, style='task')
+        secondary_button.pack(side="left", padx=(10, 0))
+        
+        # Single separator below both buttons
+        separator = ttk.Separator(back_frame, orient="horizontal")
+        separator.pack(fill="x", pady=(5, 0))
+        
+        return back_frame
 
     def _set_window_dimensions(self, width, height):
         screen_width = self.root.winfo_screenwidth()
@@ -617,29 +730,50 @@ class MainApplication:
     def show_main_program(self):
         self.destroy_current_view()
         self.view_stack.clear()
-        self._set_window_dimensions(self.initial_width, self.initial_height)
-        main_program_frame = ttk.Frame(self.root)
-        main_program_frame.pack(fill="both", expand=True)
+        # Set technology theme
+        bg_color = self._set_window_theme('technology')
+        main_program_frame = tk.Frame(self.root, bg=bg_color)
+        main_program_frame.pack(fill="both", expand=True, padx=10, pady=10)
         self.current_view = main_program_frame
+        
         technologies_data = self.json_data["MainApplication"]["Technologies"]
-        for tech_name, tech_data in technologies_data.items():
-            tech_button = ttk.Button(main_program_frame, text=tech_data.get("button_text", ""), command=lambda data=tech_data: self.show_technology(data))
-            tech_button.pack(padx=10, pady=10)
+        tech_list = list(technologies_data.items())
+        
+        # Create grid layout: max 10 rows per column
+        for i, (tech_name, tech_data) in enumerate(tech_list):
+            row = i % 10
+            col = i // 10
+            tech_button = self._create_modern_button(main_program_frame, tech_data.get("button_text", ""), 
+                                                    lambda data=tech_data: self.show_technology(data), style='technology')
+            tech_button.grid(row=row, column=col, padx=5, pady=3, sticky="ew")
+            main_program_frame.columnconfigure(col, weight=1)
+        
+        # Dynamic sizing
+        self.root.update_idletasks()
+        req_width = max(200, main_program_frame.winfo_reqwidth() + 20)
+        req_height = main_program_frame.winfo_reqheight() + 20
+        self._set_window_dimensions(req_width, req_height)
 
     def show_technology(self, tech_data):
         self.destroy_current_view()
         self.view_stack.append((self.show_main_program, None))
-        tech_width = tech_data.get("width", self.initial_width)
-        tech_height = tech_data.get("height", self.initial_height)
-        tech_frame = ttk.Frame(self.root)
-        tech_frame.pack(fill="both", expand=True)
+        # Set task theme
+        bg_color = self._set_window_theme('task')
+        tech_frame = tk.Frame(self.root, bg=bg_color)
+        tech_frame.pack(fill="both", expand=True, padx=10, pady=10)
         self.current_view = tech_frame
-        if tech_width and tech_height:
-            self._set_window_dimensions(tech_width, tech_height)
         self.variables = tech_data
-        back_button = ttk.Button(tech_frame, text=self.json_data["labels"]["back_to_technologies"], command=self.show_previous_view)
-        back_button.pack(side="left", anchor="nw", padx=10, pady=10)
+        
+        # Create standardized back button area
+        self._create_back_button_area(tech_frame, self.json_data["labels"]["back_to_technologies"], self.show_previous_view)
+        
         self._modify_tasks(tech_data)
+        
+        # Dynamic sizing
+        self.root.update_idletasks()
+        req_width = max(200, tech_frame.winfo_reqwidth() + 20)
+        req_height = tech_frame.winfo_reqheight() + 20
+        self._set_window_dimensions(req_width, req_height)
 
     def _modify_tasks(self, tech_data):
         tasks = tech_data.get("tasks", [])
@@ -648,8 +782,15 @@ class MainApplication:
             task_attributes = task_data[task_title]
             task_attributes["url_path"] = self._replace_variables(task_attributes.get("url_path", ""))
             # The style is now configured globally
-            button = ttk.Button(self.current_view, text=task_title, command=lambda attrs=task_attributes, tech=tech_data: self.show_task(attrs, tech), style="Yellow.TButton" if index == 0 else None)
-            button.pack(pady=10)
+            # Error codes button gets critical styling, others get task styling
+            if 'error' in task_title.lower() and 'code' in task_title.lower():
+                button_style = 'error_critical'
+            else:
+                button_style = 'task'
+            button = self._create_modern_button(self.current_view, task_title, 
+                                              lambda attrs=task_attributes, tech=tech_data: self.show_task(attrs, tech), 
+                                              style=button_style)
+            button.pack(pady=3)
 
     def show_task(self, task_attributes, tech_data):
         task_type = task_attributes.get("task_type")
@@ -668,8 +809,7 @@ class MainApplication:
     def show_error_codes(self, task_attributes, tech_data):
         self.destroy_current_view()
         self.view_stack.append((self.show_technology, tech_data))
-        error_codes_width = task_attributes.get("width", 800)
-        error_codes_height = task_attributes.get("height", 730)
+        # Dynamic sizing will be set after content is created
         is_sew_technology = tech_data.get("button_text", "").lower().find("sew") != -1
 
         # --- Robustness Check for SEW Database ---
@@ -685,24 +825,25 @@ class MainApplication:
                 self.show_previous_view()
                 return
 
-        if is_sew_technology:
-            # Use more compact dimensions for SEW interface
-            error_codes_width = 650
-            error_codes_height = 500
-        error_codes_frame = ttk.Frame(self.root)
+        # Set error theme and create frame
+        bg_color = self._set_window_theme('error')
+        error_codes_frame = tk.Frame(self.root, bg=bg_color)
         error_codes_frame.pack(fill="both", expand=True)
         self.current_view = error_codes_frame
-        self._set_window_dimensions(error_codes_width, error_codes_height)
-        button_frame = ttk.Frame(error_codes_frame)
-        button_frame.pack(side="top", anchor="nw", padx=10, pady=10)
-        home_button = ttk.Button(button_frame, text=self.json_data["labels"]["back_to_technologies"], command=self.show_main_program)
-        home_button.pack(side="left", padx=10)
-        back_button = ttk.Button(button_frame, text=self.json_data["labels"]["back_to_tasks"], command=self.show_previous_view)
-        back_button.pack(side="left", padx=10)
+        # Create dual navigation buttons
+        self._create_dual_back_button_area(error_codes_frame, 
+                                          self.json_data["labels"]["back_to_technologies"], self.show_main_program,
+                                          self.json_data["labels"]["back_to_tasks"], self.show_previous_view)
         if is_sew_technology:
             self._show_sew_database_interface(error_codes_frame)
         else:
             self._show_traditional_search_interface(error_codes_frame, task_attributes)
+        
+        # Dynamic sizing after content is created
+        self.root.update_idletasks()
+        req_width = max(400, error_codes_frame.winfo_reqwidth() + 20)
+        req_height = max(300, error_codes_frame.winfo_reqheight() + 20)
+        self._set_window_dimensions(req_width, req_height)
 
     def _show_traditional_search_interface(self, parent_frame, task_attributes):
         # Display the configured image if available
@@ -711,17 +852,18 @@ class MainApplication:
             self._display_error_code_image(parent_frame, image_path)
         
         label_frame = ttk.Frame(parent_frame)
-        label_frame.pack(pady=10)
-        # Styles are now configured globally
+        label_frame.pack(pady=5)
         ttk.Label(label_frame, text=self.json_data["labels"]["insert_fault_code"], style="Bold.TLabel").pack(side="left")
-        search_entry = ttk.Entry(label_frame, style="Large.TEntry", width=65)
-        search_entry.pack(side="left", padx=10)
-        search_button = ttk.Button(parent_frame, text=self.json_data["labels"]["search"], command=lambda: self._open_pdf_viewer(task_attributes.get("url_path"), search_term=search_entry.get()))
-        search_button.pack(side="right", padx=10)
+        search_entry = ttk.Entry(label_frame, style="Large.TEntry", width=40)
+        search_entry.pack(side="left", padx=5)
+        search_button = self._create_modern_button(parent_frame, self.json_data["labels"]["search"], 
+                                                  lambda: self._open_pdf_viewer(task_attributes.get("url_path"), search_term=search_entry.get()),
+                                                  style='submit')
+        search_button.pack(side="right", padx=5)
 
     def _show_sew_database_interface(self, parent_frame, measure_only=False):
         main_container = ttk.Frame(parent_frame)
-        main_container.pack(fill="both", expand=True, padx=10, pady=5)
+        main_container.pack(fill="both", expand=True, padx=5, pady=2)
         title_frame = ttk.Frame(main_container)
         title_frame.pack(fill="x", pady=(0, 5))
         title_frame.columnconfigure(0, weight=1)
@@ -757,11 +899,10 @@ class MainApplication:
         self.results_frame.pack(fill="both", expand=True)
         self._show_search_instructions()
         if not measure_only:
-            # Force compact sizing
             self.root.update_idletasks()
-            width = min(650, self.root.winfo_reqwidth())
-            height = min(500, self.root.winfo_reqheight())
-            self._set_window_dimensions(width, height)
+            req_width = max(400, main_container.winfo_reqwidth() + 20)
+            req_height = max(300, main_container.winfo_reqheight() + 20)
+            self._set_window_dimensions(req_width, req_height)
 
     def _show_help_image(self):
         """Displays the help image in a new window."""
@@ -888,16 +1029,18 @@ class MainApplication:
             full_image_path = os.path.join(self.script_dir, image_path)
             if os.path.exists(full_image_path):
                 img = Image.open(full_image_path)
-                # Resize image to be more compact
-                img.thumbnail((500, 300), Image.LANCZOS)
+                # Resize preserving aspect ratio with max width of 500px
+                max_width = 500
+                original_width, original_height = img.size
+                if original_width > max_width:
+                    ratio = max_width / original_width
+                    new_height = int(original_height * ratio)
+                    img = img.resize((max_width, new_height), Image.LANCZOS)
                 photo = ImageTk.PhotoImage(img)
                 
-                image_frame = ttk.LabelFrame(parent_frame, text="Error Code Reference", padding=5)
-                image_frame.pack(fill="x", padx=5, pady=5)
-                
-                img_label = tk.Label(image_frame, image=photo)
-                img_label.image = photo  # Keep a reference to prevent garbage collection
-                img_label.pack()
+                img_label = tk.Label(parent_frame, image=photo)
+                img_label.image = photo
+                img_label.pack(padx=2, pady=2)
             else:
                 logging.warning(f"Error code image not found: {full_image_path}")
         except Exception as e:
