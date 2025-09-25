@@ -21,7 +21,6 @@ class PDFViewerWindow(tk.Toplevel):
 
     def __init__(self, parent, file_path, initial_page_identifier, search_term=""):
         super().__init__(parent)
-        logging.info(f"--- Initializing PDFViewerWindow for file: {file_path} ---")
         self.file_path = file_path
         self.search_term = tk.StringVar(value=search_term)
         self.doc = fitz.open(file_path)
@@ -64,21 +63,18 @@ class PDFViewerWindow(tk.Toplevel):
         if initial_page_identifier is None:
             # If no identifier is given, default to the very first page.
             self.initial_page = 0
-            logging.info("No page identifier provided. Defaulting to first page.")
         else:
             # The identifier can be a page label (string) or a physical page number (int)
             try:
                 page_id_str = str(initial_page_identifier).lower().strip()
                 if page_id_str in self.page_label_to_index:
                     self.initial_page = self.page_label_to_index[page_id_str]
-                    logging.info(f"Resolved page label '{page_id_str}' to physical page index {self.initial_page}.")
                 else:
                     # Fallback to interpreting as a physical page number
                     physical_page = int(initial_page_identifier)
                     if 1 <= physical_page <= self.total_pages:
                         self.initial_page = physical_page - 1
             except (ValueError, TypeError):
-                logging.warning(f"Could not resolve initial page identifier '{initial_page_identifier}'. Defaulting to first page.")
                 self.initial_page = 0
 
         # --- Caching and Layout ---
@@ -347,8 +343,7 @@ class PDFViewerWindow(tk.Toplevel):
         if total_height == 0: return
 
         canvas_height = self.canvas.winfo_height()
-        if canvas_height <= 1: return  # Avoid calculation before window is fully rendered
-
+        
         # Determine the top and bottom of the current viewport
         y_top = self.canvas.yview()[0] * total_height
         y_bottom = y_top + canvas_height
@@ -455,16 +450,28 @@ class PDFViewerWindow(tk.Toplevel):
         search_thread.start()
 
     def _perform_search(self):
-        """Finds all instances in the document."""
+        """Finds all instances in the document (worker thread)."""
         search_term = self.search_term.get()
-        self.search_results = []
+        # Perform the actual search and store results in a local variable first
+        results = []
         for i in range(self.total_pages):
             page = self.doc.load_page(i)
             matches = page.search_for(search_term)
             for match in matches:
-                self.search_results.append((i, match))
+                results.append((i, match))
 
+        # Schedule the UI update on the main thread
+        self.after(0, self._update_search_ui, results)
+
+    def _update_search_ui(self, search_results):
+        """Updates the UI with search results (main thread)."""
+        self.search_results = search_results
         total_matches = len(self.search_results)
+
+        # Hide "Searching..." and show navigation
+        self.search_status_label.pack_forget()
+        self.search_nav_frame.pack(side=tk.LEFT, padx=5)
+
         if total_matches > 0:
             self.current_search_index = 0
             self._go_to_match()
@@ -472,10 +479,6 @@ class PDFViewerWindow(tk.Toplevel):
             self.match_label.config(text="Not found")
             self.prev_match_btn.config(state="disabled")
             self.next_match_btn.config(state="disabled")
-
-        # Hide "Searching..." and show navigation
-        self.search_status_label.pack_forget()
-        self.search_nav_frame.pack(side=tk.LEFT, padx=5)
 
         self._update_visible_pages()
 
@@ -657,7 +660,6 @@ class MainApplication:
             # Get page identifier. If not present, it will be None.
             page_identifier = task_attributes.get("pdf_page_number") 
             if url_path:
-                logging.info(f"Opening PDF '{url_path}' with page identifier '{page_identifier}'.")
                 self._open_pdf_viewer(url_path, page_number=page_identifier)
             else:
                 logging.warning("Task with type 'open_url' is missing a 'url_path'.")
@@ -674,7 +676,7 @@ class MainApplication:
         if is_sew_technology:
             db_path = os.path.join(self.script_dir, "data", "errorCodesTechnologies.db")
             if not os.path.exists(db_path):
-                logging.error(f"SEW database not found at expected path: {db_path}")
+                logging.error(f"Database file not found at expected path: {db_path}")
                 messagebox.showerror(
                     "Database Not Found",
                     f"The SEW error code database could not be found.\n\nExpected at: {db_path}"
@@ -959,20 +961,26 @@ class MainApplication:
 
     def _open_pdf_viewer(self, url_path, page_number=None, search_term=""):
         """Opens the PDF viewer to a specific page, optionally with a search term."""
-        if not url_path:
-            messagebox.showerror("Error", "No PDF path specified for this task.")
+        # Construct the full path to the PDF file.
+        full_path = os.path.join(self.script_dir, url_path)
+
+        if not os.path.exists(full_path):
+            logging.error(f"PDF file not found at path: {full_path}")
+            messagebox.showerror("File Not Found", f"The required PDF file could not be found at:\n{full_path}")
             return
 
-        # Resolve the full path to the PDF from the project root
-        full_pdf_path = os.path.join(self.script_dir, url_path)
-
-        if not os.path.exists(full_pdf_path):
-            messagebox.showerror("File Not Found", f"The specified PDF file could not be found at:\n{full_pdf_path}")
-            return
+        # --- Consolidated Logging --- 
+        log_message = f"Opening PDF '{url_path}'"
+        if search_term:
+            log_message += f" to search for: '{search_term}'."
+        elif page_number is not None:
+            log_message += f" to page: '{page_number}'."
+        else:
+            log_message += "."
+        logging.info(log_message)
 
         try:
-            # Pass the search term to the PDF viewer
-            PDFViewerWindow(self.root, full_pdf_path, page_number, search_term)
+            PDFViewerWindow(self.root, full_path, initial_page_identifier=page_number, search_term=search_term)
         except Exception as e:
-            logging.error(f"Failed to open PDF viewer: {e}", exc_info=True)
-            messagebox.showerror("PDF Error", f"An error occurred while trying to open the PDF:\n{e}")
+            logging.critical(f"Failed to open PDF viewer for '{full_path}': {e}", exc_info=True)
+            messagebox.showerror("PDF Viewer Error", f"An unexpected error occurred while trying to open the PDF viewer.\n\nDetails: {e}")
