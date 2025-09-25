@@ -16,9 +16,12 @@ def main():
 
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
+    # JSON and DB files are now in the 'data' directory, not 'src'
+    data_dir = os.path.join(script_dir, "data")
+
     # Prioritize loading data.json, fall back to example_data.json
-    data_path = os.path.join(script_dir, "src", "data.json")
-    example_data_path = os.path.join(script_dir, "src", "example_data.json")
+    data_path = os.path.join(data_dir, "data.json")
+    example_data_path = os.path.join(data_dir, "example_data.json")
 
     json_path_to_load = None
     if os.path.exists(data_path):
@@ -29,7 +32,7 @@ def main():
         logging.warning(f"User configuration 'data.json' not found. Falling back to {example_data_path}")
 
     if not json_path_to_load:
-        error_msg = "Critical Error: Neither 'data.json' nor 'example_data.json' could be found in the 'src' directory."
+        error_msg = "Critical Error: Neither 'data.json' nor 'example_data.json' could be found in the 'data' directory."
         logging.critical(error_msg)
         messagebox.showerror("Configuration Error", error_msg)
         root.destroy()
@@ -53,7 +56,7 @@ def main():
 
     # If everything is fine, show the window and run the app
     root.deiconify() 
-    app = MainApplication(root, initial_json_data, os.path.join(script_dir, "src"))
+    app = MainApplication(root, initial_json_data, script_dir) # Pass the root project dir
     root.mainloop()
 
 if __name__ == "__main__":

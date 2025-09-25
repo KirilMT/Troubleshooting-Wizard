@@ -584,7 +584,7 @@ class MainApplication:
     def __init__(self, root_window, initial_json_data, script_dir):
         self.root = root_window
         self.root.title(initial_json_data["MainApplication"]["title"])
-        self.script_dir = script_dir
+        self.script_dir = script_dir # This is now the project root
         self.initial_width = initial_json_data["MainApplication"]["width"]
         self.initial_height = initial_json_data["MainApplication"]["height"]
         self._set_window_dimensions(self.initial_width, self.initial_height)
@@ -672,7 +672,7 @@ class MainApplication:
 
         # --- Robustness Check for SEW Database ---
         if is_sew_technology:
-            db_path = os.path.join(self.script_dir, "errorCodesTechnologies.db")
+            db_path = os.path.join(self.script_dir, "data", "errorCodesTechnologies.db")
             if not os.path.exists(db_path):
                 logging.error(f"SEW database not found at expected path: {db_path}")
                 messagebox.showerror(
@@ -764,8 +764,8 @@ class MainApplication:
             self.root.geometry("")
 
     def _show_help_image(self):
-        image_path = os.path.join(self.script_dir, "..", "media", "SEW_MoviPro_movitools_parameters.jpg")
-        if not os.path.exists(image_path):
+        """Displays the help image in a new window."""
+        if self.sew_image_label is None:
             image_path = os.path.join(self.script_dir, "media", "SEW_MoviPro_movitools_parameters.jpg")
         try:
             help_win = tk.Toplevel(self.root)
@@ -889,10 +889,10 @@ class MainApplication:
         if hasattr(self, 'sew_image_label') and self.sew_image_label:
             self.sew_image_label.destroy()
             self.sew_image_label = None
-        db_path = os.path.join(self.script_dir, "errorCodesTechnologies.db")
+        db_path = os.path.join(self.script_dir, "data", "errorCodesTechnologies.db")
         if not os.path.exists(db_path):
             logging.error(f"Database file not found at {db_path}")
-            messagebox.showerror("Database Error", f"The database file 'errorCodesTechnologies.db' was not found in the 'src' directory. Please run the PDF processing script to generate it.")
+            messagebox.showerror("Database Error", f"The database file 'errorCodesTechnologies.db' was not found in the 'data' directory. Please run the PDF processing script to generate it.")
             return
 
         error_code = self.sew_error_code_entry.get().strip()
@@ -959,16 +959,20 @@ class MainApplication:
 
     def _open_pdf_viewer(self, url_path, page_number=None, search_term=""):
         """Opens the PDF viewer to a specific page, optionally with a search term."""
-        absolute_path = os.path.abspath(os.path.join(self.script_dir, "..", url_path))
-        
-        if not os.path.exists(absolute_path):
-            messagebox.showerror("File Not Found", f"The PDF file could not be found at: {absolute_path}")
+        if not url_path:
+            messagebox.showerror("Error", "No PDF path specified for this task.")
+            return
+
+        # Resolve the full path to the PDF from the project root
+        full_pdf_path = os.path.join(self.script_dir, url_path)
+
+        if not os.path.exists(full_pdf_path):
+            messagebox.showerror("File Not Found", f"The specified PDF file could not be found at:\n{full_pdf_path}")
             return
 
         try:
-            logging.info(f"Launching viewer for '{absolute_path}' with page identifier '{page_number}' and search term '{search_term}'.")
-            PDFViewerWindow(self.root, absolute_path, page_number, search_term)
-
+            # Pass the search term to the PDF viewer
+            PDFViewerWindow(self.root, full_pdf_path, page_number, search_term)
         except Exception as e:
-            logging.error(f"An error occurred while opening the PDF: {e}", exc_info=True)
-            messagebox.showerror("PDF Error", f"An error occurred while opening the PDF: {e}")
+            logging.error(f"Failed to open PDF viewer: {e}", exc_info=True)
+            messagebox.showerror("PDF Error", f"An error occurred while trying to open the PDF:\n{e}")

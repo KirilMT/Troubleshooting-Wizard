@@ -1,5 +1,5 @@
 # User-specific configuration (contains sensitive URLs and paths)
-src/data.json
+data/data.json
 
 # Media files - Keep only example files committed, ignore corporate-specific files
 media/*
@@ -82,9 +82,9 @@ ehthumbs.db
 Thumbs.db
 
 # Database files (generated)
-src/*.db
-src/*.sqlite
-src/*.sqlite3
+data/*.db
+data/*.sqlite
+data/*.sqlite3
 
 # Logs
 *.log

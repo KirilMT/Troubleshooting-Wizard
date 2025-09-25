@@ -4,6 +4,7 @@ import os
 import argparse
 import re
 import logging
+from src.logging_config import setup_logging
 
 class PDFTableExtractor:
     """
@@ -37,22 +38,22 @@ class PDFTableExtractor:
                   and each row is a list of cell strings.
         """
         all_tables_data = []
-        print(f"Opening PDF: {os.path.basename(self.pdf_path)}")
+        logging.info(f"Opening PDF: {os.path.basename(self.pdf_path)}")
         with pdfplumber.open(self.pdf_path) as pdf:
             # Adjust for 0-based indexing used by pdfplumber
             start_idx = start_page - 1
             end_idx = end_page - 1
 
             if start_idx >= len(pdf.pages):
-                print(f"Error: Start page {start_page} is beyond the end of the document ({len(pdf.pages)} pages).")
+                logging.error(f"Error: Start page {start_page} is beyond the end of the document ({len(pdf.pages)} pages).")
                 return []
 
-            print(f"Processing pages from {start_page} to {end_page}...")
+            logging.info(f"Processing pages from {start_page} to {end_page}...")
             for i in range(start_idx, min(end_idx + 1, len(pdf.pages))):
                 page = pdf.pages[i]
                 tables = page.extract_tables()
                 if tables:
-                    print(f"  - Found {len(tables)} table(s) on page {i + 1}.")
+                    logging.info(f"  - Found {len(tables)} table(s) on page {i + 1}.")
                     # Clean up the data by removing None and replacing newlines
                     for table in tables:
                         cleaned_table = []
@@ -61,7 +62,7 @@ class PDFTableExtractor:
                             cleaned_table.append(cleaned_row)
                         all_tables_data.append(cleaned_table)
                 else:
-                    print(f"  - No tables found on page {i + 1}.")
+                    logging.warning(f"  - No tables found on page {i + 1}.")
         return all_tables_data
 
 
@@ -117,7 +118,7 @@ class DatabaseManager:
             )
         """)
         self.conn.commit()
-        print(f"Database '{os.path.basename(self.db_path)}' is ready. Table '{table_name}' created.")
+        logging.info(f"Database '{os.path.basename(self.db_path)}' is ready. Table '{table_name}' created.")
 
     def insert_table_data(self, table_name, tables):
         """
@@ -140,7 +141,7 @@ class DatabaseManager:
                 cursor.execute(insert_query, padded_row)
                 total_rows_inserted += 1
         self.conn.commit()
-        print(f"Successfully inserted {total_rows_inserted} rows into the '{table_name}' table.")
+        logging.info(f"Successfully inserted {total_rows_inserted} rows into the '{table_name}' table.")
 
 
 class SEWErrorCodeExtractor:
@@ -240,10 +241,15 @@ class SEWErrorCodeExtractor:
                     possible_cause = row[4]
                     measure = row[5]
 
+                    # --- State Machine Logic ---
+                    # A new error code is identified by a non-empty value in the first column.
                     is_new_error = error_code and error_code.strip()
+                    # A suberror is identified by a non-empty value in the second column, but an empty first column.
                     is_sub_error = suberror_code and suberror_code.strip() and not is_new_error
 
+                    # --- Case 1: New Error Code Found ---
                     if is_new_error:
+                        # If there's a previously accumulated error, save it before starting a new one.
                         if current_error:
                             processed_errors.append({
                                 'error_code': self.clean_text(current_error.get('error_code', '')),
@@ -253,6 +259,7 @@ class SEWErrorCodeExtractor:
                                 'possible_cause': self.clean_text(current_error.get('possible_cause', '')),
                                 'measure': self.clean_text(current_error.get('measure', ''))
                             })
+                        # Start a new error record.
                         current_error = {
                             'error_code': error_code,
                             'suberror_code': suberror_code,
@@ -261,7 +268,9 @@ class SEWErrorCodeExtractor:
                             'possible_cause': possible_cause,
                             'measure': measure
                         }
+                    # --- Case 2: New Suberror Found ---
                     elif is_sub_error:
+                        # Save the completed main error before starting a new record for the suberror.
                         if current_error:
                             processed_errors.append({
                                 'error_code': self.clean_text(current_error.get('error_code', '')),
@@ -271,6 +280,7 @@ class SEWErrorCodeExtractor:
                                 'possible_cause': self.clean_text(current_error.get('possible_cause', '')),
                                 'measure': self.clean_text(current_error.get('measure', ''))
                             })
+                        # Create a new record for the suberror, inheriting the last known error code.
                         current_error = {
                             'error_code': processed_errors[-1]['error_code'] if processed_errors else '',
                             'suberror_code': suberror_code,
@@ -279,13 +289,17 @@ class SEWErrorCodeExtractor:
                             'possible_cause': possible_cause,
                             'measure': measure
                         }
+                    # --- Case 3: Continuation of a Previous Row ---
                     else:
+                        # This row is a continuation of the previous one (either a main error or a suberror).
+                        # Append the text from each cell to the corresponding field in the current error record.
                         if current_error:
                             current_error['error_designation'] = f"{current_error.get('error_designation', '')} {error_designation or ''}".strip()
                             current_error['error_response'] = f"{current_error.get('error_response', '')} {error_response or ''}".strip()
                             current_error['possible_cause'] = f"{current_error.get('possible_cause', '')} {possible_cause or ''}".strip()
                             current_error['measure'] = f"{current_error.get('measure', '')} {measure or ''}".strip()
 
+        # After the loop, save the last accumulated error record.
         if current_error:
             processed_errors.append({
                 'error_code': self.clean_text(current_error.get('error_code', '')),
@@ -342,10 +356,12 @@ def main():
     """
     Main function to run the PDF extraction and database insertion process.
     """
+    setup_logging()
     # --- Configuration ---
-    # The database will be created in the same directory as the script.
+    # The database will be created in the 'data' directory, one level above the script's 'src' directory.
     script_dir = os.path.dirname(os.path.abspath(__file__))
-    DB_PATH = os.path.join(script_dir, "errorCodesTechnologies.db")
+    data_dir = os.path.join(script_dir, '..', 'data')
+    DB_PATH = os.path.join(data_dir, "errorCodesTechnologies.db")
 
     # --- Argument Parsing ---
     parser = argparse.ArgumentParser(description="Extract tables from a PDF and store them in an SQLite database.")
@@ -356,7 +372,7 @@ def main():
     parser.add_argument("--sew-mode", action="store_true", help="Enable SEW error code extraction mode.")
     args = parser.parse_args()
 
-    print("--- Starting PDF Processing ---")
+    logging.info("--- Starting PDF Processing ---")
     try:
         if args.sew_mode:
             extractor = SEWErrorCodeExtractor(args.pdf_path)
@@ -364,7 +380,7 @@ def main():
             with SEWDatabaseManager(DB_PATH) as db:
                 db.create_sew_error_table_detailed()
                 db.insert_sew_error_codes_detailed(sew_errors)
-            print(f"Extracted and stored {len(sew_errors)} detailed SEW error codes.")
+            logging.info(f"Extracted and stored {len(sew_errors)} detailed SEW error codes.")
             return
 
         # 1. Extract data from PDF
@@ -372,7 +388,7 @@ def main():
         tables_data = extractor.extract_tables(args.start_page, args.end_page)
 
         if not tables_data:
-            print("No tables were extracted. Exiting.")
+            logging.warning("No tables were extracted. Exiting.")
             return
 
         # 2. Store data in the database
@@ -380,13 +396,13 @@ def main():
             db.create_error_table(args.table_name)
             db.insert_table_data(args.table_name, tables_data)
 
-        print(f"--- Process Complete ---")
-        print(f"Data has been successfully stored in: {DB_PATH}")
+        logging.info(f"--- Process Complete ---")
+        logging.info(f"Data has been successfully stored in: {DB_PATH}")
 
     except FileNotFoundError as e:
-        print(f"Error: {e}")
+        logging.error(f"Error: {e}")
     except Exception as e:
-        print(f"An unexpected error occurred: {e}")
+        logging.critical(f"An unexpected error occurred: {e}", exc_info=True)
 
 
 if __name__ == "__main__":
