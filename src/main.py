@@ -1164,7 +1164,7 @@ class PDFViewerWindow(tk.Toplevel):
         logging.info(f"=== END SPATIAL DEBUG ===")
 
     def _on_canvas_triple_click(self, event):
-        """Handle triple-click to select entire line."""
+        """Handle triple-click to select complete sentence (or line for titles/headings)."""
         canvas_x = self.canvas.canvasx(event.x)
         canvas_y = self.canvas.canvasy(event.y)
         
@@ -1192,36 +1192,142 @@ class PDFViewerWindow(tk.Toplevel):
         if not clicked_char_data:
             return
             
-        # Find line boundaries by looking for characters with similar Y positions
+        # Get characters around the clicked position for analysis
         clicked_y = (clicked_char_data['bbox']['y0'] + clicked_char_data['bbox']['y1']) / 2
         line_tolerance = 5  # pixels
         
-        line_start_idx = char_index
-        line_end_idx = char_index
-        
-        # Find all characters on the same line
-        line_chars = []
+        # Find all characters on the same line first
+        same_line_chars = []
         for char_data in page_chars:
             char_y = (char_data['bbox']['y0'] + char_data['bbox']['y1']) / 2
             if abs(char_y - clicked_y) <= line_tolerance:
-                line_chars.append(char_data)
-                
-        if line_chars:
-            # Sort by global index to get proper order
-            line_chars.sort(key=lambda c: c['global_index'])
-            line_start_idx = line_chars[0]['global_index']
-            line_end_idx = line_chars[-1]['global_index']
+                same_line_chars.append(char_data)
+        
+        if not same_line_chars:
+            return
             
-        # Set selection to the entire line
-        self.selection_start_char = (page_num, line_start_idx)
-        self.selection_end_char = (page_num, line_end_idx)
+        # Sort characters by X position (left to right)
+        same_line_chars.sort(key=lambda c: c['bbox']['x0'])
+        
+        # Check if this looks like a title/heading (short line, larger font, all caps, etc.)
+        line_text = ''.join(char['char'] for char in same_line_chars).strip()
+        is_title_or_heading = self._is_title_or_heading(line_text, same_line_chars)
+        
+        if is_title_or_heading:
+            # For titles/headings, select the entire line (current behavior)
+            line_chars_sorted = sorted(same_line_chars, key=lambda c: c['global_index'])
+            sentence_start_idx = line_chars_sorted[0]['global_index']
+            sentence_end_idx = line_chars_sorted[-1]['global_index']
+            logging.info(f"Triple-click: Detected title/heading, selecting entire line")
+        else:
+            # For regular text, find sentence boundaries
+            sentence_start_idx, sentence_end_idx = self._find_sentence_boundaries(
+                page_chars, clicked_char_data, char_index
+            )
+            logging.info(f"Triple-click: Detected regular text, selecting sentence")
+            
+        # Set selection to the sentence or line
+        self.selection_start_char = (page_num, sentence_start_idx)
+        self.selection_end_char = (page_num, sentence_end_idx)
         self.text_selection_active = True
         
         # Update visual selection and finalize
         self._update_text_selection_visual()
         self._finalize_text_selection()
         
-        logging.info(f"Triple-click line selection: {line_start_idx} to {line_end_idx}")
+        logging.info(f"Triple-click selection: {sentence_start_idx} to {sentence_end_idx}")
+
+    def _is_title_or_heading(self, line_text, line_chars):
+        """Determine if a line of text is likely a title or heading."""
+        if not line_text:
+            return False
+            
+        # Check various title/heading indicators
+        indicators = 0
+        
+        # Short lines are often titles
+        if len(line_text) < 60:
+            indicators += 1
+            
+        # All uppercase text
+        if line_text.isupper():
+            indicators += 2
+            
+        # Contains mostly capital letters
+        if sum(1 for c in line_text if c.isupper()) > len(line_text) * 0.6:
+            indicators += 1
+            
+        # Ends without sentence punctuation
+        if not line_text.rstrip().endswith(('.', '!', '?')):
+            indicators += 1
+            
+        # Check for larger font size (if available)
+        if line_chars:
+            avg_font_size = sum(char.get('font_size', 12) for char in line_chars) / len(line_chars)
+            if avg_font_size > 14:  # Larger than typical body text
+                indicators += 1
+                
+        # If we have 2 or more indicators, it's likely a title/heading
+        return indicators >= 2
+
+    def _find_sentence_boundaries(self, page_chars, clicked_char_data, clicked_char_index):
+        """Find the start and end of the sentence containing the clicked character."""
+        # Sort all characters by global index for proper text order
+        sorted_chars = sorted(page_chars, key=lambda c: c['global_index'])
+        
+        # Find the position of clicked character in sorted list
+        clicked_position = None
+        for i, char_data in enumerate(sorted_chars):
+            if char_data['global_index'] == clicked_char_index:
+                clicked_position = i
+                break
+                
+        if clicked_position is None:
+            return clicked_char_index, clicked_char_index
+            
+        # Sentence ending punctuation
+        sentence_endings = {'.', '!', '?'}
+        sentence_starters = {'"', "'", '(', '['}  # Characters that can start sentences
+        
+        # Find sentence start by going backwards
+        sentence_start_idx = clicked_char_index
+        for i in range(clicked_position - 1, -1, -1):
+            char_data = sorted_chars[i]
+            char = char_data['char']
+            
+            # Stop at sentence ending punctuation (previous sentence)
+            if char in sentence_endings:
+                # Look ahead to see if next non-whitespace char starts a new sentence
+                for j in range(i + 1, len(sorted_chars)):
+                    next_char = sorted_chars[j]['char']
+                    if next_char.isspace():
+                        continue
+                    elif next_char.isupper() or next_char in sentence_starters:
+                        # Found start of current sentence
+                        sentence_start_idx = sorted_chars[j]['global_index']
+                        break
+                    else:
+                        # Continue looking backwards (might be abbreviation, etc.)
+                        break
+                break
+            
+            # Update start position as we go backwards
+            sentence_start_idx = char_data['global_index']
+            
+        # Find sentence end by going forwards
+        sentence_end_idx = clicked_char_index
+        for i in range(clicked_position + 1, len(sorted_chars)):
+            char_data = sorted_chars[i]
+            char = char_data['char']
+            
+            # Update end position as we go forward
+            sentence_end_idx = char_data['global_index']
+            
+            # Stop at sentence ending punctuation
+            if char in sentence_endings:
+                break
+                
+        return sentence_start_idx, sentence_end_idx
 
     def _get_page_at_position(self, canvas_y):
         """Get the page number at a given canvas Y position."""
