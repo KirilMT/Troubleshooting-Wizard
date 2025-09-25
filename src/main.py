@@ -26,6 +26,10 @@ class PDFViewerWindow(tk.Toplevel):
         self.total_pages = len(self.doc)
         self.initial_page = initial_page - 1
 
+        # --- Search Results ---
+        self.search_results = []
+        self.current_search_index = -1
+
         # --- UI Variables ---
         self.page_entry_var = tk.StringVar()
         self.page_info_var = tk.StringVar()
@@ -128,8 +132,18 @@ class PDFViewerWindow(tk.Toplevel):
         search_btn = ttk.Button(toolbar, text="Search", command=self.search_and_highlight)
         search_btn.pack(side=tk.LEFT, padx=5)
 
-        self.match_label = ttk.Label(toolbar, text="")
+        # --- Search Navigation ---
+        search_nav_frame = ttk.Frame(toolbar)
+        search_nav_frame.pack(side=tk.LEFT, padx=5)
+
+        self.prev_match_btn = ttk.Button(search_nav_frame, text="< Prev", command=self._previous_match, state="disabled")
+        self.prev_match_btn.pack(side=tk.LEFT)
+
+        self.match_label = ttk.Label(search_nav_frame, text="")
         self.match_label.pack(side=tk.LEFT, padx=5)
+
+        self.next_match_btn = ttk.Button(search_nav_frame, text="Next >", command=self._next_match, state="disabled")
+        self.next_match_btn.pack(side=tk.LEFT)
 
         ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
 
@@ -222,9 +236,22 @@ class PDFViewerWindow(tk.Toplevel):
             if page_bottom > y_top and page_top < y_bottom and i not in self.page_images:
                 page = self.doc.load_page(i)
                 
+                # --- Highlighting Logic ---
+                # Clear any previous annotations before re-rendering
                 annots = page.annots()
                 if annots: [page.delete_annot(a) for a in annots]
-                if search_term: [page.add_highlight_annot(inst) for inst in page.search_for(search_term)]
+
+                # If there's an active search, highlight the current match if it's on this page
+                if self.search_results and self.current_search_index != -1:
+                    current_match_page_idx, _ = self.search_results[self.current_search_index]
+                    if i == current_match_page_idx:
+                        # Highlight all instances on the page, but we've navigated to one
+                        for inst in page.search_for(search_term):
+                            page.add_highlight_annot(inst)
+                elif search_term:
+                    # Legacy behavior for initial load search before full results are compiled
+                    for inst in page.search_for(search_term):
+                        page.add_highlight_annot(inst)
 
                 pix = page.get_pixmap(matrix=transform_matrix, alpha=False)
                 if pix.width > 0 and pix.height > 0:
@@ -326,51 +353,90 @@ class PDFViewerWindow(tk.Toplevel):
             self._update_page_label()
 
     def search_and_highlight(self):
-        """Finds the first match and centers the view on it."""
+        """Finds all matches, stores them, and navigates to the first one."""
         self.page_images.clear()
         self.canvas.delete("all")
+        self.search_results.clear()
+        self.current_search_index = -1
 
         search_term = self.search_term.get()
         if not search_term:
             self.match_label.config(text="")
+            self.prev_match_btn.config(state="disabled")
+            self.next_match_btn.config(state="disabled")
             self._update_visible_pages()
             return
 
+        # Find all instances in the document
         for i in range(self.total_pages):
             page = self.doc.load_page(i)
             matches = page.search_for(search_term)
-            if matches:
-                first_match_rect = matches[0]
-                page_layout = self.page_layout_info[i]
+            for match in matches:
+                self.search_results.append((i, match))
 
-                final_zoom = self.base_zoom * self.zoom_level
-                transform_matrix = fitz.Matrix(final_zoom, final_zoom)
-                transformed_rect = first_match_rect.transform(transform_matrix)
+        total_matches = len(self.search_results)
+        if total_matches > 0:
+            self.current_search_index = 0
+            self._go_to_match()
+        else:
+            self.match_label.config(text="Not found")
+            self.prev_match_btn.config(state="disabled")
+            self.next_match_btn.config(state="disabled")
 
-                match_center_y = page_layout['y'] + (transformed_rect.y0 + transformed_rect.y1) / 2
-                
-                self.update_idletasks()
-                canvas_height = self.canvas.winfo_height()
-                
-                scroll_to_y = match_center_y - (canvas_height / 2)
-
-                total_height = float(self.canvas.cget('scrollregion').split(' ')[3])
-                if total_height > 0:
-                    scroll_fraction = max(0, min(1, scroll_to_y / total_height))
-                    self.canvas.yview_moveto(scroll_fraction)
-
-                # Use the logical label in the match message.
-                match_page_label = self.page_labels[i]
-                self.match_label.config(text=f"Found on page {match_page_label}")
-                self.after(50, self._update_visible_pages) # Re-render after scrolling.
-                return
-
-        self.match_label.config(text="Not found")
         self._update_visible_pages()
+
+    def _go_to_match(self):
+        """Scrolls the canvas to center the current search match."""
+        if not self.search_results or self.current_search_index == -1:
+            return
+
+        page_idx, match_rect = self.search_results[self.current_search_index]
+        page_layout = self.page_layout_info[page_idx]
+
+        # Calculate zoom and transformation
+        final_zoom = self.base_zoom * self.zoom_level
+        transform_matrix = fitz.Matrix(final_zoom, final_zoom)
+        transformed_rect = match_rect.transform(transform_matrix)
+
+        # Calculate the vertical center of the match on the canvas
+        match_center_y = page_layout['y'] + (transformed_rect.y0 + transformed_rect.y1) / 2
+
+        self.update_idletasks()
+        canvas_height = self.canvas.winfo_height()
+        
+        # Calculate the desired scroll position to center the match
+        scroll_to_y = match_center_y - (canvas_height / 2)
+
+        total_height = float(self.canvas.cget('scrollregion').split(' ')[3])
+        if total_height > 0:
+            scroll_fraction = max(0, min(1, scroll_to_y / total_height))
+            self.canvas.yview_moveto(scroll_fraction)
+
+        # Update UI elements
+        total_matches = len(self.search_results)
+        self.match_label.config(text=f"({self.current_search_index + 1}/{total_matches})")
+        self.prev_match_btn.config(state="normal" if self.current_search_index > 0 else "disabled")
+        self.next_match_btn.config(state="normal" if self.current_search_index < total_matches - 1 else "disabled")
+
+        self.after(50, self._update_visible_pages)  # Re-render after scrolling
+
+    def _next_match(self):
+        """Navigate to the next search result."""
+        if self.search_results and self.current_search_index < len(self.search_results) - 1:
+            self.current_search_index += 1
+            self._go_to_match()
+
+    def _previous_match(self):
+        """Navigate to the previous search result."""
+        if self.search_results and self.current_search_index > 0:
+            self.current_search_index -= 1
+            self._go_to_match()
 
     def _on_mousewheel(self, event):
         if event.num == 4: delta = -1
         elif event.num == 5: delta = 1
+        elif event.delta > 0: delta = -1
+        elif event.delta < 0: delta = 1
         else: delta = -1 * int(event.delta / 120)
         self.canvas.yview_scroll(delta, "units")
 
