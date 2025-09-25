@@ -686,16 +686,9 @@ class MainApplication:
                 return
 
         if is_sew_technology:
-            temp_frame = ttk.Frame(self.root)
-            temp_frame.pack_forget()
-            self._show_sew_database_interface(temp_frame, measure_only=True)
-            temp_frame.update_idletasks()
-            req_width = temp_frame.winfo_reqwidth()
-            req_height = temp_frame.winfo_reqheight()
-            temp_frame.destroy()
-            self._set_window_dimensions(req_width, req_height)
-            error_codes_width = req_width
-            error_codes_height = req_height
+            # Use more compact dimensions for SEW interface
+            error_codes_width = 650
+            error_codes_height = 500
         error_codes_frame = ttk.Frame(self.root)
         error_codes_frame.pack(fill="both", expand=True)
         self.current_view = error_codes_frame
@@ -712,6 +705,11 @@ class MainApplication:
             self._show_traditional_search_interface(error_codes_frame, task_attributes)
 
     def _show_traditional_search_interface(self, parent_frame, task_attributes):
+        # Display the configured image if available
+        image_path = task_attributes.get("image_path")
+        if image_path:
+            self._display_error_code_image(parent_frame, image_path)
+        
         label_frame = ttk.Frame(parent_frame)
         label_frame.pack(pady=10)
         # Styles are now configured globally
@@ -723,89 +721,86 @@ class MainApplication:
 
     def _show_sew_database_interface(self, parent_frame, measure_only=False):
         main_container = ttk.Frame(parent_frame)
-        main_container.pack(fill="both", expand=True, padx=20, pady=10)
-        parent_frame.update_idletasks()
+        main_container.pack(fill="both", expand=True, padx=10, pady=5)
         title_frame = ttk.Frame(main_container)
-        title_frame.pack(fill="x", pady=(0, 10))
+        title_frame.pack(fill="x", pady=(0, 5))
         title_frame.columnconfigure(0, weight=1)
-        title_label = ttk.Label(title_frame, text=self.json_data["labels"]["sew_db_title"], font=("Segoe UI", 18, "bold"), foreground="#2E86AB", anchor="center", justify="center")
+        title_label = ttk.Label(title_frame, text=self.json_data["labels"]["sew_db_title"], font=("Segoe UI", 14, "bold"), foreground="#2E86AB", anchor="center", justify="center")
         title_label.grid(row=0, column=0, sticky="ew")
         help_btn = ttk.Button(title_frame, text=self.json_data["labels"]["sew_db_help_button"], width=2, command=self._show_help_image, style="Help.TButton")
-        help_btn.grid(row=0, column=1, sticky="e", padx=(10, 0))
-        # Styles are now configured globally
-        subtitle_label = ttk.Label(main_container, text=self.json_data["labels"]["sew_db_subtitle"], font=("Segoe UI", 10), foreground="#666666", anchor="center", justify="center")
-        subtitle_label.pack(fill="x", pady=(0, 10))
-        search_container = ttk.LabelFrame(main_container, text=self.json_data["labels"]["sew_db_search_criteria_label"], padding=15)
-        search_container.pack(fill="x", pady=(0, 10))
+        help_btn.grid(row=0, column=1, sticky="e", padx=(5, 0))
+        subtitle_label = ttk.Label(main_container, text=self.json_data["labels"]["sew_db_subtitle"], font=("Segoe UI", 9), foreground="#666666", anchor="center", justify="center")
+        subtitle_label.pack(fill="x", pady=(0, 5))
+        search_container = ttk.LabelFrame(main_container, text=self.json_data["labels"]["sew_db_search_criteria_label"], padding=8)
+        search_container.pack(fill="x", pady=(0, 5))
         search_container.columnconfigure(1, weight=1)
         search_container.columnconfigure(3, weight=1)
-        ttk.Label(search_container, text=self.json_data["labels"]["sew_db_error_code_label"], font=("Segoe UI", 10, "bold")).grid(row=0, column=0, sticky="w", pady=8, padx=(0, 10))
-        self.sew_error_code_entry = ttk.Entry(search_container, width=15, font=("Segoe UI", 10))
-        self.sew_error_code_entry.grid(row=0, column=1, sticky="ew", pady=8, padx=(0, 20))
-        ttk.Label(search_container, text=self.json_data["labels"]["sew_db_suberror_code_label"], font=("Segoe UI", 10, "bold")).grid(row=0, column=2, sticky="w", pady=8, padx=(0, 10))
-        self.sew_suberror_code_entry = ttk.Entry(search_container, width=15, font=("Segoe UI", 10))
-        self.sew_suberror_code_entry.grid(row=0, column=3, sticky="ew", pady=8)
-        ttk.Label(search_container, text=self.json_data["labels"]["sew_db_error_designation_label"], font=("Segoe UI", 10, "bold")).grid(row=1, column=0, sticky="w", pady=(16, 8), padx=(0, 10))
-        self.sew_error_designation_entry = ttk.Entry(search_container, font=("Segoe UI", 10))
-        self.sew_error_designation_entry.grid(row=1, column=1, columnspan=3, sticky="ew", pady=(16, 8))
+        ttk.Label(search_container, text=self.json_data["labels"]["sew_db_error_code_label"], font=("Segoe UI", 9, "bold")).grid(row=0, column=0, sticky="w", pady=4, padx=(0, 5))
+        self.sew_error_code_entry = ttk.Entry(search_container, width=12, font=("Segoe UI", 9))
+        self.sew_error_code_entry.grid(row=0, column=1, sticky="ew", pady=4, padx=(0, 10))
+        ttk.Label(search_container, text=self.json_data["labels"]["sew_db_suberror_code_label"], font=("Segoe UI", 9, "bold")).grid(row=0, column=2, sticky="w", pady=4, padx=(0, 5))
+        self.sew_suberror_code_entry = ttk.Entry(search_container, width=12, font=("Segoe UI", 9))
+        self.sew_suberror_code_entry.grid(row=0, column=3, sticky="ew", pady=4)
+        ttk.Label(search_container, text=self.json_data["labels"]["sew_db_error_designation_label"], font=("Segoe UI", 9, "bold")).grid(row=1, column=0, sticky="w", pady=(8, 4), padx=(0, 5))
+        self.sew_error_designation_entry = ttk.Entry(search_container, font=("Segoe UI", 9))
+        self.sew_error_designation_entry.grid(row=1, column=1, columnspan=3, sticky="ew", pady=(8, 4))
         button_frame = ttk.Frame(search_container)
-        button_frame.grid(row=2, column=0, columnspan=4, pady=(20, 0))
+        button_frame.grid(row=2, column=0, columnspan=4, pady=(10, 0))
         search_button = ttk.Button(button_frame, text=self.json_data["labels"]["sew_db_search_button"], command=self.search_sew_error_codes, style="Accent.TButton")
         search_button.pack()
-        # Styles are now configured globally
         self.sew_error_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
         self.sew_suberror_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
         self.sew_error_designation_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
-        results_container = ttk.LabelFrame(main_container, text=self.json_data["labels"]["sew_db_results_label"], padding=15)
-        results_container.pack(fill="both", expand=True, pady=(0, 10))
+        results_container = ttk.LabelFrame(main_container, text=self.json_data["labels"]["sew_db_results_label"], padding=8)
+        results_container.pack(fill="both", expand=True)
         self.results_frame = ttk.Frame(results_container)
         self.results_frame.pack(fill="both", expand=True)
         self._show_search_instructions()
         if not measure_only:
+            # Force compact sizing
             self.root.update_idletasks()
-            self.root.geometry("")
+            width = min(650, self.root.winfo_reqwidth())
+            height = min(500, self.root.winfo_reqheight())
+            self._set_window_dimensions(width, height)
 
     def _show_help_image(self):
         """Displays the help image in a new window."""
-        if self.sew_image_label is None:
-            image_path = os.path.join(self.script_dir, "media", "SEW_MoviPro_movitools_parameters.jpg")
+        image_path = os.path.join(self.script_dir, "media", "SEW_MoviPro_movitools_parameters.jpg")
         try:
             help_win = tk.Toplevel(self.root)
             help_win.title(self.json_data["labels"]["sew_db_help_title"])
             help_win.transient(self.root)
             help_win.grab_set()
-            help_win.geometry("700x400")
             help_win.resizable(False, False)
             img = Image.open(image_path)
             img = img.resize((680, 320), Image.LANCZOS)
             photo = ImageTk.PhotoImage(img)
             img_label = tk.Label(help_win, image=photo)
             img_label.image = photo
-            img_label.pack(padx=10, pady=10)
-            close_btn = ttk.Button(help_win, text=self.json_data["labels"]["sew_db_help_close_button"], command=help_win.destroy)
-            close_btn.pack(pady=(0, 10))
+            img_label.pack()
+            
+            help_win.update_idletasks()
+            req_width = help_win.winfo_reqwidth()
+            req_height = help_win.winfo_reqheight()
+            screen_width = help_win.winfo_screenwidth()
+            screen_height = help_win.winfo_screenheight()
+            x = (screen_width - req_width) // 2
+            y = (screen_height - req_height) // 2
+            help_win.geometry(f"{req_width}x{req_height}+{x}+{y}")
         except Exception as e:
             messagebox.showerror(self.json_data["labels"]["sew_db_help_error_title"], self.json_data["labels"]["sew_db_help_error_message"].format(e=e))
-        help_win.update_idletasks()
-        popup_width = help_win.winfo_width()
-        popup_height = help_win.winfo_screenheight()
-        screen_width = help_win.winfo_screenwidth()
-        screen_height = help_win.winfo_screenheight()
-        x = int((screen_width - popup_width) / 2)
-        y = int((screen_height - popup_height) / 2)
-        help_win.geometry(f"{popup_width}x{popup_height}+{x}+{y}")
 
     def _show_search_instructions(self):
         for widget in self.results_frame.winfo_children():
             widget.destroy()
         instructions_frame = ttk.Frame(self.results_frame)
-        instructions_frame.pack(fill="x", padx=20, pady=20)
-        icon_label = ttk.Label(instructions_frame, text=self.json_data["labels"]["sew_db_search_instructions_icon"], font=("Segoe UI", 24))
-        icon_label.pack(pady=(0, 10))
-        title_label = ttk.Label(instructions_frame, text=self.json_data["labels"]["sew_db_search_instructions_title"], font=("Segoe UI", 14, "bold"), foreground="#2E86AB")
-        title_label.pack(pady=(0, 15))
+        instructions_frame.pack(fill="x", padx=10, pady=10)
+        icon_label = ttk.Label(instructions_frame, text=self.json_data["labels"]["sew_db_search_instructions_icon"], font=("Segoe UI", 18))
+        icon_label.pack(pady=(0, 5))
+        title_label = ttk.Label(instructions_frame, text=self.json_data["labels"]["sew_db_search_instructions_title"], font=("Segoe UI", 11, "bold"), foreground="#2E86AB")
+        title_label.pack(pady=(0, 8))
         instructions_text = self.json_data["labels"]["sew_db_search_instructions"]
-        instructions_label = ttk.Label(instructions_frame, text=instructions_text, font=("Segoe UI", 10), foreground="#666666", justify="left")
+        instructions_label = ttk.Label(instructions_frame, text=instructions_text, font=("Segoe UI", 9), foreground="#666666", justify="left")
         instructions_label.pack()
 
     def _format_single_line_content(self, text):
@@ -887,10 +882,28 @@ class MainApplication:
         suggestions_label = ttk.Label(no_results_frame, text=suggestions_text, font=("Segoe UI", 10), foreground="#666666", justify="left")
         suggestions_label.pack()
 
+    def _display_error_code_image(self, parent_frame, image_path):
+        """Display an error code reference image in the interface."""
+        try:
+            full_image_path = os.path.join(self.script_dir, image_path)
+            if os.path.exists(full_image_path):
+                img = Image.open(full_image_path)
+                # Resize image to be more compact
+                img.thumbnail((500, 300), Image.LANCZOS)
+                photo = ImageTk.PhotoImage(img)
+                
+                image_frame = ttk.LabelFrame(parent_frame, text="Error Code Reference", padding=5)
+                image_frame.pack(fill="x", padx=5, pady=5)
+                
+                img_label = tk.Label(image_frame, image=photo)
+                img_label.image = photo  # Keep a reference to prevent garbage collection
+                img_label.pack()
+            else:
+                logging.warning(f"Error code image not found: {full_image_path}")
+        except Exception as e:
+            logging.error(f"Failed to load error code image '{image_path}': {e}")
+
     def search_sew_error_codes(self):
-        if hasattr(self, 'sew_image_label') and self.sew_image_label:
-            self.sew_image_label.destroy()
-            self.sew_image_label = None
         db_path = os.path.join(self.script_dir, "data", "errorCodesTechnologies.db")
         if not os.path.exists(db_path):
             logging.error(f"Database file not found at {db_path}")
@@ -902,18 +915,6 @@ class MainApplication:
         error_designation = self.sew_error_designation_entry.get().strip()
         if not any([error_code, suberror_code, error_designation]):
             self._show_search_instructions()
-            temp_frame = ttk.Frame(self.root)
-            temp_frame.pack_forget()
-            self._show_sew_database_interface(temp_frame, measure_only=True)
-            temp_frame.update_idletasks()
-            req_width = temp_frame.winfo_reqwidth()
-            req_height = temp_frame.winfo_reqheight()
-            temp_frame.destroy()
-            screen_width = self.root.winfo_screenwidth()
-            screen_height = self.root.winfo_screenheight()
-            x = (screen_width - req_width) // 2
-            y = (screen_height - req_height) // 2
-            self.root.geometry(f"{req_width}x{req_height}+{x}+{y}")
             return
         db_manager = SEWDatabaseManager(db_path)
         results = db_manager.search_error_codes(error_code, suberror_code, error_designation)
@@ -922,14 +923,8 @@ class MainApplication:
             self._show_error_card(results[0])
         else:
             self._show_no_results()
+        # Keep compact sizing after showing results
         self.root.update_idletasks()
-        new_width = self.root.winfo_width()
-        new_height = self.root.winfo_height()
-        screen_width = self.root.winfo_screenwidth()
-        screen_height = self.root.winfo_screenheight()
-        x = (screen_width - new_width) // 2
-        y = (screen_height - new_height) // 2
-        self.root.geometry(f"{new_width}x{new_height}+{x}+{y}")
 
     def _replace_variables(self, text):
         while "{{" in text and "}}" in text:
