@@ -10,6 +10,8 @@ import fitz  # PyMuPDF
 import pdfplumber
 import logging
 import threading
+import webbrowser
+import urllib.parse
 
 # --- Setup Logging ---
 # This is now handled by src/logging_config.py and initialized in run.py
@@ -81,6 +83,10 @@ class PDFViewerWindow(tk.Toplevel):
         self.page_images = {}  # Cache for PhotoImage objects {page_num: photo_image}
         self.page_layout_info = []  # List of {'y': y_pos, 'w': width, 'h': height} for each page
         self.rendering_scheduled = False
+        
+        # --- Hyperlink Support ---
+        self.page_links = {}  # Cache for page links {page_num: [link_objects]}
+        self.current_cursor = "arrow"  # Track current cursor state
 
         # --- Zoom Functionality ---
         self.zoom_level = 1.0
@@ -110,6 +116,10 @@ class PDFViewerWindow(tk.Toplevel):
         self.canvas.bind("<4>", self._on_mousewheel)
         self.canvas.bind("<5>", self._on_mousewheel)
         self.bind("<Configure>", self.on_resize)
+        
+        # --- Hyperlink Event Bindings ---
+        self.canvas.bind("<Button-1>", self._on_canvas_click)
+        self.canvas.bind("<Motion>", self._on_canvas_motion)
 
         self.after(100, self.initial_load)
 
@@ -259,6 +269,7 @@ class PDFViewerWindow(tk.Toplevel):
         self.page_layout_info.clear()
         self.canvas.delete("all")
         self.page_images.clear()
+        self.page_links.clear()  # Clear hyperlink cache when layout changes
 
         canvas_width = self.winfo_width()
 
@@ -333,6 +344,9 @@ class PDFViewerWindow(tk.Toplevel):
                     self.page_images[i] = photo
                     x_offset = (canvas_width - pix.width) / 2
                     self.canvas.create_image(x_offset, page_top, anchor=tk.NW, image=photo)
+                    
+                    # --- Extract and cache hyperlinks for this page ---
+                    self._extract_page_links(i, page, transform_matrix, x_offset, page_top)
 
     def _update_page_label(self, *args):
         """Updates the page entry widget and info label based on the page most visible in the viewport."""
@@ -536,6 +550,208 @@ class PDFViewerWindow(tk.Toplevel):
         elif event.delta < 0: delta = 1
         else: delta = -1 * int(event.delta / 120)
         self.canvas.yview_scroll(delta, "units")
+
+    def _extract_page_links(self, page_num, page, transform_matrix, x_offset, page_top):
+        """Extract and cache hyperlinks from a PDF page."""
+        try:
+            links = page.get_links()
+            page_links = []
+            
+            for link in links:
+                # Transform link rectangle to canvas coordinates
+                link_rect = fitz.Rect(link['from'])
+                transformed_rect = link_rect.transform(transform_matrix)
+                
+                # Adjust for canvas positioning
+                canvas_rect = {
+                    'x1': transformed_rect.x0 + x_offset,
+                    'y1': transformed_rect.y0 + page_top,
+                    'x2': transformed_rect.x1 + x_offset,
+                    'y2': transformed_rect.y1 + page_top
+                }
+                
+                # Store link information (preserve all original link data)
+                link_info = {
+                    'rect': canvas_rect,
+                    'kind': link.get('kind', 0),
+                    'page': link.get('page', -1),
+                    'uri': link.get('uri', ''),
+                    'to': link.get('to', None),
+                    'file': link.get('file', ''),
+                    'zoom': link.get('zoom', 0),
+                    'xref': link.get('xref', 0),
+                    'id': link.get('id', ''),
+                    'nameddest': link.get('nameddest', '')
+                }
+                page_links.append(link_info)
+            
+            self.page_links[page_num] = page_links
+            
+        except Exception as e:
+            logging.warning(f"Failed to extract links from page {page_num}: {e}")
+            self.page_links[page_num] = []
+
+    def _on_canvas_click(self, event):
+        """Handle mouse clicks on the canvas to detect hyperlink clicks."""
+        canvas_x = self.canvas.canvasx(event.x)
+        canvas_y = self.canvas.canvasy(event.y)
+        
+        # Check all visible pages for link clicks
+        for page_num, links in self.page_links.items():
+            if page_num in self.page_images:  # Only check visible pages
+                for link in links:
+                    rect = link['rect']
+                    if (rect['x1'] <= canvas_x <= rect['x2'] and 
+                        rect['y1'] <= canvas_y <= rect['y2']):
+                        self._handle_link_click(link)
+                        return
+
+    def _on_canvas_motion(self, event):
+        """Handle mouse motion to change cursor over hyperlinks."""
+        canvas_x = self.canvas.canvasx(event.x)
+        canvas_y = self.canvas.canvasy(event.y)
+        
+        # Check if mouse is over a hyperlink
+        over_link = False
+        for page_num, links in self.page_links.items():
+            if page_num in self.page_images:  # Only check visible pages
+                for link in links:
+                    rect = link['rect']
+                    if (rect['x1'] <= canvas_x <= rect['x2'] and 
+                        rect['y1'] <= canvas_y <= rect['y2']):
+                        over_link = True
+                        break
+            if over_link:
+                break
+        
+        # Update cursor based on whether we're over a link
+        new_cursor = "hand2" if over_link else "arrow"
+        if new_cursor != self.current_cursor:
+            self.canvas.config(cursor=new_cursor)
+            self.current_cursor = new_cursor
+
+    def _handle_link_click(self, link):
+        """Handle clicking on a hyperlink."""
+        try:
+            link_kind = link['kind']
+            
+            # Debug logging to understand the link structure
+            logging.info(f"Link clicked - Kind: {link_kind}, Data: {link}")
+            
+            # Handle different link types
+            if link_kind == fitz.LINK_GOTO:  # Internal page link (type 1)
+                target_page = link.get('page', -1)
+                if target_page >= 0 and target_page < self.total_pages:
+                    logging.info(f"Navigating to internal page: {target_page + 1}")
+                    self.go_to_page(target_page + 1)
+                    
+                    # If there's a specific destination point, scroll to it
+                    if link.get('to'):
+                        to_point = link['to']
+                        if hasattr(to_point, 'y'):
+                            self._scroll_to_point_on_page(target_page, to_point.y)
+                        
+            elif link_kind == fitz.LINK_URI:  # External URL link (type 2)
+                uri = link.get('uri', '')
+                if uri:
+                    logging.info(f"Opening external URL: {uri}")
+                    try:
+                        # Validate and open URL
+                        parsed_url = urllib.parse.urlparse(uri)
+                        if parsed_url.scheme in ['http', 'https', 'mailto', 'ftp']:
+                            webbrowser.open(uri)
+                        else:
+                            logging.warning(f"Unsupported URL scheme: {parsed_url.scheme}")
+                            messagebox.showwarning("Unsupported Link", 
+                                                 f"Cannot open link with scheme '{parsed_url.scheme}': {uri}")
+                    except Exception as e:
+                        logging.error(f"Failed to open URL {uri}: {e}")
+                        messagebox.showerror("Link Error", f"Failed to open link: {uri}")
+                        
+            elif link_kind == fitz.LINK_GOTOR:  # Link to another document (type 3)
+                logging.info(f"External document link detected: {link.get('file', 'unknown')}")
+                messagebox.showinfo("External Document", 
+                                  "This link points to another document. External document links are not currently supported.")
+                                  
+            elif link_kind == 4:  # Named destination link (common in PDFs)
+                # Type 4 links often use named destinations
+                if 'to' in link and link['to']:
+                    to_point = link['to']
+                    if hasattr(to_point, 'page') and hasattr(to_point, 'y'):
+                        target_page = to_point.page
+                        if target_page >= 0 and target_page < self.total_pages:
+                            logging.info(f"Navigating to named destination on page: {target_page + 1}")
+                            self.go_to_page(target_page + 1)
+                            self._scroll_to_point_on_page(target_page, to_point.y)
+                        else:
+                            logging.warning(f"Invalid target page in named destination: {target_page}")
+                    elif 'page' in link:
+                        # Fallback: try to use page from link directly
+                        target_page = link.get('page', -1)
+                        if target_page >= 0 and target_page < self.total_pages:
+                            logging.info(f"Navigating to page from type 4 link: {target_page + 1}")
+                            self.go_to_page(target_page + 1)
+                        else:
+                            logging.warning(f"Invalid page in type 4 link: {target_page}")
+                    else:
+                        logging.warning(f"Type 4 link missing destination information: {link}")
+                else:
+                    logging.warning(f"Type 4 link without 'to' field: {link}")
+                    
+            else:
+                # Try to handle unknown link types generically
+                logging.info(f"Attempting to handle unknown link type {link_kind}")
+                
+                # Check if it has page information
+                if 'page' in link:
+                    target_page = link.get('page', -1)
+                    if target_page >= 0 and target_page < self.total_pages:
+                        logging.info(f"Generic navigation to page: {target_page + 1}")
+                        self.go_to_page(target_page + 1)
+                        return
+                
+                # Check if it has 'to' destination
+                if 'to' in link and link['to']:
+                    to_point = link['to']
+                    if hasattr(to_point, 'page'):
+                        target_page = to_point.page
+                        if target_page >= 0 and target_page < self.total_pages:
+                            logging.info(f"Generic navigation via 'to' field to page: {target_page + 1}")
+                            self.go_to_page(target_page + 1)
+                            if hasattr(to_point, 'y'):
+                                self._scroll_to_point_on_page(target_page, to_point.y)
+                            return
+                
+                logging.warning(f"Could not handle link type {link_kind}: {link}")
+                
+        except Exception as e:
+            logging.error(f"Error handling link click: {e}")
+
+    def _scroll_to_point_on_page(self, page_num, y_coordinate):
+        """Scroll to a specific Y coordinate on a given page."""
+        try:
+            if 0 <= page_num < len(self.page_layout_info):
+                page_layout = self.page_layout_info[page_num]
+                
+                # Transform the Y coordinate using current zoom
+                final_zoom = self.base_zoom * self.zoom_level
+                transformed_y = y_coordinate * final_zoom
+                
+                # Calculate target position on canvas
+                target_y = page_layout['y'] + transformed_y
+                
+                # Center the target position in the viewport
+                canvas_height = self.canvas.winfo_height()
+                scroll_to_y = target_y - (canvas_height / 2)
+                
+                total_height = float(self.canvas.cget('scrollregion').split(' ')[3])
+                if total_height > 0:
+                    scroll_fraction = max(0, min(1, scroll_to_y / total_height))
+                    self.canvas.yview_moveto(scroll_fraction)
+                    self.after(50, self._update_page_label)
+                    
+        except Exception as e:
+            logging.warning(f"Failed to scroll to point on page {page_num}: {e}")
 
     def on_close(self):
         logging.info("--- Closing PDFViewerWindow ---")
