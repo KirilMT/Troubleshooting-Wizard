@@ -657,15 +657,31 @@ class MainApplication:
 
     def _create_modern_entry(self, parent, **kwargs):
         """Creates a modern entry widget with consistent styling."""
-        return tk.Entry(parent, font=("Segoe UI", 9), relief="flat", bd=1,
-                       highlightthickness=1, highlightcolor=self.colors['primary'],
-                       bg=self.colors['surface'], fg=self.colors['text_primary'], **kwargs)
+        return tk.Entry(parent, font=("Segoe UI", 10), relief="flat", bd=0,
+                       highlightthickness=2, highlightcolor=self.colors['technology'],
+                       bg=self.colors['surface'], fg=self.colors['text_primary'],
+                       insertbackground=self.colors['text_primary'], **kwargs)
 
-    def _create_modern_label(self, parent, text, bold=False, **kwargs):
+    def _create_modern_label(self, parent, text, bold=False, style='normal', **kwargs):
         """Creates a modern label with consistent styling."""
-        font_weight = "bold" if bold else "normal"
-        return tk.Label(parent, text=text, font=("Segoe UI", 9, font_weight),
-                       bg=self.colors['background'], fg=self.colors['text_primary'], **kwargs)
+        if style == 'title':
+            font = ("Segoe UI", 12, "bold")
+            fg = self.colors['text_primary']
+        elif style == 'subtitle':
+            font = ("Segoe UI", 10)
+            fg = self.colors['text_secondary']
+        else:
+            font_weight = "bold" if bold else "normal"
+            font = ("Segoe UI", 9, font_weight)
+            fg = self.colors['text_primary']
+        
+        bg_color = kwargs.pop('bg', self.colors['background'])
+        return tk.Label(parent, text=text, font=font, fg=fg, bg=bg_color, **kwargs)
+
+    def _create_modern_frame(self, parent, **kwargs):
+        """Creates a modern frame with consistent styling."""
+        bg_color = kwargs.pop('bg', self.colors['background'])
+        return tk.Frame(parent, bg=bg_color, **kwargs)
 
     def _set_window_theme(self, theme='technology'):
         """Sets the window background color based on theme."""
@@ -783,7 +799,8 @@ class MainApplication:
             task_attributes["url_path"] = self._replace_variables(task_attributes.get("url_path", ""))
             # The style is now configured globally
             # Error codes button gets critical styling, others get task styling
-            if 'error' in task_title.lower() and 'code' in task_title.lower():
+            task_title_lower = task_title.lower()
+            if 'error' in task_title_lower and ('code' in task_title_lower or 'codes' in task_title_lower):
                 button_style = 'error_critical'
             else:
                 button_style = 'task'
@@ -846,57 +863,109 @@ class MainApplication:
         self._set_window_dimensions(req_width, req_height)
 
     def _show_traditional_search_interface(self, parent_frame, task_attributes):
-        # Display the configured image if available
+        # Main content area (minimal padding)
+        content_frame = self._create_modern_frame(parent_frame, bg=parent_frame['bg'])
+        content_frame.pack(fill='both', expand=True, padx=5)
+        
+        # Display the configured image if available (center-aligned)
         image_path = task_attributes.get("image_path")
         if image_path:
-            self._display_error_code_image(parent_frame, image_path)
+            image_container = self._create_modern_frame(content_frame, bg=parent_frame['bg'])
+            image_container.pack()
+            self._display_error_code_image(image_container, image_path)
         
-        label_frame = ttk.Frame(parent_frame)
-        label_frame.pack(pady=5)
-        ttk.Label(label_frame, text=self.json_data["labels"]["insert_fault_code"], style="Bold.TLabel").pack(side="left")
-        search_entry = ttk.Entry(label_frame, style="Large.TEntry", width=40)
-        search_entry.pack(side="left", padx=5)
-        search_button = self._create_modern_button(parent_frame, self.json_data["labels"]["search"], 
+        # Search input frame (center-aligned)
+        input_frame = self._create_modern_frame(content_frame, bg=parent_frame['bg'])
+        input_frame.pack(pady=(8, 0))
+        input_frame.grid_columnconfigure(1, weight=1)
+        
+        search_label = self._create_modern_label(input_frame, 
+                                                self.json_data["labels"]["insert_fault_code"], 
+                                                style='title', bg=parent_frame['bg'])
+        search_label.grid(row=0, column=0, sticky="w")
+        
+        search_entry = self._create_modern_entry(input_frame, width=42)
+        search_entry.grid(row=0, column=1, sticky="w", padx=(10, 0), ipady=5)
+        
+        # Search button on new row, aligned to right edge of entry
+        search_button = self._create_modern_button(input_frame, self.json_data["labels"]["search"], 
                                                   lambda: self._open_pdf_viewer(task_attributes.get("url_path"), search_term=search_entry.get()),
                                                   style='submit')
-        search_button.pack(side="right", padx=5)
+        search_button.grid(row=1, column=1, sticky="e", pady=(8, 0))
 
     def _show_sew_database_interface(self, parent_frame, measure_only=False):
-        main_container = ttk.Frame(parent_frame)
-        main_container.pack(fill="both", expand=True, padx=5, pady=2)
-        title_frame = ttk.Frame(main_container)
-        title_frame.pack(fill="x", pady=(0, 5))
+        main_container = self._create_modern_frame(parent_frame, bg=parent_frame['bg'])
+        main_container.pack(fill="both", expand=True, padx=15, pady=10)
+        
+        # Modern title section
+        title_frame = self._create_modern_frame(main_container, bg=parent_frame['bg'])
+        title_frame.pack(fill="x", pady=(0, 15))
         title_frame.columnconfigure(0, weight=1)
-        title_label = ttk.Label(title_frame, text=self.json_data["labels"]["sew_db_title"], font=("Segoe UI", 14, "bold"), foreground="#2E86AB", anchor="center", justify="center")
+        
+        title_label = self._create_modern_label(title_frame, self.json_data["labels"]["sew_db_title"], 
+                                               style='title', bg=parent_frame['bg'])
         title_label.grid(row=0, column=0, sticky="ew")
-        help_btn = ttk.Button(title_frame, text=self.json_data["labels"]["sew_db_help_button"], width=2, command=self._show_help_image, style="Help.TButton")
-        help_btn.grid(row=0, column=1, sticky="e", padx=(5, 0))
-        subtitle_label = ttk.Label(main_container, text=self.json_data["labels"]["sew_db_subtitle"], font=("Segoe UI", 9), foreground="#666666", anchor="center", justify="center")
-        subtitle_label.pack(fill="x", pady=(0, 5))
-        search_container = ttk.LabelFrame(main_container, text=self.json_data["labels"]["sew_db_search_criteria_label"], padding=8)
-        search_container.pack(fill="x", pady=(0, 5))
-        search_container.columnconfigure(1, weight=1)
-        search_container.columnconfigure(3, weight=1)
-        ttk.Label(search_container, text=self.json_data["labels"]["sew_db_error_code_label"], font=("Segoe UI", 9, "bold")).grid(row=0, column=0, sticky="w", pady=4, padx=(0, 5))
-        self.sew_error_code_entry = ttk.Entry(search_container, width=12, font=("Segoe UI", 9))
-        self.sew_error_code_entry.grid(row=0, column=1, sticky="ew", pady=4, padx=(0, 10))
-        ttk.Label(search_container, text=self.json_data["labels"]["sew_db_suberror_code_label"], font=("Segoe UI", 9, "bold")).grid(row=0, column=2, sticky="w", pady=4, padx=(0, 5))
-        self.sew_suberror_code_entry = ttk.Entry(search_container, width=12, font=("Segoe UI", 9))
-        self.sew_suberror_code_entry.grid(row=0, column=3, sticky="ew", pady=4)
-        ttk.Label(search_container, text=self.json_data["labels"]["sew_db_error_designation_label"], font=("Segoe UI", 9, "bold")).grid(row=1, column=0, sticky="w", pady=(8, 4), padx=(0, 5))
-        self.sew_error_designation_entry = ttk.Entry(search_container, font=("Segoe UI", 9))
-        self.sew_error_designation_entry.grid(row=1, column=1, columnspan=3, sticky="ew", pady=(8, 4))
-        button_frame = ttk.Frame(search_container)
-        button_frame.grid(row=2, column=0, columnspan=4, pady=(10, 0))
-        search_button = ttk.Button(button_frame, text=self.json_data["labels"]["sew_db_search_button"], command=self.search_sew_error_codes, style="Accent.TButton")
-        search_button.pack()
+        
+        help_btn = self._create_modern_button(title_frame, self.json_data["labels"]["sew_db_help_button"], 
+                                             self._show_help_image, style='technology')
+        help_btn.grid(row=0, column=1, sticky="e", padx=(10, 0))
+        subtitle_label = self._create_modern_label(main_container, self.json_data["labels"]["sew_db_subtitle"], 
+                                                  style='subtitle', bg=parent_frame['bg'])
+        subtitle_label.pack(fill="x", pady=(0, 15))
+        
+        # Modern search form
+        search_container = self._create_modern_frame(main_container, bg=self.colors['surface'], relief='solid', bd=1)
+        search_container.pack(fill="x", pady=(0, 15), padx=5)
+        
+        # Form title
+        form_title = self._create_modern_label(search_container, self.json_data["labels"]["sew_db_search_criteria_label"], 
+                                              bold=True, bg=self.colors['surface'])
+        form_title.pack(pady=(15, 10))
+        
+        # Form content
+        form_content = self._create_modern_frame(search_container, bg=self.colors['surface'])
+        form_content.pack(fill="x", padx=15, pady=(0, 15))
+        form_content.columnconfigure(1, weight=1)
+        form_content.columnconfigure(3, weight=1)
+        
+        # Error code row
+        self._create_modern_label(form_content, self.json_data["labels"]["sew_db_error_code_label"], 
+                                 bold=True, bg=self.colors['surface']).grid(row=0, column=0, sticky="w", pady=8, padx=(0, 10))
+        self.sew_error_code_entry = self._create_modern_entry(form_content, width=12)
+        self.sew_error_code_entry.grid(row=0, column=1, sticky="ew", pady=8, padx=(0, 15), ipady=3)
+        
+        self._create_modern_label(form_content, self.json_data["labels"]["sew_db_suberror_code_label"], 
+                                 bold=True, bg=self.colors['surface']).grid(row=0, column=2, sticky="w", pady=8, padx=(0, 10))
+        self.sew_suberror_code_entry = self._create_modern_entry(form_content, width=12)
+        self.sew_suberror_code_entry.grid(row=0, column=3, sticky="ew", pady=8, ipady=3)
+        
+        # Error designation row
+        self._create_modern_label(form_content, self.json_data["labels"]["sew_db_error_designation_label"], 
+                                 bold=True, bg=self.colors['surface']).grid(row=1, column=0, sticky="w", pady=8, padx=(0, 10))
+        self.sew_error_designation_entry = self._create_modern_entry(form_content)
+        self.sew_error_designation_entry.grid(row=1, column=1, columnspan=3, sticky="ew", pady=8, ipady=3)
+        # Search button
+        button_frame = self._create_modern_frame(search_container, bg=self.colors['surface'])
+        button_frame.grid(row=2, column=0, columnspan=4, pady=(15, 0))
+        search_button = self._create_modern_button(button_frame, self.json_data["labels"]["sew_db_search_button"], 
+                                                  self.search_sew_error_codes, style='submit')
+        search_button.pack(pady=(0, 10))
+        
+        # Bind Enter key to search
         self.sew_error_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
         self.sew_suberror_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
         self.sew_error_designation_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
-        results_container = ttk.LabelFrame(main_container, text=self.json_data["labels"]["sew_db_results_label"], padding=8)
-        results_container.pack(fill="both", expand=True)
-        self.results_frame = ttk.Frame(results_container)
-        self.results_frame.pack(fill="both", expand=True)
+        
+        # Modern results container
+        results_container = self._create_modern_frame(main_container, bg=self.colors['surface'], relief='solid', bd=1)
+        results_container.pack(fill="both", expand=True, padx=5)
+        
+        results_title = self._create_modern_label(results_container, self.json_data["labels"]["sew_db_results_label"], 
+                                                 bold=True, bg=self.colors['surface'])
+        results_title.pack(pady=(15, 10))
+        
+        self.results_frame = self._create_modern_frame(results_container, bg=self.colors['surface'])
+        self.results_frame.pack(fill="both", expand=True, padx=15, pady=(0, 15))
         self._show_search_instructions()
         if not measure_only:
             self.root.update_idletasks()
