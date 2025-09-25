@@ -129,6 +129,8 @@ class PDFViewerWindow(tk.Toplevel):
         
         # --- Mouse Event Bindings (Hyperlinks + Text Selection) ---
         self.canvas.bind("<Button-1>", self._on_canvas_click)
+        self.canvas.bind("<Double-Button-1>", self._on_canvas_double_click)  # Double-click word selection
+        self.canvas.bind("<Triple-Button-1>", self._on_canvas_triple_click)  # Triple-click line selection
         self.canvas.bind("<B1-Motion>", self._on_canvas_drag)
         self.canvas.bind("<ButtonRelease-1>", self._on_canvas_release)
         self.canvas.bind("<Motion>", self._on_canvas_motion)
@@ -350,13 +352,17 @@ class PDFViewerWindow(tk.Toplevel):
                 if self.search_results and self.current_search_index != -1:
                     current_match_page_idx, _ = self.search_results[self.current_search_index]
                     if i == current_match_page_idx:
-                        # Highlight all instances on the page, but we've navigated to one
+                        # Highlight all instances on the page with stronger yellow color
                         for inst in page.search_for(search_term):
-                            page.add_highlight_annot(inst)
+                            highlight = page.add_highlight_annot(inst)
+                            highlight.set_colors(stroke=[1, 0.8, 0])  # Stronger yellow/orange color
+                            highlight.update()
                 elif search_term:
                     # Legacy behavior for initial load search before full results are compiled
                     for inst in page.search_for(search_term):
-                        page.add_highlight_annot(inst)
+                        highlight = page.add_highlight_annot(inst)
+                        highlight.set_colors(stroke=[1, 0.8, 0])  # Stronger yellow/orange color
+                        highlight.update()
 
                 pix = page.get_pixmap(matrix=transform_matrix, alpha=False)
                 if pix.width > 0 and pix.height > 0:
@@ -1039,6 +1045,126 @@ class PDFViewerWindow(tk.Toplevel):
         else:
             # Show a brief message if no text is selected
             self._show_no_selection_feedback(event.x_root, event.y_root)
+
+    def _on_canvas_double_click(self, event):
+        """Handle double-click to select entire word."""
+        canvas_x = self.canvas.canvasx(event.x)
+        canvas_y = self.canvas.canvasy(event.y)
+        
+        # Clear any existing selection
+        self._clear_text_selection()
+        
+        # Find character at click position
+        char_pos = self._get_character_at_position(canvas_x, canvas_y)
+        if char_pos is None:
+            return
+            
+        page_num, char_index = char_pos
+        if page_num not in self.page_text_data:
+            return
+            
+        page_chars = self.page_text_data[page_num]
+        
+        # Find the character data for the clicked position
+        clicked_char_data = None
+        for char_data in page_chars:
+            if char_data['global_index'] == char_index:
+                clicked_char_data = char_data
+                break
+                
+        if not clicked_char_data:
+            return
+            
+        # Find word boundaries by expanding from the clicked character
+        word_start_idx = char_index
+        word_end_idx = char_index
+        
+        # Expand backwards to find word start
+        for char_data in reversed(page_chars):
+            if char_data['global_index'] < char_index:
+                if char_data['char'].isalnum() or char_data['char'] in ['_', '-']:
+                    word_start_idx = char_data['global_index']
+                else:
+                    break
+                    
+        # Expand forwards to find word end
+        for char_data in page_chars:
+            if char_data['global_index'] > char_index:
+                if char_data['char'].isalnum() or char_data['char'] in ['_', '-']:
+                    word_end_idx = char_data['global_index']
+                else:
+                    break
+                    
+        # Set selection to the entire word
+        self.selection_start_char = (page_num, word_start_idx)
+        self.selection_end_char = (page_num, word_end_idx)
+        self.text_selection_active = True
+        
+        # Update visual selection and finalize
+        self._update_text_selection_visual()
+        self._finalize_text_selection()
+        
+        logging.info(f"Double-click word selection: {word_start_idx} to {word_end_idx}")
+
+    def _on_canvas_triple_click(self, event):
+        """Handle triple-click to select entire line."""
+        canvas_x = self.canvas.canvasx(event.x)
+        canvas_y = self.canvas.canvasy(event.y)
+        
+        # Clear any existing selection
+        self._clear_text_selection()
+        
+        # Find character at click position
+        char_pos = self._get_character_at_position(canvas_x, canvas_y)
+        if char_pos is None:
+            return
+            
+        page_num, char_index = char_pos
+        if page_num not in self.page_text_data:
+            return
+            
+        page_chars = self.page_text_data[page_num]
+        
+        # Find the character data for the clicked position
+        clicked_char_data = None
+        for char_data in page_chars:
+            if char_data['global_index'] == char_index:
+                clicked_char_data = char_data
+                break
+                
+        if not clicked_char_data:
+            return
+            
+        # Find line boundaries by looking for characters with similar Y positions
+        clicked_y = (clicked_char_data['bbox']['y0'] + clicked_char_data['bbox']['y1']) / 2
+        line_tolerance = 5  # pixels
+        
+        line_start_idx = char_index
+        line_end_idx = char_index
+        
+        # Find all characters on the same line
+        line_chars = []
+        for char_data in page_chars:
+            char_y = (char_data['bbox']['y0'] + char_data['bbox']['y1']) / 2
+            if abs(char_y - clicked_y) <= line_tolerance:
+                line_chars.append(char_data)
+                
+        if line_chars:
+            # Sort by global index to get proper order
+            line_chars.sort(key=lambda c: c['global_index'])
+            line_start_idx = line_chars[0]['global_index']
+            line_end_idx = line_chars[-1]['global_index']
+            
+        # Set selection to the entire line
+        self.selection_start_char = (page_num, line_start_idx)
+        self.selection_end_char = (page_num, line_end_idx)
+        self.text_selection_active = True
+        
+        # Update visual selection and finalize
+        self._update_text_selection_visual()
+        self._finalize_text_selection()
+        
+        logging.info(f"Triple-click line selection: {line_start_idx} to {line_end_idx}")
 
     def _get_page_at_position(self, canvas_y):
         """Get the page number at a given canvas Y position."""
