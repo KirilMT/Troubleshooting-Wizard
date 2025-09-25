@@ -614,44 +614,7 @@ class PDFViewerWindow(tk.Toplevel):
             logging.warning(f"Failed to extract links from page {page_num}: {e}")
             self.page_links[page_num] = []
 
-    def _on_canvas_click(self, event):
-        """Handle mouse clicks on the canvas to detect hyperlink clicks."""
-        canvas_x = self.canvas.canvasx(event.x)
-        canvas_y = self.canvas.canvasy(event.y)
-        
-        # Check all visible pages for link clicks
-        for page_num, links in self.page_links.items():
-            if page_num in self.page_images:  # Only check visible pages
-                for link in links:
-                    rect = link['rect']
-                    if (rect['x1'] <= canvas_x <= rect['x2'] and 
-                        rect['y1'] <= canvas_y <= rect['y2']):
-                        self._handle_link_click(link)
-                        return
 
-    def _on_canvas_motion(self, event):
-        """Handle mouse motion to change cursor over hyperlinks."""
-        canvas_x = self.canvas.canvasx(event.x)
-        canvas_y = self.canvas.canvasy(event.y)
-        
-        # Check if mouse is over a hyperlink
-        over_link = False
-        for page_num, links in self.page_links.items():
-            if page_num in self.page_images:  # Only check visible pages
-                for link in links:
-                    rect = link['rect']
-                    if (rect['x1'] <= canvas_x <= rect['x2'] and 
-                        rect['y1'] <= canvas_y <= rect['y2']):
-                        over_link = True
-                        break
-            if over_link:
-                break
-        
-        # Update cursor based on whether we're over a link
-        new_cursor = "hand2" if over_link else "arrow"
-        if new_cursor != self.current_cursor:
-            self.canvas.config(cursor=new_cursor)
-            self.current_cursor = new_cursor
 
     def _handle_link_click(self, link):
         """Handle clicking on a hyperlink."""
@@ -777,34 +740,36 @@ class PDFViewerWindow(tk.Toplevel):
             logging.warning(f"Failed to scroll to point on page {page_num}: {e}")
 
     def _extract_page_text(self, page_num, page, transform_matrix, x_offset, page_top):
-        """Extract and cache text data with character-level positioning for precise selection."""
+        """Extract and cache text data with precise character-level positioning."""
         try:
-            text_dict = page.get_text("dict")
-            page_chars = []  # List of individual characters with positions
-            char_map = {}    # Maps canvas coordinates to character indices
+            # Use get_text with "rawdict" for most precise character positioning
+            text_dict = page.get_text("rawdict")
+            page_chars = []
+            char_map = {}
             
-            char_index = 0
+            # Calculate starting global index based on previous pages
+            global_char_index = 0
+            for prev_page in range(page_num):
+                if prev_page in self.page_text_data:
+                    global_char_index += len(self.page_text_data[prev_page])
             
             for block in text_dict.get('blocks', []):
-                if 'lines' in block:  # Text block
-                    for line in block['lines']:
-                        for span in line['spans']:
-                            span_text = span.get('text', '')
-                            span_bbox = span['bbox']
+                if block.get('type') == 0:  # Text block
+                    for line in block.get('lines', []):
+                        line_chars = []
+                        
+                        for span in line.get('spans', []):
                             span_font_size = span.get('size', 12)
+                            span_chars = span.get('chars', [])
                             
-                            if span_text:
-                                # Calculate character width (approximate)
-                                span_width = span_bbox[2] - span_bbox[0]
-                                char_width = span_width / len(span_text) if len(span_text) > 0 else 0
+                            # Use individual character data from rawdict for maximum precision
+                            for char_info in span_chars:
+                                char = char_info.get('c', '')
+                                char_bbox = char_info.get('bbox', [0, 0, 0, 0])
                                 
-                                for i, char in enumerate(span_text):
-                                    # Calculate character position within span
-                                    char_x_start = span_bbox[0] + (i * char_width)
-                                    char_x_end = char_x_start + char_width
-                                    
-                                    # Transform to canvas coordinates
-                                    char_rect_pdf = fitz.Rect(char_x_start, span_bbox[1], char_x_end, span_bbox[3])
+                                if char and char_bbox:
+                                    # Transform character bbox to canvas coordinates
+                                    char_rect_pdf = fitz.Rect(char_bbox)
                                     char_rect_canvas = char_rect_pdf.transform(transform_matrix)
                                     
                                     canvas_bbox = {
@@ -816,70 +781,124 @@ class PDFViewerWindow(tk.Toplevel):
                                     
                                     char_data = {
                                         'char': char,
-                                        'index': char_index,
+                                        'page': page_num,
+                                        'global_index': global_char_index,
                                         'bbox': canvas_bbox,
-                                        'font_size': span_font_size
+                                        'font_size': span_font_size,
+                                        'line_index': len(page_chars)
                                     }
                                     
+                                    line_chars.append(char_data)
                                     page_chars.append(char_data)
                                     
-                                    # Create coordinate mapping for quick lookup
-                                    # Use integer coordinates for mapping
+                                    # Create precise coordinate mapping for hit detection
+                                    # Map the entire character area
                                     for y in range(int(canvas_bbox['y0']), int(canvas_bbox['y1']) + 1):
                                         for x in range(int(canvas_bbox['x0']), int(canvas_bbox['x1']) + 1):
                                             coord_key = (x, y)
                                             if coord_key not in char_map:
-                                                char_map[coord_key] = char_index
+                                                char_map[coord_key] = global_char_index
                                     
-                                    char_index += 1
-                                
-                                # Add space between spans if needed
-                                if not span_text.endswith(' '):
-                                    # Add implicit space character
-                                    space_bbox = {
-                                        'x0': canvas_bbox['x1'],
-                                        'y0': canvas_bbox['y0'],
-                                        'x1': canvas_bbox['x1'] + char_width,
-                                        'y1': canvas_bbox['y1']
-                                    }
+                                    # Also map surrounding area for better hit detection
+                                    center_x = int((canvas_bbox['x0'] + canvas_bbox['x1']) / 2)
+                                    center_y = int((canvas_bbox['y0'] + canvas_bbox['y1']) / 2)
                                     
-                                    space_data = {
-                                        'char': ' ',
-                                        'index': char_index,
-                                        'bbox': space_bbox,
-                                        'font_size': span_font_size
-                                    }
+                                    for dy in range(-2, 3):
+                                        for dx in range(-2, 3):
+                                            coord_key = (center_x + dx, center_y + dy)
+                                            if coord_key not in char_map:
+                                                char_map[coord_key] = global_char_index
                                     
-                                    page_chars.append(space_data)
-                                    char_index += 1
+                                    global_char_index += 1
                         
-                        # Add newline at end of each line
-                        if page_chars:
-                            last_char = page_chars[-1]
-                            newline_bbox = {
-                                'x0': last_char['bbox']['x1'],
-                                'y0': last_char['bbox']['y0'],
-                                'x1': last_char['bbox']['x1'],
-                                'y1': last_char['bbox']['y1']
-                            }
-                            
-                            newline_data = {
-                                'char': '\n',
-                                'index': char_index,
-                                'bbox': newline_bbox,
-                                'font_size': last_char['font_size']
-                            }
-                            
-                            page_chars.append(newline_data)
-                            char_index += 1
             
             self.page_text_data[page_num] = page_chars
             self.page_char_map[page_num] = char_map
             
+            # Debug logging
+            logging.info(f"Extracted {len(page_chars)} characters from page {page_num}")
+            logging.info(f"Character map has {len(char_map)} coordinate mappings")
+            if page_chars:
+                logging.info(f"First char: '{page_chars[0]['char']}' at {page_chars[0]['bbox']}")
+                logging.info(f"Last char: '{page_chars[-1]['char']}' at {page_chars[-1]['bbox']}")
+            
         except Exception as e:
-            logging.warning(f"Failed to extract text from page {page_num}: {e}")
-            self.page_text_data[page_num] = []
-            self.page_char_map[page_num] = {}
+            logging.error(f"Failed to extract text using rawdict from page {page_num}: {e}")
+            # Fallback to dict method if rawdict fails
+            try:
+                logging.info(f"Falling back to dict method for page {page_num}")
+                self._extract_page_text_fallback(page_num, page, transform_matrix, x_offset, page_top)
+            except Exception as e2:
+                logging.error(f"Fallback text extraction also failed for page {page_num}: {e2}")
+                self.page_text_data[page_num] = []
+                self.page_char_map[page_num] = {}
+    
+    def _extract_page_text_fallback(self, page_num, page, transform_matrix, x_offset, page_top):
+        """Fallback text extraction method using dict format."""
+        text_dict = page.get_text("dict")
+        page_chars = []
+        char_map = {}
+        
+        # Calculate starting global index
+        global_char_index = 0
+        for prev_page in range(page_num):
+            if prev_page in self.page_text_data:
+                global_char_index += len(self.page_text_data[prev_page])
+        
+        for block in text_dict.get('blocks', []):
+            if block.get('type') == 0:  # Text block
+                for line in block.get('lines', []):
+                    for span in line.get('spans', []):
+                        span_text = span.get('text', '')
+                        span_bbox = span.get('bbox', [0, 0, 0, 0])
+                        span_font_size = span.get('size', 12)
+                        
+                        if span_text:
+                            # Calculate character positioning within the span
+                            span_width = span_bbox[2] - span_bbox[0]
+                            char_width = span_width / len(span_text) if len(span_text) > 0 else 0
+                            
+                            for i, char in enumerate(span_text):
+                                # Calculate character position within span
+                                char_x0 = span_bbox[0] + (i * char_width)
+                                char_x1 = char_x0 + char_width
+                                
+                                # Create character rectangle in PDF coordinates
+                                char_rect_pdf = fitz.Rect(char_x0, span_bbox[1], char_x1, span_bbox[3])
+                                char_rect_canvas = char_rect_pdf.transform(transform_matrix)
+                                
+                                canvas_bbox = {
+                                    'x0': char_rect_canvas.x0 + x_offset,
+                                    'y0': char_rect_canvas.y0 + page_top,
+                                    'x1': char_rect_canvas.x1 + x_offset,
+                                    'y1': char_rect_canvas.y1 + page_top
+                                }
+                                
+                                char_data = {
+                                    'char': char,
+                                    'page': page_num,
+                                    'global_index': global_char_index,
+                                    'bbox': canvas_bbox,
+                                    'font_size': span_font_size,
+                                    'line_index': len(page_chars)
+                                }
+                                
+                                page_chars.append(char_data)
+                                
+                                # Create coordinate mapping
+                                center_x = int((canvas_bbox['x0'] + canvas_bbox['x1']) / 2)
+                                center_y = int((canvas_bbox['y0'] + canvas_bbox['y1']) / 2)
+                                
+                                for dy in range(-2, 3):
+                                    for dx in range(-2, 3):
+                                        coord_key = (center_x + dx, center_y + dy)
+                                        if coord_key not in char_map:
+                                            char_map[coord_key] = global_char_index
+                                
+                                global_char_index += 1
+        
+        self.page_text_data[page_num] = page_chars
+        self.page_char_map[page_num] = char_map
 
     def _on_canvas_click(self, event):
         """Handle mouse clicks on the canvas for hyperlinks and character-precise text selection start."""
@@ -900,13 +919,19 @@ class PDFViewerWindow(tk.Toplevel):
                         return
         
         # Start character-precise text selection
+        logging.info(f"Canvas click at ({canvas_x}, {canvas_y})")
         char_pos = self._get_character_at_position(canvas_x, canvas_y)
+        logging.info(f"Character position result: {char_pos}")
+        
         if char_pos is not None:
             page_num, char_index = char_pos
             self.selection_start_char = (page_num, char_index)
             self.selection_end_char = (page_num, char_index)
             self.is_dragging_selection = True
             self.text_selection_active = True
+            logging.info(f"Started text selection at page {page_num}, char {char_index}")
+        else:
+            logging.info("No character found at click position")
 
     def _on_canvas_drag(self, event):
         """Handle mouse dragging for character-precise text selection."""
@@ -941,7 +966,7 @@ class PDFViewerWindow(tk.Toplevel):
         self.is_dragging_selection = False
 
     def _on_canvas_motion(self, event):
-        """Handle mouse motion for cursor changes and drag selection."""
+        """Handle mouse motion for proper cursor changes and drag selection."""
         if self.is_dragging_selection:
             self._on_canvas_drag(event)
             return
@@ -949,7 +974,7 @@ class PDFViewerWindow(tk.Toplevel):
         canvas_x = self.canvas.canvasx(event.x)
         canvas_y = self.canvas.canvasy(event.y)
         
-        # Check if mouse is over a hyperlink
+        # Check if mouse is over a hyperlink first (highest priority)
         over_link = False
         for page_num, links in self.page_links.items():
             if page_num in self.page_images:  # Only check visible pages
@@ -962,34 +987,58 @@ class PDFViewerWindow(tk.Toplevel):
             if over_link:
                 break
         
-        # Check if mouse is over selectable text
+        # Check if mouse is over selectable text (only if not over link)
         over_text = False
         if not over_link:
             over_text = self._is_over_text(canvas_x, canvas_y)
         
-        # Update cursor based on context
-        if over_link:
-            new_cursor = "hand2"
-        elif over_text:
-            new_cursor = "xterm"  # Text selection cursor
+        # Debug logging for cursor behavior (every 50th motion event to avoid spam)
+        if hasattr(self, '_debug_motion_counter'):
+            self._debug_motion_counter += 1
         else:
-            new_cursor = "arrow"
+            self._debug_motion_counter = 1
+            
+        if self._debug_motion_counter % 50 == 0:
+            logging.info(f"Motion at ({canvas_x:.1f}, {canvas_y:.1f}): over_link={over_link}, over_text={over_text}")
+            logging.info(f"Available pages with text data: {list(self.page_text_data.keys())}")
+            if self.page_text_data:
+                total_chars = sum(len(chars) for chars in self.page_text_data.values())
+                logging.info(f"Total characters extracted: {total_chars}")
+        
+        # Update cursor based on context with proper I-beam for text
+        if over_link:
+            new_cursor = "hand2"  # Hand cursor for hyperlinks
+        elif over_text:
+            new_cursor = "xterm"  # I-beam cursor for text selection
+        else:
+            new_cursor = "arrow"  # Default arrow cursor
             
         if new_cursor != self.current_cursor:
             self.canvas.config(cursor=new_cursor)
             self.current_cursor = new_cursor
+            logging.debug(f"Cursor changed to: {new_cursor}")
 
     def _on_right_click(self, event):
-        """Handle right-click to show context menu."""
+        """Handle right-click to show enhanced context menu."""
         if self.selected_text:
-            # Create context menu with only Copy option
-            context_menu = tk.Menu(self, tearoff=0)
-            context_menu.add_command(label="Copy", command=self._copy_selected_text)
+            # Create modern context menu with improved styling
+            context_menu = tk.Menu(self, tearoff=0, 
+                                 bg="#FFFFFF", fg="#333333",
+                                 activebackground="#0078D4", activeforeground="#FFFFFF",
+                                 font=("Segoe UI", 9))
+            
+            # Add copy option with keyboard shortcut indication
+            context_menu.add_command(label="Copy                    Ctrl+C", 
+                                   command=self._copy_selected_text,
+                                   accelerator="")
             
             try:
                 context_menu.tk_popup(event.x_root, event.y_root)
             finally:
                 context_menu.grab_release()
+        else:
+            # Show a brief message if no text is selected
+            self._show_no_selection_feedback(event.x_root, event.y_root)
 
     def _get_page_at_position(self, canvas_y):
         """Get the page number at a given canvas Y position."""
@@ -999,44 +1048,66 @@ class PDFViewerWindow(tk.Toplevel):
         return None
 
     def _get_character_at_position(self, canvas_x, canvas_y):
-        """Get the character at a specific canvas position for precise selection."""
+        """Get the character at a specific canvas position with improved precision."""
         page_num = self._get_page_at_position(canvas_y)
-        if page_num is None or page_num not in self.page_char_map:
+        if page_num is None or page_num not in self.page_text_data:
+            logging.debug(f"No page found at position y={canvas_y} or no text data for page {page_num}")
             return None
         
-        # Try exact coordinate lookup first
+        # Try coordinate mapping first for fast lookup
         coord_key = (int(canvas_x), int(canvas_y))
-        if coord_key in self.page_char_map[page_num]:
+        if page_num in self.page_char_map and coord_key in self.page_char_map[page_num]:
             char_index = self.page_char_map[page_num][coord_key]
+            logging.debug(f"Found character via coordinate map: page={page_num}, char_index={char_index}")
             return (page_num, char_index)
         
-        # If exact lookup fails, find nearest character
+        # Find the closest character with improved algorithm
+        best_char = None
         min_distance = float('inf')
-        nearest_char = None
         
-        if page_num in self.page_text_data:
-            for char_data in self.page_text_data[page_num]:
-                bbox = char_data['bbox']
-                char_center_x = (bbox['x0'] + bbox['x1']) / 2
-                char_center_y = (bbox['y0'] + bbox['y1']) / 2
-                
-                # Check if point is within character bounds (with some tolerance)
-                if (bbox['x0'] - 5 <= canvas_x <= bbox['x1'] + 5 and 
-                    bbox['y0'] - 5 <= canvas_y <= bbox['y1'] + 5):
-                    
-                    distance = ((canvas_x - char_center_x) ** 2 + (canvas_y - char_center_y) ** 2) ** 0.5
-                    if distance < min_distance:
-                        min_distance = distance
-                        nearest_char = (page_num, char_data['index'])
+        page_chars = self.page_text_data[page_num]
+        logging.debug(f"Searching through {len(page_chars)} characters on page {page_num}")
         
-        return nearest_char
+        for char_data in page_chars:
+            bbox = char_data['bbox']
+            
+            # Check if point is within or very close to character bounds
+            within_x = bbox['x0'] <= canvas_x <= bbox['x1']
+            within_y = bbox['y0'] <= canvas_y <= bbox['y1']
+            
+            if within_x and within_y:
+                # Point is directly within character bounds
+                logging.debug(f"Found character '{char_data['char']}' at exact position: {bbox}")
+                return (page_num, char_data['global_index'])
+            
+            # Calculate distance to character center for nearby characters
+            char_center_x = (bbox['x0'] + bbox['x1']) / 2
+            char_center_y = (bbox['y0'] + bbox['y1']) / 2
+            
+            # Use weighted distance (favor horizontal proximity for text selection)
+            dx = canvas_x - char_center_x
+            dy = canvas_y - char_center_y
+            distance = (dx * dx) + (dy * dy * 2)  # Weight vertical distance more
+            
+            # Only consider characters that are reasonably close
+            if distance < 2500:  # Reasonable proximity threshold
+                if distance < min_distance:
+                    min_distance = distance
+                    best_char = (page_num, char_data['global_index'])
+        
+        if best_char:
+            logging.debug(f"Found nearest character at distance {min_distance}: page={best_char[0]}, char_index={best_char[1]}")
+        else:
+            logging.debug(f"No character found near position ({canvas_x}, {canvas_y})")
+        
+        return best_char
 
     def _is_over_text(self, canvas_x, canvas_y):
         """Check if the mouse position is over selectable text."""
         return self._get_character_at_position(canvas_x, canvas_y) is not None
 
     def _update_text_selection_visual(self):
-        """Update the visual representation of character-precise text selection."""
+        """Update the visual representation with precise, contiguous text selection."""
         # Clear existing selection rectangles
         for rect_id in self.selection_rectangles:
             self.canvas.delete(rect_id)
@@ -1053,41 +1124,120 @@ class PDFViewerWindow(tk.Toplevel):
             (start_page == end_page and start_char_idx > end_char_idx)):
             start_page, start_char_idx, end_page, end_char_idx = end_page, end_char_idx, start_page, start_char_idx
         
-        # Create character-precise selection highlighting
-        self._create_character_selection_rectangles(start_page, start_char_idx, end_page, end_char_idx)
+        # Create precise, contiguous selection highlighting
+        self._create_precise_selection_rectangles(start_page, start_char_idx, end_page, end_char_idx)
 
-    def _create_character_selection_rectangles(self, start_page, start_char_idx, end_page, end_char_idx):
-        """Create character-precise selection rectangles."""
-        # Handle single page selection
-        if start_page == end_page:
-            self._highlight_characters_on_page(start_page, start_char_idx, end_char_idx)
-        else:
-            # Handle multi-page selection
-            for page_num in range(start_page, end_page + 1):
-                if page_num not in self.page_text_data:
-                    continue
-                    
-                page_chars = self.page_text_data[page_num]
-                if not page_chars:
-                    continue
-                    
-                if page_num == start_page:
-                    # First page: from start_char_idx to end of page
-                    last_char_idx = page_chars[-1]['index'] if page_chars else start_char_idx
-                    self._highlight_characters_on_page(page_num, start_char_idx, last_char_idx)
-                elif page_num == end_page:
-                    # Last page: from beginning to end_char_idx
-                    first_char_idx = page_chars[0]['index'] if page_chars else end_char_idx
-                    self._highlight_characters_on_page(page_num, first_char_idx, end_char_idx)
+    def _create_precise_selection_rectangles(self, start_page, start_char_idx, end_page, end_char_idx):
+        """Create precise, contiguous selection rectangles that highlight exactly what's selected."""
+        # Collect all characters in the selection range across all pages
+        selected_chars = []
+        
+        for page_num in range(start_page, end_page + 1):
+            if page_num not in self.page_text_data:
+                continue
+                
+            page_chars = self.page_text_data[page_num]
+            for char_data in page_chars:
+                char_idx = char_data['global_index']
+                
+                # Include character if it's within the selection range
+                if start_char_idx <= char_idx <= end_char_idx:
+                    selected_chars.append(char_data)
+        
+        if not selected_chars:
+            return
+        
+        # Group characters by lines for precise highlighting
+        self._create_line_based_selection(selected_chars)
+
+    def _create_line_based_selection(self, selected_chars):
+        """Create precise selection rectangles grouped by text lines."""
+        if not selected_chars:
+            return
+            
+        # Sort characters by position (top to bottom, left to right)
+        selected_chars.sort(key=lambda c: (c['bbox']['y0'], c['bbox']['x0']))
+        
+        # Group characters into lines based on vertical position
+        lines = []
+        current_line = []
+        current_y = None
+        line_tolerance = 5  # pixels
+        
+        for char_data in selected_chars:
+            char_y = (char_data['bbox']['y0'] + char_data['bbox']['y1']) / 2
+            
+            if current_y is None or abs(char_y - current_y) <= line_tolerance:
+                # Same line
+                current_line.append(char_data)
+                current_y = char_y
+            else:
+                # New line
+                if current_line:
+                    lines.append(current_line)
+                current_line = [char_data]
+                current_y = char_y
+        
+        # Add the last line
+        if current_line:
+            lines.append(current_line)
+        
+        # Create selection rectangles for each line
+        for line_chars in lines:
+            if line_chars:
+                self._create_contiguous_line_selection(line_chars)
+
+    def _create_contiguous_line_selection(self, line_chars):
+        """Create a contiguous selection rectangle for characters on the same line."""
+        if not line_chars:
+            return
+        
+        # Sort characters by horizontal position
+        line_chars.sort(key=lambda c: c['bbox']['x0'])
+        
+        # Group consecutive characters for precise highlighting
+        char_groups = []
+        current_group = []
+        
+        for i, char_data in enumerate(line_chars):
+            if not current_group:
+                current_group = [char_data]
+            else:
+                # Check if this character is adjacent to the previous one
+                prev_char = current_group[-1]
+                gap = char_data['bbox']['x0'] - prev_char['bbox']['x1']
+                
+                # If gap is small (within reasonable character spacing), add to current group
+                if gap <= 10:  # Allow for reasonable character spacing
+                    current_group.append(char_data)
                 else:
-                    # Middle pages: entire page
-                    if page_chars:
-                        first_char_idx = page_chars[0]['index']
-                        last_char_idx = page_chars[-1]['index']
-                        self._highlight_characters_on_page(page_num, first_char_idx, last_char_idx)
+                    # Gap is too large, start a new group
+                    char_groups.append(current_group)
+                    current_group = [char_data]
+        
+        # Add the last group
+        if current_group:
+            char_groups.append(current_group)
+        
+        # Create selection rectangles for each contiguous group
+        for group in char_groups:
+            if group:
+                # Calculate bounds for this group
+                min_x = min(char['bbox']['x0'] for char in group)
+                max_x = max(char['bbox']['x1'] for char in group)
+                min_y = min(char['bbox']['y0'] for char in group)
+                max_y = max(char['bbox']['y1'] for char in group)
+                
+                # Create modern, semi-transparent selection rectangle
+                rect_id = self.canvas.create_rectangle(
+                    min_x, min_y, max_x, max_y,
+                    fill="#0078D4", stipple="gray12", outline="", width=0
+                )
+                self.selection_rectangles.append(rect_id)
 
     def _highlight_characters_on_page(self, page_num, start_char_idx, end_char_idx):
-        """Highlight specific characters on a page with precise character boundaries."""
+        """Legacy method - now redirects to precise selection."""
+        # This method is kept for compatibility but now uses the improved selection
         if page_num not in self.page_text_data:
             return
             
@@ -1096,32 +1246,12 @@ class PDFViewerWindow(tk.Toplevel):
         
         # Find all characters in the selection range
         for char_data in page_chars:
-            char_idx = char_data['index']
+            char_idx = char_data.get('global_index', char_data.get('index', 0))
             if start_char_idx <= char_idx <= end_char_idx:
                 selected_chars.append(char_data)
         
-        if not selected_chars:
-            return
-        
-        # Group consecutive characters by line for better visual representation
-        current_line_chars = []
-        current_line_y = None
-        
-        for char_data in selected_chars:
-            char_y = char_data['bbox']['y0']
-            
-            # If this character is on a different line, process the previous line
-            if current_line_y is not None and abs(char_y - current_line_y) > 5:  # 5px tolerance
-                if current_line_chars:
-                    self._create_line_selection_rectangle(current_line_chars)
-                current_line_chars = []
-            
-            current_line_chars.append(char_data)
-            current_line_y = char_y
-        
-        # Process the last line
-        if current_line_chars:
-            self._create_line_selection_rectangle(current_line_chars)
+        # Use the new precise selection method
+        self._create_line_based_selection(selected_chars)
 
     def _create_line_selection_rectangle(self, line_chars):
         """Create a selection rectangle for a line of characters."""
@@ -1142,8 +1272,9 @@ class PDFViewerWindow(tk.Toplevel):
         self.selection_rectangles.append(rect_id)
 
     def _finalize_text_selection(self):
-        """Extract and store the character-precise selected text."""
+        """Extract and store the precisely selected text that matches the visual selection."""
         if not self.selection_start_char or not self.selection_end_char:
+            self.selected_text = ""
             return
             
         start_page, start_char_idx = self.selection_start_char
@@ -1154,49 +1285,34 @@ class PDFViewerWindow(tk.Toplevel):
             (start_page == end_page and start_char_idx > end_char_idx)):
             start_page, start_char_idx, end_page, end_char_idx = end_page, end_char_idx, start_page, start_char_idx
         
-        # Extract character-precise text
-        selected_text_parts = []
+        # Collect all selected characters across all pages in order
+        all_selected_chars = []
         
         for page_num in range(start_page, end_page + 1):
             if page_num not in self.page_text_data:
                 continue
                 
             page_chars = self.page_text_data[page_num]
-            page_selected_chars = []
             
-            # Determine character range for this page
-            if page_num == start_page and page_num == end_page:
-                # Single page selection
-                char_range_start = start_char_idx
-                char_range_end = end_char_idx
-            elif page_num == start_page:
-                # First page: from start_char_idx to end of page
-                char_range_start = start_char_idx
-                char_range_end = page_chars[-1]['index'] if page_chars else start_char_idx
-            elif page_num == end_page:
-                # Last page: from beginning to end_char_idx
-                char_range_start = page_chars[0]['index'] if page_chars else end_char_idx
-                char_range_end = end_char_idx
-            else:
-                # Middle pages: entire page
-                char_range_start = page_chars[0]['index'] if page_chars else 0
-                char_range_end = page_chars[-1]['index'] if page_chars else 0
-            
-            # Collect characters in range
             for char_data in page_chars:
-                char_idx = char_data['index']
-                if char_range_start <= char_idx <= char_range_end:
-                    page_selected_chars.append(char_data)
-            
-            # Sort by position and extract text
-            if page_selected_chars:
-                page_selected_chars.sort(key=lambda c: (c['bbox']['y0'], c['bbox']['x0']))
-                page_text = ''.join(char_data['char'] for char_data in page_selected_chars)
-                selected_text_parts.append(page_text)
+                char_idx = char_data['global_index']
+                if start_char_idx <= char_idx <= end_char_idx:
+                    all_selected_chars.append(char_data)
         
-        # Store the selected text
-        self.selected_text = '\n'.join(selected_text_parts) if selected_text_parts else ""
-        logging.info(f"Character-precise text selected: {len(self.selected_text)} characters")
+        if not all_selected_chars:
+            self.selected_text = ""
+            return
+        
+        # Sort characters by their global index to maintain exact order
+        all_selected_chars.sort(key=lambda c: c['global_index'])
+        
+        # Extract text exactly as it appears - no cleaning or modification
+        selected_text = ''.join(char_data['char'] for char_data in all_selected_chars)
+        
+        # Only remove leading/trailing whitespace, preserve internal structure
+        self.selected_text = selected_text.strip()
+        
+        logging.info(f"Extracted text ({len(self.selected_text)} chars): '{self.selected_text[:50]}{'...' if len(self.selected_text) > 50 else ''}'")
 
     def _clear_text_selection(self):
         """Clear the current character-precise text selection."""
@@ -1213,27 +1329,54 @@ class PDFViewerWindow(tk.Toplevel):
         self.is_dragging_selection = False
 
     def _copy_selected_text(self, event=None):
-        """Copy selected text to clipboard."""
+        """Copy selected text to clipboard with enhanced feedback."""
         if self.selected_text:
             self.clipboard_clear()
             self.clipboard_append(self.selected_text)
             logging.info(f"Copied {len(self.selected_text)} characters to clipboard")
             
-            # Show brief feedback
-            self.after(100, lambda: self._show_copy_feedback())
+            # Show enhanced feedback
+            self.after(50, lambda: self._show_copy_feedback())
         else:
             logging.info("No text selected to copy")
 
     def _show_copy_feedback(self):
-        """Show brief visual feedback that text was copied."""
-        # Create a temporary label to show copy feedback
-        feedback_label = tk.Label(self, text="Text copied to clipboard!", 
-                                bg="lightgreen", fg="black", 
-                                font=("Arial", 9), relief="raised", bd=1)
-        feedback_label.place(relx=0.5, rely=0.1, anchor="center")
+        """Show enhanced visual feedback that text was copied."""
+        # Create a modern feedback label
+        feedback_label = tk.Label(self, text="✓ Text copied to clipboard", 
+                                bg="#28A745", fg="white", 
+                                font=("Segoe UI", 9, "bold"), 
+                                relief="flat", bd=0, padx=15, pady=8)
+        feedback_label.place(relx=0.5, rely=0.05, anchor="center")
         
-        # Remove feedback after 2 seconds
-        self.after(2000, feedback_label.destroy)
+        # Add subtle animation effect
+        def fade_out(alpha=1.0):
+            if alpha > 0:
+                # Gradually reduce visibility
+                self.after(50, lambda: fade_out(alpha - 0.1))
+            else:
+                feedback_label.destroy()
+        
+        # Start fade out after 1.5 seconds
+        self.after(1500, lambda: fade_out())
+
+    def _show_no_selection_feedback(self, x, y):
+        """Show feedback when right-clicking with no text selected."""
+        # Create a temporary tooltip-style message
+        tooltip = tk.Toplevel(self)
+        tooltip.wm_overrideredirect(True)
+        tooltip.configure(bg="#333333")
+        
+        label = tk.Label(tooltip, text="No text selected", 
+                        bg="#333333", fg="white",
+                        font=("Segoe UI", 8), padx=8, pady=4)
+        label.pack()
+        
+        # Position near cursor
+        tooltip.geometry(f"+{x+10}+{y+10}")
+        
+        # Auto-hide after 1 second
+        self.after(1000, tooltip.destroy)
 
 
     def on_close(self):
