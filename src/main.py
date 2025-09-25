@@ -547,6 +547,10 @@ class SEWDatabaseManager:
         self.db_path = db_path
 
     def search_error_codes(self, error_code=None, suberror_code=None, error_designation=None):
+        if not os.path.exists(self.db_path):
+            logging.error(f"Database file not found at {self.db_path}")
+            return []
+        
         conn = None
         try:
             conn = sqlite3.connect(self.db_path)
@@ -885,6 +889,12 @@ class MainApplication:
         if hasattr(self, 'sew_image_label') and self.sew_image_label:
             self.sew_image_label.destroy()
             self.sew_image_label = None
+        db_path = os.path.join(self.script_dir, "errorCodesTechnologies.db")
+        if not os.path.exists(db_path):
+            logging.error(f"Database file not found at {db_path}")
+            messagebox.showerror("Database Error", f"The database file 'errorCodesTechnologies.db' was not found in the 'src' directory. Please run the PDF processing script to generate it.")
+            return
+
         error_code = self.sew_error_code_entry.get().strip()
         suberror_code = self.sew_suberror_code_entry.get().strip()
         error_designation = self.sew_error_designation_entry.get().strip()
@@ -903,9 +913,9 @@ class MainApplication:
             y = (screen_height - req_height) // 2
             self.root.geometry(f"{req_width}x{req_height}+{x}+{y}")
             return
-        db_path = os.path.join(self.script_dir, "errorCodesTechnologies.db")
         db_manager = SEWDatabaseManager(db_path)
         results = db_manager.search_error_codes(error_code, suberror_code, error_designation)
+
         if results:
             self._show_error_card(results[0])
         else:

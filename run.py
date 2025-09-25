@@ -1,4 +1,5 @@
 import tkinter as tk
+from tkinter import messagebox
 import json
 import os
 import logging
@@ -8,7 +9,11 @@ from src.logging_config import setup_logging
 def main():
     """Initializes and runs the Troubleshooting Wizard application."""
     setup_logging() # Initialize logging
+    
+    # Create the root window but hide it initially
     root = tk.Tk()
+    root.withdraw()
+
     script_dir = os.path.dirname(os.path.abspath(__file__))
 
     # Prioritize loading data.json, fall back to example_data.json
@@ -26,19 +31,28 @@ def main():
     if not json_path_to_load:
         error_msg = "Critical Error: Neither 'data.json' nor 'example_data.json' could be found in the 'src' directory."
         logging.critical(error_msg)
-        # A GUI error would be better, but print is a robust fallback if tkinter fails.
-        print(error_msg)
+        messagebox.showerror("Configuration Error", error_msg)
+        root.destroy()
         return
 
     try:
         with open(json_path_to_load, 'r', encoding='utf-8') as f:
             initial_json_data = json.load(f)
-    except json.JSONDecodeError:
-        error_msg = f"Error: The data file at {json_path_to_load} is not a valid JSON file."
+    except json.JSONDecodeError as e:
+        error_msg = f"Error: The data file at {json_path_to_load} is corrupted or not a valid JSON file.\n\nDetails: {e}"
         logging.error(error_msg)
-        print(error_msg)
+        messagebox.showerror("JSON Error", error_msg)
+        root.destroy()
+        return
+    except Exception as e:
+        error_msg = f"An unexpected error occurred while loading {json_path_to_load}.\n\nDetails: {e}"
+        logging.critical(error_msg)
+        messagebox.showerror("File Load Error", error_msg)
+        root.destroy()
         return
 
+    # If everything is fine, show the window and run the app
+    root.deiconify() 
     app = MainApplication(root, initial_json_data, os.path.join(script_dir, "src"))
     root.mainloop()
 
