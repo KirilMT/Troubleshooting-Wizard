@@ -1047,7 +1047,7 @@ class PDFViewerWindow(tk.Toplevel):
             self._show_no_selection_feedback(event.x_root, event.y_root)
 
     def _on_canvas_double_click(self, event):
-        """Handle double-click to select entire word."""
+        """Handle double-click to select entire word using spatial proximity."""
         canvas_x = self.canvas.canvasx(event.x)
         canvas_y = self.canvas.canvasy(event.y)
         
@@ -1075,36 +1075,93 @@ class PDFViewerWindow(tk.Toplevel):
         if not clicked_char_data:
             return
             
-        # Find word boundaries by expanding from the clicked character
-        word_start_idx = char_index
-        word_end_idx = char_index
+        # Use spatial proximity instead of global indexing to find word boundaries
+        clicked_bbox = clicked_char_data['bbox']
+        clicked_y = (clicked_bbox['y0'] + clicked_bbox['y1']) / 2
+        clicked_x = (clicked_bbox['x0'] + clicked_bbox['x1']) / 2
         
-        # Expand backwards to find word start
-        for char_data in reversed(page_chars):
-            if char_data['global_index'] < char_index:
-                if char_data['char'].isalnum() or char_data['char'] in ['_', '-']:
-                    word_start_idx = char_data['global_index']
-                else:
-                    break
-                    
-        # Expand forwards to find word end
+        # Find all characters on the same line (within Y tolerance)
+        line_tolerance = 5  # pixels
+        same_line_chars = []
+        
         for char_data in page_chars:
-            if char_data['global_index'] > char_index:
-                if char_data['char'].isalnum() or char_data['char'] in ['_', '-']:
-                    word_end_idx = char_data['global_index']
+            char_bbox = char_data['bbox']
+            char_y = (char_bbox['y0'] + char_bbox['y1']) / 2
+            
+            if abs(char_y - clicked_y) <= line_tolerance:
+                same_line_chars.append(char_data)
+        
+        if not same_line_chars:
+            return
+            
+        # Sort characters on the same line by X position (left to right)
+        same_line_chars.sort(key=lambda c: c['bbox']['x0'])
+        
+        # Find the clicked character in the line
+        clicked_char_index_in_line = None
+        for i, char_data in enumerate(same_line_chars):
+            if char_data['global_index'] == char_index:
+                clicked_char_index_in_line = i
+                break
+                
+        if clicked_char_index_in_line is None:
+            return
+            
+        # Expand left to find word start
+        word_start_char = same_line_chars[clicked_char_index_in_line]
+        for i in range(clicked_char_index_in_line - 1, -1, -1):
+            char_data = same_line_chars[i]
+            
+            # Check if character is part of a word and spatially close
+            if char_data['char'].isalnum() or char_data['char'] in ['_', '-']:
+                # Check if characters are spatially close (no big gap)
+                gap = word_start_char['bbox']['x0'] - char_data['bbox']['x1']
+                if gap <= 3:  # Small gap tolerance for character spacing
+                    word_start_char = char_data
                 else:
-                    break
-                    
+                    break  # Too big a gap, stop expanding
+            else:
+                break  # Hit non-word character, stop expanding
+                
+        # Expand right to find word end
+        word_end_char = same_line_chars[clicked_char_index_in_line]
+        for i in range(clicked_char_index_in_line + 1, len(same_line_chars)):
+            char_data = same_line_chars[i]
+            
+            # Check if character is part of a word and spatially close
+            if char_data['char'].isalnum() or char_data['char'] in ['_', '-']:
+                # Check if characters are spatially close (no big gap)
+                gap = char_data['bbox']['x0'] - word_end_char['bbox']['x1']
+                if gap <= 3:  # Small gap tolerance for character spacing
+                    word_end_char = char_data
+                else:
+                    break  # Too big a gap, stop expanding
+            else:
+                break  # Hit non-word character, stop expanding
+                
         # Set selection to the entire word
-        self.selection_start_char = (page_num, word_start_idx)
-        self.selection_end_char = (page_num, word_end_idx)
+        self.selection_start_char = (page_num, word_start_char['global_index'])
+        self.selection_end_char = (page_num, word_end_char['global_index'])
         self.text_selection_active = True
         
         # Update visual selection and finalize
         self._update_text_selection_visual()
         self._finalize_text_selection()
         
-        logging.info(f"Double-click word selection: {word_start_idx} to {word_end_idx}")
+        # Debug logging
+        logging.info(f"=== SPATIAL DOUBLE-CLICK DEBUG ===")
+        logging.info(f"Clicked character: '{clicked_char_data['char']}' at ({clicked_x:.1f}, {clicked_y:.1f})")
+        logging.info(f"Found {len(same_line_chars)} characters on same line")
+        logging.info(f"Word selection: '{word_start_char['char']}' (idx {word_start_char['global_index']}) to '{word_end_char['char']}' (idx {word_end_char['global_index']})")
+        
+        # Show selected characters for debugging
+        selected_chars_debug = []
+        for char_data in same_line_chars:
+            if word_start_char['global_index'] <= char_data['global_index'] <= word_end_char['global_index']:
+                selected_chars_debug.append(char_data['char'])
+        
+        logging.info(f"Selected text: '{(''.join(selected_chars_debug))}'")
+        logging.info(f"=== END SPATIAL DEBUG ===")
 
     def _on_canvas_triple_click(self, event):
         """Handle triple-click to select entire line."""
