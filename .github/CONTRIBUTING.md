@@ -38,6 +38,17 @@ All community leaders are obligated to respect the privacy and security of the r
 
 ## Contribution Process
 
+### Setting Up Your Development Environment
+
+To get started, you'll need to set up the project on your local machine. This will allow you to run the application and test your changes.
+
+1.  **Follow the setup guide**: Complete the steps in the [⚙️ Setup and Installation](./../README.md#️-setup-and-installation) section of the main `README.md` file. This includes cloning the repository, creating a virtual environment, and installing the required dependencies.
+
+2.  **Run the application**: Once your environment is set up, run the application to ensure everything is working correctly:
+    ```bash
+    python run.py
+    ```
+
 ### Before Contributing Code
 
 Before doing any significant work, please open an issue to propose your idea and ensure alignment. This gives everyone a chance to validate the design, helps prevent duplication of effort, and ensures that the idea fits within the project's goals.
@@ -86,4 +97,3 @@ When adding a `TODO` to the codebase, always include a link to a GitHub issue to
 
 ```python
 # TODO(https://github.com/<your-org>/<your-repo>/issues/<issue-number>): Explain what needs to be done.
-```

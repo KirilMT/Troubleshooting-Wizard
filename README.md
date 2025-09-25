@@ -37,11 +37,14 @@ A Python-based GUI application for industrial equipment troubleshooting and erro
 
 ```
 Troubleshooting-Wizard/
+├── logs/
+│   └── app.log              # Application log files (auto-generated)
 ├── src/
-│   ├── main.py              # Main GUI application
+│   ├── __init__.py          # Defines src as a Python package
+│   ├── main.py              # Main GUI application logic
 │   ├── process_pdf.py       # PDF processing utility
-│   ├── example_data.json    # Configuration template (committed)
-│   ├── data.json           # Local configuration (user-created, not committed)
+│   ├── logging_config.py    # Centralized logging configuration
+│   ├── example_data.json    # Configuration template
 │   └── errorCodesTechnologies.db  # Generated database
 ├── media/                  # Images and resources
 │   ├── README.md           # Media folder instructions
@@ -51,6 +54,7 @@ Troubleshooting-Wizard/
 ├── build/                  # Build artifacts
 ├── requirements.txt        # Python dependencies
 ├── .gitignore             # Git ignore rules
+├── run.py                 # Main entry point to run the application
 └── README.md              # This file
 ```
 
@@ -98,10 +102,21 @@ Troubleshooting-Wizard/
     - Place your actual error code screenshots, manuals, and diagrams in the `media/` directory.
     - See `media/README.md` for detailed instructions.
 
-6.  **Run the application:**
-    ```bash
-    python src/main.py
-    ```
+## ▶️ Running the Application
+
+Once you have completed the setup and installation, you can run the application from the root directory of the project:
+
+```bash
+python run.py
+```
+
+## 📝 Logging
+
+The application is configured with a robust logging system that captures informational messages, warnings, and errors.
+
+- **Log Files**: Logs are automatically saved in the `logs/` directory.
+- **Rotation**: A new log file is created daily, and logs are kept for up to 7 days.
+- **Purpose**: These logs are invaluable for debugging issues and understanding the application's behavior over time.
 
 ## 🔧 Configuration
 
@@ -144,7 +159,7 @@ The application uses a dual-file configuration system for security and ease of u
 ## 🎯 Usage
 
 ### Main Application
-1.  Launch the application: `python src/main.py`
+1.  Launch the application: `python run.py`
 2.  Select a technology from the main menu.
 3.  Choose from available tasks (e.g., search error codes, open manuals).
 

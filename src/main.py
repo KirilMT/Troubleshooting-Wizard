@@ -12,20 +12,21 @@ import logging
 import threading
 
 # --- Setup Logging ---
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+# This is now handled by src/logging_config.py and initialized in run.py
+# logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
 
 class PDFViewerWindow(tk.Toplevel):
     """A continuous-scrolling PDF viewer with on-demand rendering and zoom."""
 
-    def __init__(self, parent, file_path, initial_page, search_term=""):
+    def __init__(self, parent, file_path, initial_page_identifier, search_term=""):
         super().__init__(parent)
         logging.info(f"--- Initializing PDFViewerWindow for file: {file_path} ---")
         self.file_path = file_path
         self.search_term = tk.StringVar(value=search_term)
         self.doc = fitz.open(file_path)
         self.total_pages = len(self.doc)
-        self.initial_page = initial_page - 1
+        self.initial_page = 0 # Default to first page
 
         # --- Search Results ---
         self.search_results = []
@@ -58,6 +59,27 @@ class PDFViewerWindow(tk.Toplevel):
             # Critical fallback in case of unexpected library error
             self.page_labels = [str(i + 1) for i in range(self.total_pages)]
             self.page_label_to_index = {label.lower(): i for i, label in enumerate(self.page_labels)}
+
+        # --- Resolve Initial Page --- 
+        if initial_page_identifier is None:
+            # If no identifier is given, default to the very first page.
+            self.initial_page = 0
+            logging.info("No page identifier provided. Defaulting to first page.")
+        else:
+            # The identifier can be a page label (string) or a physical page number (int)
+            try:
+                page_id_str = str(initial_page_identifier).lower().strip()
+                if page_id_str in self.page_label_to_index:
+                    self.initial_page = self.page_label_to_index[page_id_str]
+                    logging.info(f"Resolved page label '{page_id_str}' to physical page index {self.initial_page}.")
+                else:
+                    # Fallback to interpreting as a physical page number
+                    physical_page = int(initial_page_identifier)
+                    if 1 <= physical_page <= self.total_pages:
+                        self.initial_page = physical_page - 1
+            except (ValueError, TypeError):
+                logging.warning(f"Could not resolve initial page identifier '{initial_page_identifier}'. Defaulting to first page.")
+                self.initial_page = 0
 
         # --- Caching and Layout ---
         self.page_images = {}  # Cache for PhotoImage objects {page_num: photo_image}
@@ -100,7 +122,12 @@ class PDFViewerWindow(tk.Toplevel):
         self._calculate_layout(fit_to_width=True)
         # Go to the initial page requested before searching
         self.go_to_page(self.initial_page + 1)
-        self.after(150, self.search_and_highlight)
+        if self.search_term.get():
+            self.after(150, self.search_and_highlight)
+        else:
+            # If no search term, ensure search UI is hidden
+            self.search_status_label.pack_forget()
+            self.search_nav_frame.pack_forget()
 
     def on_resize(self, event):
         """Debounce resize events to avoid excessive re-rendering."""
@@ -130,18 +157,21 @@ class PDFViewerWindow(tk.Toplevel):
 
         ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
 
-        # --- Search ---
-        self.search_entry = ttk.Entry(toolbar, width=30, textvariable=self.search_term)
-        self.search_entry.pack(side=tk.LEFT, padx=5)
-        search_btn = ttk.Button(toolbar, text="Search", command=self.search_and_highlight)
+        # --- Search Controls (Grouped in a Frame) ---
+        search_controls_frame = ttk.Frame(toolbar)
+        search_controls_frame.pack(side=tk.LEFT, padx=5)
+
+        self.search_entry = ttk.Entry(search_controls_frame, width=30, textvariable=self.search_term)
+        self.search_entry.pack(side=tk.LEFT)
+        search_btn = ttk.Button(search_controls_frame, text="Search", command=self.search_and_highlight)
         search_btn.pack(side=tk.LEFT, padx=5)
 
         # --- Search Navigation ---
-        self.search_status_label = ttk.Label(toolbar, text="Searching...")
-        self.search_status_label.pack(side=tk.LEFT, padx=5)
+        self.search_status_label = ttk.Label(search_controls_frame, text="Searching...")
+        # Pack is handled dynamically
 
-        search_nav_frame = ttk.Frame(toolbar)
-        # Don't pack this initially, it will be shown after search is complete
+        search_nav_frame = ttk.Frame(search_controls_frame)
+        # Pack is handled dynamically
 
         self.prev_match_btn = ttk.Button(search_nav_frame, text="< Prev", command=self._previous_match, state="disabled")
         self.prev_match_btn.pack(side=tk.LEFT)
@@ -558,7 +588,17 @@ class MainApplication:
         self.current_view = None
         self.view_stack = []
         self.variables = {}
+        self._configure_styles() # Centralized style configuration
         self.show_main_program()
+
+    def _configure_styles(self):
+        """Configures all ttk styles for the application."""
+        style = ttk.Style()
+        style.configure("Yellow.TButton", background="yellow")
+        style.configure("Bold.TLabel", font=("Helvetica", 15, "bold"))
+        style.configure("Large.TEntry", font=("Helvetica", 16))
+        style.configure("Help.TButton", font=("Segoe UI", 12, "bold"), foreground="#2E86AB")
+        style.configure("Accent.TButton", font=("Segoe UI", 11, "bold"))
 
     def _set_window_dimensions(self, width, height):
         screen_width = self.root.winfo_screenwidth()
@@ -566,27 +606,6 @@ class MainApplication:
         x = (screen_width - width) // 2
         y = (screen_height - height) // 2
         self.root.geometry(f"{width}x{height}+{x}+{y}")
-
-    def _search_pdf(self, fault_message, url_path):
-        """Launches the PDF viewer immediately and then performs the search."""
-        absolute_path = os.path.abspath(os.path.join(self.script_dir, "..", url_path))
-        
-        if not fault_message or not fault_message.strip():
-            messagebox.showwarning("Invalid Search", "Please enter a fault message to search for.")
-            return
-        
-        if not os.path.exists(absolute_path):
-            messagebox.showerror("File Not Found", f"The PDF file could not be found at: {absolute_path}")
-            return
-
-        try:
-            # Launch the viewer immediately. The search will be initiated in the viewer's initial_load.
-            logging.info(f"Launching viewer for search term '{fault_message}'.")
-            PDFViewerWindow(self.root, absolute_path, 1, fault_message)
-
-        except Exception as e:
-            logging.error(f"An error occurred while opening the PDF: {e}", exc_info=True)
-            messagebox.showerror("PDF Error", f"An error occurred while opening the PDF: {e}")
 
     def show_main_program(self):
         self.destroy_current_view()
@@ -621,8 +640,7 @@ class MainApplication:
             task_title = list(task_data.keys())[0]
             task_attributes = task_data[task_title]
             task_attributes["url_path"] = self._replace_variables(task_attributes.get("url_path", ""))
-            style = ttk.Style()
-            style.configure("Yellow.TButton", background="yellow")
+            # The style is now configured globally
             button = ttk.Button(self.current_view, text=task_title, command=lambda attrs=task_attributes, tech=tech_data: self.show_task(attrs, tech), style="Yellow.TButton" if index == 0 else None)
             button.pack(pady=10)
 
@@ -630,6 +648,16 @@ class MainApplication:
         task_type = task_attributes.get("task_type")
         if task_type == "error_codes":
             self.show_error_codes(task_attributes, tech_data)
+        elif task_type == "open_url":
+            url_path = task_attributes.get("url_path")
+            # Get page identifier. If not present, it will be None.
+            page_identifier = task_attributes.get("pdf_page_number") 
+            if url_path:
+                logging.info(f"Opening PDF '{url_path}' with page identifier '{page_identifier}'.")
+                self._open_pdf_viewer(url_path, page_number=page_identifier)
+            else:
+                logging.warning("Task with type 'open_url' is missing a 'url_path'.")
+                messagebox.showwarning("Configuration Error", "This task is configured to open a file, but the file path is missing.")
 
     def show_error_codes(self, task_attributes, tech_data):
         self.destroy_current_view()
@@ -637,6 +665,20 @@ class MainApplication:
         error_codes_width = task_attributes.get("width", 800)
         error_codes_height = task_attributes.get("height", 730)
         is_sew_technology = tech_data.get("button_text", "").lower().find("sew") != -1
+
+        # --- Robustness Check for SEW Database ---
+        if is_sew_technology:
+            db_path = os.path.join(self.script_dir, "errorCodesTechnologies.db")
+            if not os.path.exists(db_path):
+                logging.error(f"SEW database not found at expected path: {db_path}")
+                messagebox.showerror(
+                    "Database Not Found",
+                    f"The SEW error code database could not be found.\n\nExpected at: {db_path}"
+                )
+                # Revert to the previous view since we cannot proceed
+                self.show_previous_view()
+                return
+
         if is_sew_technology:
             temp_frame = ttk.Frame(self.root)
             temp_frame.pack_forget()
@@ -666,14 +708,11 @@ class MainApplication:
     def _show_traditional_search_interface(self, parent_frame, task_attributes):
         label_frame = ttk.Frame(parent_frame)
         label_frame.pack(pady=10)
-        label_style = ttk.Style()
-        label_style.configure("Bold.TLabel", font=("Helvetica", 15, "bold"))
+        # Styles are now configured globally
         ttk.Label(label_frame, text=self.json_data["labels"]["insert_fault_code"], style="Bold.TLabel").pack(side="left")
-        entry_style = ttk.Style()
-        entry_style.configure("Large.TEntry", font=("Helvetica", 16))
         search_entry = ttk.Entry(label_frame, style="Large.TEntry", width=65)
         search_entry.pack(side="left", padx=10)
-        search_button = ttk.Button(parent_frame, text=self.json_data["labels"]["search"], command=lambda: self._search_pdf(search_entry.get(), task_attributes.get("url_path")))
+        search_button = ttk.Button(parent_frame, text=self.json_data["labels"]["search"], command=lambda: self._open_pdf_viewer(task_attributes.get("url_path"), search_term=search_entry.get()))
         search_button.pack(side="right", padx=10)
 
     def _show_sew_database_interface(self, parent_frame, measure_only=False):
@@ -687,8 +726,7 @@ class MainApplication:
         title_label.grid(row=0, column=0, sticky="ew")
         help_btn = ttk.Button(title_frame, text=self.json_data["labels"]["sew_db_help_button"], width=2, command=self._show_help_image, style="Help.TButton")
         help_btn.grid(row=0, column=1, sticky="e", padx=(10, 0))
-        style = ttk.Style()
-        style.configure("Help.TButton", font=("Segoe UI", 12, "bold"), foreground="#2E86AB")
+        # Styles are now configured globally
         subtitle_label = ttk.Label(main_container, text=self.json_data["labels"]["sew_db_subtitle"], font=("Segoe UI", 10), foreground="#666666", anchor="center", justify="center")
         subtitle_label.pack(fill="x", pady=(0, 10))
         search_container = ttk.LabelFrame(main_container, text=self.json_data["labels"]["sew_db_search_criteria_label"], padding=15)
@@ -708,7 +746,7 @@ class MainApplication:
         button_frame.grid(row=2, column=0, columnspan=4, pady=(20, 0))
         search_button = ttk.Button(button_frame, text=self.json_data["labels"]["sew_db_search_button"], command=self.search_sew_error_codes, style="Accent.TButton")
         search_button.pack()
-        style.configure("Accent.TButton", font=("Segoe UI", 11, "bold"))
+        # Styles are now configured globally
         self.sew_error_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
         self.sew_suberror_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
         self.sew_error_designation_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
@@ -909,14 +947,18 @@ class MainApplication:
             else:
                 previous_view_func()
 
+    def _open_pdf_viewer(self, url_path, page_number=None, search_term=""):
+        """Opens the PDF viewer to a specific page, optionally with a search term."""
+        absolute_path = os.path.abspath(os.path.join(self.script_dir, "..", url_path))
+        
+        if not os.path.exists(absolute_path):
+            messagebox.showerror("File Not Found", f"The PDF file could not be found at: {absolute_path}")
+            return
 
-if __name__ == "__main__":
-    root = tk.Tk()
-    script_dir = os.path.dirname(os.path.abspath(__file__))
-    data_file_path = os.path.join(script_dir, "data.json")
-    if not os.path.exists(data_file_path):
-        data_file_path = os.path.join(script_dir, "example_data.json")
-    with open(data_file_path, "r", encoding="utf-8") as json_file:
-        json_data = json.load(json_file)
-    app = MainApplication(root, json_data, script_dir)
-    root.mainloop()
+        try:
+            logging.info(f"Launching viewer for '{absolute_path}' with page identifier '{page_number}' and search term '{search_term}'.")
+            PDFViewerWindow(self.root, absolute_path, page_number, search_term)
+
+        except Exception as e:
+            logging.error(f"An error occurred while opening the PDF: {e}", exc_info=True)
+            messagebox.showerror("PDF Error", f"An error occurred while opening the PDF: {e}")

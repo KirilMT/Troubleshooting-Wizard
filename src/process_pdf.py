@@ -3,7 +3,7 @@ import sqlite3
 import os
 import argparse
 import re
-
+import logging
 
 class PDFTableExtractor:
     """
@@ -87,6 +87,12 @@ class DatabaseManager:
         if self.conn:
             self.conn.close()
 
+    def _is_valid_table_name(self, name):
+        """Validates that the table name is safe to use in a query."""
+        # Table names should start with a letter or underscore,
+        # and contain only letters, numbers, or underscores.
+        return re.match(r'^[a-zA-Z_][a-zA-Z0-9_]*$', name)
+
     def create_error_table(self, table_name):
         """
         Creates a table with the given name if it doesn't already exist.
@@ -95,6 +101,9 @@ class DatabaseManager:
         Args:
             table_name (str): The name for the new table.
         """
+        if not self._is_valid_table_name(table_name):
+            raise ValueError(f"Invalid table name provided: {table_name}")
+
         cursor = self.conn.cursor()
         # Drop the table if it exists to start fresh each time
         cursor.execute(f"DROP TABLE IF EXISTS {table_name}")
@@ -202,100 +211,92 @@ class SEWErrorCodeExtractor:
         SEW error code extraction: robustly handles multi-row error codes, suberrors, and merges split rows.
         Debug output removed for production use.
         """
-        import pdfplumber
-        sew_errors = []
-        last_error_code = last_error_designation = last_response = None
-        last_suberror_code = last_suberror_designation = None
-        last_possible_cause = last_measure = None
+        processed_errors = []
+        current_error = {}
+        
         with pdfplumber.open(self.pdf_path) as pdf:
-            for i in range(start_page - 1, end_page):
-                page_num = i + 1
+            start_idx = start_page - 1
+            end_idx = end_page - 1
+
+            if start_idx >= len(pdf.pages):
+                logging.warning(f"Start page {start_page} is beyond the end of the document ({len(pdf.pages)} pages).")
+                return []
+
+            for i in range(start_idx, min(end_idx + 1, len(pdf.pages))):
                 page = pdf.pages[i]
-                tables = page.extract_tables()
-                for t_idx, table in enumerate(tables):
-                    row_idx = 0
-                    while row_idx < len(table):
-                        row = (table[row_idx] + [None] * 7)[:7]
-                        if self.is_header_or_page_row(row):
-                            row_idx += 1
-                            continue
-                        error_code = None
-                        error_designation = None
-                        response = None
-                        suberror_code = None
-                        suberror_designation = None
-                        possible_cause = None
-                        measure = None
-                        if row[0] and str(row[0]).strip().isdigit():
-                            error_code = str(row[0]).strip()
-                            error_designation = str(row[1]).strip() if row[1] else last_error_designation
-                            response = str(row[2]).strip() if row[2] else last_response
-                            suberror_code = str(row[3]).strip() if row[3] else "0"
-                            suberror_designation = str(row[4]).strip() if row[4] else ""
-                            possible_cause = str(row[5]).strip() if row[5] else last_possible_cause
-                            measure = str(row[6]).strip() if row[6] else last_measure
-                        elif row[1] and str(row[1]).strip().isdigit():
-                            error_code = str(row[1]).strip()
-                            error_designation = str(row[2]).strip() if row[2] else last_error_designation
-                            response = str(row[3]).strip() if row[3] else last_response
-                            suberror_code = str(row[4]).strip() if row[4] else "0"
-                            suberror_designation = str(row[5]).strip() if row[5] else ""
-                            possible_cause = str(row[6]).strip() if row[6] else last_possible_cause
-                            measure = ""
-                            if row_idx + 1 < len(table):
-                                next_row = (table[row_idx + 1] + [None] * 7)[:7]
-                                if not self.is_header_or_page_row(next_row):
-                                    if next_row[5]:
-                                        possible_cause = str(next_row[5]).strip()
-                                    if next_row[6]:
-                                        measure = str(next_row[6]).strip()
-                        elif row[3] and str(row[3]).strip().isdigit():
-                            error_code = last_error_code
-                            error_designation = last_error_designation
-                            response = last_response
-                            suberror_code = str(row[3]).strip()
-                            suberror_designation = str(row[4]).strip() if row[4] else ""
-                            possible_cause = str(row[5]).strip() if row[5] else last_possible_cause
-                            measure = str(row[6]).strip() if row[6] else last_measure
-                        elif row[4] and str(row[4]).strip().isdigit():
-                            error_code = last_error_code
-                            error_designation = last_error_designation
-                            response = last_response
-                            suberror_code = str(row[4]).strip()
-                            suberror_designation = str(row[5]).strip() if row[5] else ""
-                            possible_cause = str(row[6]).strip() if row[6] else last_possible_cause
-                            measure = ""
-                            if row_idx + 1 < len(table):
-                                next_row = (table[row_idx + 1] + [None] * 7)[:7]
-                                if not self.is_header_or_page_row(next_row):
-                                    if next_row[5]:
-                                        possible_cause = str(next_row[5]).strip()
-                                    if next_row[6]:
-                                        measure = str(next_row[6]).strip()
-                        else:
-                            row_idx += 1
-                            continue
-                        last_error_code = error_code if error_code else last_error_code
-                        last_error_designation = error_designation if error_designation else last_error_designation
-                        last_response = response if response else last_response
-                        last_suberror_code = suberror_code if suberror_code else last_suberror_code
-                        last_suberror_designation = suberror_designation if suberror_designation else last_suberror_designation
-                        last_possible_cause = possible_cause if possible_cause else last_possible_cause
-                        last_measure = measure if measure else last_measure
-                        sew_errors.append({
-                            "error_code": self.clean_text(error_code or last_error_code),
-                            "error_designation": self.clean_text(error_designation or last_error_designation),
-                            "error_response": self.clean_text(response or last_response),
-                            "suberror_code": self.clean_text(suberror_code or last_suberror_code),
-                            "suberror_designation": self.clean_text(self.strip_bullets(suberror_designation or last_suberror_designation)),
-                            "possible_cause": self.clean_text(possible_cause or last_possible_cause),
-                            "measure": self.clean_text(measure or last_measure),
-                            "page": page_num,
-                            "table_index": t_idx + 1,
-                            "row_index": row_idx + 1
-                        })
-                        row_idx += 1
-        return sew_errors
+                table = page.extract_table()
+
+                if not table:
+                    continue
+
+                for row in table:
+                    if self.is_header_or_page_row(row):
+                        continue
+
+                    error_code = row[0]
+                    suberror_code = row[1]
+                    error_designation = row[2]
+                    error_response = row[3]
+                    possible_cause = row[4]
+                    measure = row[5]
+
+                    is_new_error = error_code and error_code.strip()
+                    is_sub_error = suberror_code and suberror_code.strip() and not is_new_error
+
+                    if is_new_error:
+                        if current_error:
+                            processed_errors.append({
+                                'error_code': self.clean_text(current_error.get('error_code', '')),
+                                'suberror_code': self.clean_text(current_error.get('suberror_code', '')),
+                                'error_designation': self.clean_text(current_error.get('error_designation', '')),
+                                'error_response': self.clean_text(current_error.get('error_response', '')),
+                                'possible_cause': self.clean_text(current_error.get('possible_cause', '')),
+                                'measure': self.clean_text(current_error.get('measure', ''))
+                            })
+                        current_error = {
+                            'error_code': error_code,
+                            'suberror_code': suberror_code,
+                            'error_designation': error_designation,
+                            'error_response': error_response,
+                            'possible_cause': possible_cause,
+                            'measure': measure
+                        }
+                    elif is_sub_error:
+                        if current_error:
+                            processed_errors.append({
+                                'error_code': self.clean_text(current_error.get('error_code', '')),
+                                'suberror_code': self.clean_text(current_error.get('suberror_code', '')),
+                                'error_designation': self.clean_text(current_error.get('error_designation', '')),
+                                'error_response': self.clean_text(current_error.get('error_response', '')),
+                                'possible_cause': self.clean_text(current_error.get('possible_cause', '')),
+                                'measure': self.clean_text(current_error.get('measure', ''))
+                            })
+                        current_error = {
+                            'error_code': processed_errors[-1]['error_code'] if processed_errors else '',
+                            'suberror_code': suberror_code,
+                            'error_designation': error_designation,
+                            'error_response': error_response,
+                            'possible_cause': possible_cause,
+                            'measure': measure
+                        }
+                    else:
+                        if current_error:
+                            current_error['error_designation'] = f"{current_error.get('error_designation', '')} {error_designation or ''}".strip()
+                            current_error['error_response'] = f"{current_error.get('error_response', '')} {error_response or ''}".strip()
+                            current_error['possible_cause'] = f"{current_error.get('possible_cause', '')} {possible_cause or ''}".strip()
+                            current_error['measure'] = f"{current_error.get('measure', '')} {measure or ''}".strip()
+
+        if current_error:
+            processed_errors.append({
+                'error_code': self.clean_text(current_error.get('error_code', '')),
+                'suberror_code': self.clean_text(current_error.get('suberror_code', '')),
+                'error_designation': self.clean_text(current_error.get('error_designation', '')),
+                'error_response': self.clean_text(current_error.get('error_response', '')),
+                'possible_cause': self.clean_text(current_error.get('possible_cause', '')),
+                'measure': self.clean_text(current_error.get('measure', ''))
+            })
+
+        return processed_errors
 
 
 class SEWDatabaseManager(DatabaseManager):
