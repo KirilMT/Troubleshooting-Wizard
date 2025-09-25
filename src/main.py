@@ -9,6 +9,7 @@ import io
 import fitz  # PyMuPDF
 import pdfplumber
 import logging
+import threading
 
 # --- Setup Logging ---
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -136,8 +137,11 @@ class PDFViewerWindow(tk.Toplevel):
         search_btn.pack(side=tk.LEFT, padx=5)
 
         # --- Search Navigation ---
+        self.search_status_label = ttk.Label(toolbar, text="Searching...")
+        self.search_status_label.pack(side=tk.LEFT, padx=5)
+
         search_nav_frame = ttk.Frame(toolbar)
-        search_nav_frame.pack(side=tk.LEFT, padx=5)
+        # Don't pack this initially, it will be shown after search is complete
 
         self.prev_match_btn = ttk.Button(search_nav_frame, text="< Prev", command=self._previous_match, state="disabled")
         self.prev_match_btn.pack(side=tk.LEFT)
@@ -147,6 +151,8 @@ class PDFViewerWindow(tk.Toplevel):
 
         self.next_match_btn = ttk.Button(search_nav_frame, text="Next >", command=self._next_match, state="disabled")
         self.next_match_btn.pack(side=tk.LEFT)
+
+        self.search_nav_frame = search_nav_frame # Keep a reference to it
 
         ttk.Separator(toolbar, orient=tk.VERTICAL).pack(side=tk.LEFT, fill=tk.Y, padx=10)
 
@@ -210,6 +216,8 @@ class PDFViewerWindow(tk.Toplevel):
         new_y_center = layout['y'] + (layout['h'] * anchor['relative_pos'])
 
         canvas_height = self.canvas.winfo_height()
+        
+        # Calculate the desired scroll position to center the match
         scroll_to_y = new_y_center - (canvas_height / 2)
 
         total_height = float(self.canvas.cget('scrollregion').split(' ')[3])
@@ -394,20 +402,32 @@ class PDFViewerWindow(tk.Toplevel):
 
     def search_and_highlight(self):
         """Finds all matches, stores them, and navigates to the first one."""
-        self.page_images.clear()
-        self.canvas.delete("all")
         self.search_results.clear()
         self.current_search_index = -1
 
         search_term = self.search_term.get()
         if not search_term:
+            self.search_status_label.pack_forget()
+            self.search_nav_frame.pack_forget()
             self.match_label.config(text="")
             self.prev_match_btn.config(state="disabled")
             self.next_match_btn.config(state="disabled")
             self._update_visible_pages()
             return
 
-        # Find all instances in the document
+        # Show searching status
+        self.search_nav_frame.pack_forget()
+        self.search_status_label.pack(side=tk.LEFT, padx=5)
+        self.update_idletasks()
+
+        # Perform search in a separate thread
+        search_thread = threading.Thread(target=self._perform_search)
+        search_thread.start()
+
+    def _perform_search(self):
+        """Finds all instances in the document."""
+        search_term = self.search_term.get()
+        self.search_results = []
         for i in range(self.total_pages):
             page = self.doc.load_page(i)
             matches = page.search_for(search_term)
@@ -422,6 +442,10 @@ class PDFViewerWindow(tk.Toplevel):
             self.match_label.config(text="Not found")
             self.prev_match_btn.config(state="disabled")
             self.next_match_btn.config(state="disabled")
+
+        # Hide "Searching..." and show navigation
+        self.search_status_label.pack_forget()
+        self.search_nav_frame.pack(side=tk.LEFT, padx=5)
 
         self._update_visible_pages()
 
@@ -544,8 +568,9 @@ class MainApplication:
         self.root.geometry(f"{width}x{height}+{x}+{y}")
 
     def _search_pdf(self, fault_message, url_path):
-        """Performs a live search in a PDF and launches the viewer.""" 
+        """Launches the PDF viewer immediately and then performs the search."""
         absolute_path = os.path.abspath(os.path.join(self.script_dir, "..", url_path))
+        
         if not fault_message or not fault_message.strip():
             messagebox.showwarning("Invalid Search", "Please enter a fault message to search for.")
             return
@@ -555,19 +580,12 @@ class MainApplication:
             return
 
         try:
-            page_number = 1
-            with pdfplumber.open(absolute_path) as pdf:
-                for i, page in enumerate(pdf.pages):
-                    text = page.extract_text(x_tolerance=1)
-                    if text and fault_message.lower() in text.lower():
-                        page_number = i + 1
-                        break
-            
-            logging.info(f"Launching viewer for search term '{fault_message}'. First match on page {page_number}.")
-            PDFViewerWindow(self.root, absolute_path, page_number, fault_message)
+            # Launch the viewer immediately. The search will be initiated in the viewer's initial_load.
+            logging.info(f"Launching viewer for search term '{fault_message}'.")
+            PDFViewerWindow(self.root, absolute_path, 1, fault_message)
 
         except Exception as e:
-            logging.error(f"An error occurred while searching the PDF: {e}", exc_info=True)
+            logging.error(f"An error occurred while opening the PDF: {e}", exc_info=True)
             messagebox.showerror("PDF Error", f"An error occurred while opening the PDF: {e}")
 
     def show_main_program(self):
