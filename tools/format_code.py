@@ -26,17 +26,20 @@ def main():
     """Run code formatting and quality checks."""
     # Change to project root directory
     os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-    
+
     checks = [
         ("black --line-length=100 src/ run.py", "Code formatting (black)"),
-        ("flake8 src/ run.py --max-line-length=100 --ignore=E203,W503,F541", "Code linting (flake8)")
+        (
+            "flake8 src/ run.py --max-line-length=100 --ignore=E203,W503,F541",
+            "Code linting (flake8)",
+        ),
     ]
-    
+
     all_passed = True
     for cmd, description in checks:
         if not run_command(cmd, description):
             all_passed = False
-    
+
     if all_passed:
         print("\n[SUCCESS] All code quality checks passed!")
         return 0
