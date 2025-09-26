@@ -21,9 +21,9 @@ import logging
 from typing import Dict, Any, Optional
 
 # Import from our new modules
-from .pdf_viewer import PDFViewerWindow
-from .database_manager import SEWDatabaseManager
-from .ui_components import UIStyleManager
+from src.pdf_viewer import PDFViewerWindow
+from src.database_manager import SEWDatabaseManager
+from src.ui_components import UIStyleManager
 
 
 class MainApplication:
