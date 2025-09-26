@@ -129,7 +129,6 @@ class PDFViewerWindow(tk.Toplevel):
         # --- Mouse Event Bindings (Hyperlinks + Text Selection) ---
         self.canvas.bind("<Button-1>", self._on_canvas_click)
         self.canvas.bind("<Double-Button-1>", self._on_canvas_double_click)  # Double-click word selection
-        self.canvas.bind("<Triple-Button-1>", self._on_canvas_triple_click)  # Triple-click line selection
         self.canvas.bind("<B1-Motion>", self._on_canvas_drag)
         self.canvas.bind("<ButtonRelease-1>", self._on_canvas_release)
         self.canvas.bind("<Motion>", self._on_canvas_motion)
@@ -1162,171 +1161,9 @@ class PDFViewerWindow(tk.Toplevel):
         logging.info(f"Selected text: '{(''.join(selected_chars_debug))}'")
         logging.info(f"=== END SPATIAL DEBUG ===")
 
-    def _on_canvas_triple_click(self, event):
-        """Handle triple-click to select complete sentence (or line for titles/headings)."""
-        canvas_x = self.canvas.canvasx(event.x)
-        canvas_y = self.canvas.canvasy(event.y)
-        
-        # Clear any existing selection
-        self._clear_text_selection()
-        
-        # Find character at click position
-        char_pos = self._get_character_at_position(canvas_x, canvas_y)
-        if char_pos is None:
-            return
-            
-        page_num, char_index = char_pos
-        if page_num not in self.page_text_data:
-            return
-            
-        page_chars = self.page_text_data[page_num]
-        
-        # Find the character data for the clicked position
-        clicked_char_data = None
-        for char_data in page_chars:
-            if char_data['global_index'] == char_index:
-                clicked_char_data = char_data
-                break
-                
-        if not clicked_char_data:
-            return
-            
-        # Get characters around the clicked position for analysis
-        clicked_y = (clicked_char_data['bbox']['y0'] + clicked_char_data['bbox']['y1']) / 2
-        line_tolerance = 5  # pixels
-        
-        # Find all characters on the same line first
-        same_line_chars = []
-        for char_data in page_chars:
-            char_y = (char_data['bbox']['y0'] + char_data['bbox']['y1']) / 2
-            if abs(char_y - clicked_y) <= line_tolerance:
-                same_line_chars.append(char_data)
-        
-        if not same_line_chars:
-            return
-            
-        # Sort characters by X position (left to right)
-        same_line_chars.sort(key=lambda c: c['bbox']['x0'])
-        
-        # Check if this looks like a title/heading (short line, larger font, all caps, etc.)
-        line_text = ''.join(char['char'] for char in same_line_chars).strip()
-        is_title_or_heading = self._is_title_or_heading(line_text, same_line_chars)
-        
-        if is_title_or_heading:
-            # For titles/headings, select the entire line (current behavior)
-            line_chars_sorted = sorted(same_line_chars, key=lambda c: c['global_index'])
-            sentence_start_idx = line_chars_sorted[0]['global_index']
-            sentence_end_idx = line_chars_sorted[-1]['global_index']
-            logging.info(f"Triple-click: Detected title/heading, selecting entire line")
-        else:
-            # For regular text, find sentence boundaries
-            sentence_start_idx, sentence_end_idx = self._find_sentence_boundaries(
-                page_chars, clicked_char_data, char_index
-            )
-            logging.info(f"Triple-click: Detected regular text, selecting sentence")
-            
-        # Set selection to the sentence or line
-        self.selection_start_char = (page_num, sentence_start_idx)
-        self.selection_end_char = (page_num, sentence_end_idx)
-        self.text_selection_active = True
-        
-        # Update visual selection and finalize
-        self._update_text_selection_visual()
-        self._finalize_text_selection()
-        
-        logging.info(f"Triple-click selection: {sentence_start_idx} to {sentence_end_idx}")
 
-    def _is_title_or_heading(self, line_text, line_chars):
-        """Determine if a line of text is likely a title or heading."""
-        if not line_text:
-            return False
-            
-        # Check various title/heading indicators
-        indicators = 0
-        
-        # Short lines are often titles
-        if len(line_text) < 60:
-            indicators += 1
-            
-        # All uppercase text
-        if line_text.isupper():
-            indicators += 2
-            
-        # Contains mostly capital letters
-        if sum(1 for c in line_text if c.isupper()) > len(line_text) * 0.6:
-            indicators += 1
-            
-        # Ends without sentence punctuation
-        if not line_text.rstrip().endswith(('.', '!', '?')):
-            indicators += 1
-            
-        # Check for larger font size (if available)
-        if line_chars:
-            avg_font_size = sum(char.get('font_size', 12) for char in line_chars) / len(line_chars)
-            if avg_font_size > 14:  # Larger than typical body text
-                indicators += 1
-                
-        # If we have 2 or more indicators, it's likely a title/heading
-        return indicators >= 2
 
-    def _find_sentence_boundaries(self, page_chars, clicked_char_data, clicked_char_index):
-        """Find the start and end of the sentence containing the clicked character."""
-        # Sort all characters by global index for proper text order
-        sorted_chars = sorted(page_chars, key=lambda c: c['global_index'])
-        
-        # Find the position of clicked character in sorted list
-        clicked_position = None
-        for i, char_data in enumerate(sorted_chars):
-            if char_data['global_index'] == clicked_char_index:
-                clicked_position = i
-                break
-                
-        if clicked_position is None:
-            return clicked_char_index, clicked_char_index
-            
-        # Sentence ending punctuation
-        sentence_endings = {'.', '!', '?'}
-        sentence_starters = {'"', "'", '(', '['}  # Characters that can start sentences
-        
-        # Find sentence start by going backwards
-        sentence_start_idx = clicked_char_index
-        for i in range(clicked_position - 1, -1, -1):
-            char_data = sorted_chars[i]
-            char = char_data['char']
-            
-            # Stop at sentence ending punctuation (previous sentence)
-            if char in sentence_endings:
-                # Look ahead to see if next non-whitespace char starts a new sentence
-                for j in range(i + 1, len(sorted_chars)):
-                    next_char = sorted_chars[j]['char']
-                    if next_char.isspace():
-                        continue
-                    elif next_char.isupper() or next_char in sentence_starters:
-                        # Found start of current sentence
-                        sentence_start_idx = sorted_chars[j]['global_index']
-                        break
-                    else:
-                        # Continue looking backwards (might be abbreviation, etc.)
-                        break
-                break
-            
-            # Update start position as we go backwards
-            sentence_start_idx = char_data['global_index']
-            
-        # Find sentence end by going forwards
-        sentence_end_idx = clicked_char_index
-        for i in range(clicked_position + 1, len(sorted_chars)):
-            char_data = sorted_chars[i]
-            char = char_data['char']
-            
-            # Update end position as we go forward
-            sentence_end_idx = char_data['global_index']
-            
-            # Stop at sentence ending punctuation
-            if char in sentence_endings:
-                break
-                
-        return sentence_start_idx, sentence_end_idx
+
 
     def _get_page_at_position(self, canvas_y):
         """Get the page number at a given canvas Y position."""
@@ -1516,10 +1353,10 @@ class PDFViewerWindow(tk.Toplevel):
                 min_y = min(char['bbox']['y0'] for char in group)
                 max_y = max(char['bbox']['y1'] for char in group)
                 
-                # Create modern, semi-transparent selection rectangle
+                # Create visible selection rectangle
                 rect_id = self.canvas.create_rectangle(
                     min_x, min_y, max_x, max_y,
-                    fill="#0078D4", stipple="gray12", outline="", width=0
+                    fill="#4A9EFF", stipple="gray25", outline="", width=0
                 )
                 self.selection_rectangles.append(rect_id)
 

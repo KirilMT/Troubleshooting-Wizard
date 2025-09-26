@@ -176,8 +176,15 @@ class MainApplication:
         
         # Dynamic sizing after content is created
         self.root.update_idletasks()
-        req_width = max(400, error_codes_frame.winfo_reqwidth() + 20)
-        req_height = max(300, error_codes_frame.winfo_reqheight() + 20)
+        screen_height = self.root.winfo_screenheight()
+        max_height = int(screen_height * 0.85)
+        if is_sew_technology:
+            # Use compact dimensions for SEW interface (laptop-friendly)
+            req_width = min(650, max(400, error_codes_frame.winfo_reqwidth() + 20))
+            req_height = min(max_height, max(400, error_codes_frame.winfo_reqheight()))
+        else:
+            req_width = max(400, error_codes_frame.winfo_reqwidth() + 20)
+            req_height = max(300, error_codes_frame.winfo_reqheight() + 20)
         self._set_window_dimensions(req_width, req_height)
 
     def _show_traditional_search_interface(self, parent_frame, task_attributes):
@@ -305,8 +312,10 @@ class MainApplication:
         # Set window dimensions if not in measure mode
         if not measure_only:
             self.root.update_idletasks()
+            screen_height = self.root.winfo_screenheight()
+            max_height = int(screen_height * 0.85)
             width = min(650, self.root.winfo_reqwidth())
-            height = min(600, self.root.winfo_reqheight())
+            height = min(max_height, max(400, self.root.winfo_reqheight()))
             self._set_window_dimensions(width, height)
 
     def _show_help_image(self):
@@ -349,6 +358,14 @@ class MainApplication:
         instructions_text = self.json_data["labels"]["sew_db_search_instructions"]
         instructions_label = ttk.Label(instructions_frame, text=instructions_text, font=("Segoe UI", 9), foreground="#666666", justify="left")
         instructions_label.pack()
+        
+        # Resize window to fit instructions content
+        self.root.update_idletasks()
+        screen_height = self.root.winfo_screenheight()
+        max_height = int(screen_height * 0.85)
+        req_width = min(650, max(400, self.root.winfo_reqwidth()))
+        req_height = min(max_height, max(400, self.root.winfo_reqheight()))
+        self._set_window_dimensions(req_width, req_height)
 
     def _format_single_line_content(self, text):
         if not text or text.strip() == "":
@@ -420,13 +437,13 @@ class MainApplication:
         for widget in self.results_frame.winfo_children():
             widget.destroy()
         no_results_frame = ttk.Frame(self.results_frame)
-        no_results_frame.pack(fill="x", padx=20, pady=40)
-        icon_label = ttk.Label(no_results_frame, text=self.json_data["labels"]["sew_db_no_results_icon"], font=("Segoe UI", 24))
-        icon_label.pack(pady=(0, 10))
-        title_label = ttk.Label(no_results_frame, text=self.json_data["labels"]["sew_db_no_results_title"], font=("Segoe UI", 14, "bold"), foreground="#E74C3C")
-        title_label.pack(pady=(0, 15))
+        no_results_frame.pack(fill="x", padx=10, pady=10)
+        icon_label = ttk.Label(no_results_frame, text=self.json_data["labels"]["sew_db_no_results_icon"], font=("Segoe UI", 18))
+        icon_label.pack(pady=(0, 5))
+        title_label = ttk.Label(no_results_frame, text=self.json_data["labels"]["sew_db_no_results_title"], font=("Segoe UI", 11, "bold"), foreground="#E74C3C")
+        title_label.pack(pady=(0, 8))
         suggestions_text = self.json_data["labels"]["sew_db_no_results_suggestions"]
-        suggestions_label = ttk.Label(no_results_frame, text=suggestions_text, font=("Segoe UI", 10), foreground="#666666", justify="left")
+        suggestions_label = ttk.Label(no_results_frame, text=suggestions_text, font=("Segoe UI", 9), foreground="#666666", justify="left")
         suggestions_label.pack()
 
     def _display_error_code_image(self, parent_frame, image_path):
@@ -473,8 +490,14 @@ class MainApplication:
             self._show_error_card(results[0])
         else:
             self._show_no_results()
-        # Keep compact sizing after showing results
+        
+        # Resize window to fit the new content
         self.root.update_idletasks()
+        screen_height = self.root.winfo_screenheight()
+        max_height = int(screen_height * 0.85)
+        req_height = min(max_height, max(400, self.root.winfo_reqheight()))
+        current_width = self.root.winfo_width()
+        self._set_window_dimensions(current_width, req_height)
 
     def _replace_variables(self, text):
         while "{{" in text and "}}" in text:
