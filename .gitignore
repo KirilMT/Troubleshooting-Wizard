@@ -5,7 +5,6 @@ data/data.json
 media/*
 !media/example_*.png
 !media/example_*.jpg
-!media/README.md
 # Specifically ignore the original corporate WTC file
 media/DEP600_WTC_Faults.PNG
 

@@ -47,7 +47,6 @@ Troubleshooting-Wizard/
 │   ├── example_data.json    # Configuration template
 │   └── errorCodesTechnologies.db  # Generated database
 ├── media/                  # Images and resources
-│   ├── README.md           # Media folder instructions
 │   ├── example_*.png       # Example placeholder images (committed)
 │   └── [your_files]        # Your actual images (not committed)
 ├── .github/                # Contribution and project standards
@@ -100,7 +99,12 @@ Troubleshooting-Wizard/
 
 5.  **Set up media files**:
     - Place your actual error code screenshots, manuals, and diagrams in the `media/` directory.
-    - See `media/README.md` for detailed instructions.
+    - Replace example files with your actual error code screenshots.
+    - Add new image files as needed for your specific equipment.
+    - Update your `data.json` to reference the correct image file names.
+    - Keep file names descriptive (e.g., `WTC_ErrorCodes_Screenshot.png`).
+    - Supported formats: PNG (recommended for screenshots), JPG (good for photographs).
+    - Recommended size: 800x600 pixels or larger for readability.
 
 ## ▶️ Running the Application
 
@@ -150,6 +154,22 @@ The application uses a dual-file configuration system for security and ease of u
 2.  Define URL variables for your documents.
 3.  Create tasks with appropriate types: `error_codes` or `open_url`.
 4.  Add corresponding image files to the `media/` directory.
+
+### Media Files Management
+The `media/` directory contains image files used by the application:
+
+**Example Files (Committed):**
+- `example_wtc_errors.png` - Placeholder for WTC controller error codes
+- `example_lenze_errors.png` - Placeholder for Lenze drive error codes  
+- `example_fanuc_alarms.png` - Placeholder for FANUC robot alarm codes
+
+**Your Files (Not Committed):**
+- Screenshots of actual error code displays
+- System diagrams and flowcharts
+- Training documentation images
+- Any corporate-specific visual content
+
+**Security Note:** Your actual image files containing corporate-specific information will not be committed to version control, keeping sensitive data secure while maintaining the application structure.
 
 ### Path Configuration
 -   **Image paths**: Use relative paths like `../media/your_image.png`.
