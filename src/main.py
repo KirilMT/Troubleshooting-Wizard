@@ -132,7 +132,7 @@ class MainApplication:
             if url_path:
                 self._open_pdf_viewer(url_path, page_number=page_identifier)
             else:
-                logging.warning("Task with type 'open_url' is missing a 'url_path'.")
+                logging.error("Task with type 'open_url' is missing a 'url_path'.")
                 messagebox.showwarning("Configuration Error", "This task is configured to open a file, but the file path is missing.")
 
     def show_error_codes(self, task_attributes, tech_data):
@@ -145,7 +145,7 @@ class MainApplication:
         if is_sew_technology:
             db_path = os.path.join(self.script_dir, "data", "errorCodesTechnologies.db")
             if not os.path.exists(db_path):
-                logging.error(f"Database file not found at expected path: {db_path}")
+                logging.critical(f"Database file not found at expected path: {db_path}")
                 messagebox.showerror(
                     "Database Not Found",
                     f"The SEW error code database could not be found.\n\nExpected at: {db_path}"
@@ -465,9 +465,9 @@ class MainApplication:
                 img_label.image = photo
                 img_label.pack(padx=2, pady=2)
             else:
-                logging.warning(f"Error code image not found: {full_image_path}")
+                logging.error(f"Error code image not found: {full_image_path}")
         except Exception as e:
-            logging.error(f"Failed to load error code image '{image_path}': {e}")
+            logging.warning(f"Failed to load error code image '{image_path}': {e}")
 
     def search_sew_error_codes(self):
         db_path = os.path.join(self.script_dir, "data", "errorCodesTechnologies.db")
@@ -533,7 +533,7 @@ class MainApplication:
         full_path = os.path.join(self.script_dir, url_path)
 
         if not os.path.exists(full_path):
-            logging.error(f"PDF file not found at path: {full_path}")
+            logging.critical(f"PDF file not found at path: {full_path}")
             messagebox.showerror("File Not Found", f"The required PDF file could not be found at:\n{full_path}")
             return
 
@@ -545,7 +545,7 @@ class MainApplication:
             log_message += f" to page: '{page_number}'."
         else:
             log_message += "."
-        logging.info(log_message)
+        logging.debug(log_message)
 
         try:
             PDFViewerWindow(self.root, full_path, initial_page_identifier=page_number, search_term=search_term)

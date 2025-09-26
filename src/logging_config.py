@@ -9,10 +9,10 @@ def setup_logging():
     if not os.path.exists(log_dir):
         os.makedirs(log_dir)
 
-    # Configure the root logger
-    log_formatter = logging.Formatter('%(asctime)s - %(levelname)s - %(message)s')
+    # Configure the root logger with more detailed formatter
+    log_formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s')
     logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)  # Set to DEBUG for development
 
     # File handler with daily rotation
     log_file = os.path.join(log_dir, 'app.log')
@@ -25,4 +25,4 @@ def setup_logging():
     console_handler.setFormatter(log_formatter)
     logger.addHandler(console_handler)
 
-    logging.info("Logging configured successfully.")
+    logging.info("Logging system initialized with DEBUG level")

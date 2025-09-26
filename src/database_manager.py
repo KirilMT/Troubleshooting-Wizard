@@ -19,7 +19,7 @@ class SEWDatabaseManager:
     def search_error_codes(self, error_code=None, suberror_code=None, error_designation=None):
         """Search for error codes in the SEW database based on provided criteria."""
         if not os.path.exists(self.db_path):
-            logging.error(f"Database file not found at {self.db_path}")
+            logging.critical(f"Database file not found at {self.db_path}")
             return []
         
         conn = None

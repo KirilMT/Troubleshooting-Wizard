@@ -38,7 +38,7 @@ class PDFTableExtractor:
                   and each row is a list of cell strings.
         """
         all_tables_data = []
-        logging.info(f"Opening PDF: {os.path.basename(self.pdf_path)}")
+        logging.debug(f"Opening PDF: {os.path.basename(self.pdf_path)}")
         with pdfplumber.open(self.pdf_path) as pdf:
             # Adjust for 0-based indexing used by pdfplumber
             start_idx = start_page - 1
@@ -48,21 +48,21 @@ class PDFTableExtractor:
                 logging.error(f"Error: Start page {start_page} is beyond the end of the document ({len(pdf.pages)} pages).")
                 return []
 
-            logging.info(f"Processing pages from {start_page} to {end_page}...")
-            for i in range(start_idx, min(end_idx + 1, len(pdf.pages))):
-                page = pdf.pages[i]
-                tables = page.extract_tables()
-                if tables:
-                    logging.info(f"  - Found {len(tables)} table(s) on page {i + 1}.")
-                    # Clean up the data by removing None and replacing newlines
-                    for table in tables:
-                        cleaned_table = []
-                        for row in table:
-                            cleaned_row = [str(cell).replace('\n', ' ') if cell is not None else "" for cell in row]
-                            cleaned_table.append(cleaned_row)
-                        all_tables_data.append(cleaned_table)
-                else:
-                    logging.warning(f"  - No tables found on page {i + 1}.")
+        logging.info(f"Processing pages from {start_page} to {end_page}...")
+        for i in range(start_idx, min(end_idx + 1, len(pdf.pages))):
+            page = pdf.pages[i]
+            tables = page.extract_tables()
+            if tables:
+                logging.debug(f"  - Found {len(tables)} table(s) on page {i + 1}.")
+                # Clean up the data by removing None and replacing newlines
+                for table in tables:
+                    cleaned_table = []
+                    for row in table:
+                        cleaned_row = [str(cell).replace('\n', ' ') if cell is not None else "" for cell in row]
+                        cleaned_table.append(cleaned_row)
+                    all_tables_data.append(cleaned_table)
+            else:
+                logging.debug(f"  - No tables found on page {i + 1}.")
         return all_tables_data
 
 
@@ -118,7 +118,7 @@ class DatabaseManager:
             )
         """)
         self.conn.commit()
-        logging.info(f"Database '{os.path.basename(self.db_path)}' is ready. Table '{table_name}' created.")
+        logging.debug(f"Database '{os.path.basename(self.db_path)}' is ready. Table '{table_name}' created.")
 
     def insert_table_data(self, table_name, tables):
         """
@@ -220,7 +220,7 @@ class SEWErrorCodeExtractor:
             end_idx = end_page - 1
 
             if start_idx >= len(pdf.pages):
-                logging.warning(f"Start page {start_page} is beyond the end of the document ({len(pdf.pages)} pages).")
+                logging.error(f"Start page {start_page} is beyond the end of the document ({len(pdf.pages)} pages).")
                 return []
 
             for i in range(start_idx, min(end_idx + 1, len(pdf.pages))):
@@ -400,7 +400,7 @@ def main():
         logging.info(f"Data has been successfully stored in: {DB_PATH}")
 
     except FileNotFoundError as e:
-        logging.error(f"Error: {e}")
+        logging.critical(f"Error: {e}")
     except Exception as e:
         logging.critical(f"An unexpected error occurred: {e}", exc_info=True)
 

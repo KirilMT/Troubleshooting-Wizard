@@ -26,7 +26,7 @@ def main():
     json_path_to_load = None
     if os.path.exists(data_path):
         json_path_to_load = data_path
-        logging.info(f"Loading user configuration from {data_path}")
+        logging.debug(f"Loading user configuration from {data_path}")
     elif os.path.exists(example_data_path):
         json_path_to_load = example_data_path
         logging.warning(f"User configuration 'data.json' not found. Falling back to {example_data_path}")

@@ -55,7 +55,7 @@ class PDFViewerWindow(tk.Toplevel):
             self.page_label_to_index = {label.lower(): i for i, label in enumerate(self.page_labels)}
 
         except Exception as e:
-            logging.error(f"A critical error occurred while retrieving page labels: {e}. Falling back to physical numbers.")
+            logging.warning(f"Error retrieving page labels: {e}. Falling back to physical numbers.")
             # Critical fallback in case of unexpected library error
             self.page_labels = [str(i + 1) for i in range(self.total_pages)]
             self.page_label_to_index = {label.lower(): i for i, label in enumerate(self.page_labels)}
@@ -626,13 +626,13 @@ class PDFViewerWindow(tk.Toplevel):
             link_kind = link['kind']
             
             # Debug logging to understand the link structure
-            logging.info(f"Link clicked - Kind: {link_kind}, Data: {link}")
+            logging.debug(f"Link clicked - Kind: {link_kind}, Data: {link}")
             
             # Handle different link types
             if link_kind == fitz.LINK_GOTO:  # Internal page link (type 1)
                 target_page = link.get('page', -1)
                 if target_page >= 0 and target_page < self.total_pages:
-                    logging.info(f"Navigating to internal page: {target_page + 1}")
+                    logging.debug(f"Navigating to internal page: {target_page + 1}")
                     self.go_to_page(target_page + 1)
                     
                     # If there's a specific destination point, scroll to it
@@ -644,7 +644,7 @@ class PDFViewerWindow(tk.Toplevel):
             elif link_kind == fitz.LINK_URI:  # External URL link (type 2)
                 uri = link.get('uri', '')
                 if uri:
-                    logging.info(f"Opening external URL: {uri}")
+                    logging.debug(f"Opening external URL: {uri}")
                     try:
                         # Validate and open URL
                         parsed_url = urllib.parse.urlparse(uri)
@@ -659,7 +659,7 @@ class PDFViewerWindow(tk.Toplevel):
                         messagebox.showerror("Link Error", f"Failed to open link: {uri}")
                         
             elif link_kind == fitz.LINK_GOTOR:  # Link to another document (type 3)
-                logging.info(f"External document link detected: {link.get('file', 'unknown')}")
+                logging.debug(f"External document link detected: {link.get('file', 'unknown')}")
                 messagebox.showinfo("External Document", 
                                   "This link points to another document. External document links are not currently supported.")
                                   
@@ -670,7 +670,7 @@ class PDFViewerWindow(tk.Toplevel):
                     if hasattr(to_point, 'page') and hasattr(to_point, 'y'):
                         target_page = to_point.page
                         if target_page >= 0 and target_page < self.total_pages:
-                            logging.info(f"Navigating to named destination on page: {target_page + 1}")
+                            logging.debug(f"Navigating to named destination on page: {target_page + 1}")
                             self.go_to_page(target_page + 1)
                             self._scroll_to_point_on_page(target_page, to_point.y)
                         else:
@@ -679,7 +679,7 @@ class PDFViewerWindow(tk.Toplevel):
                         # Fallback: try to use page from link directly
                         target_page = link.get('page', -1)
                         if target_page >= 0 and target_page < self.total_pages:
-                            logging.info(f"Navigating to page from type 4 link: {target_page + 1}")
+                            logging.debug(f"Navigating to page from type 4 link: {target_page + 1}")
                             self.go_to_page(target_page + 1)
                         else:
                             logging.warning(f"Invalid page in type 4 link: {target_page}")
@@ -690,13 +690,13 @@ class PDFViewerWindow(tk.Toplevel):
                     
             else:
                 # Try to handle unknown link types generically
-                logging.info(f"Attempting to handle unknown link type {link_kind}")
+                logging.debug(f"Attempting to handle unknown link type {link_kind}")
                 
                 # Check if it has page information
                 if 'page' in link:
                     target_page = link.get('page', -1)
                     if target_page >= 0 and target_page < self.total_pages:
-                        logging.info(f"Generic navigation to page: {target_page + 1}")
+                        logging.debug(f"Generic navigation to page: {target_page + 1}")
                         self.go_to_page(target_page + 1)
                         return
                 
@@ -706,7 +706,7 @@ class PDFViewerWindow(tk.Toplevel):
                     if hasattr(to_point, 'page'):
                         target_page = to_point.page
                         if target_page >= 0 and target_page < self.total_pages:
-                            logging.info(f"Generic navigation via 'to' field to page: {target_page + 1}")
+                            logging.debug(f"Generic navigation via 'to' field to page: {target_page + 1}")
                             self.go_to_page(target_page + 1)
                             if hasattr(to_point, 'y'):
                                 self._scroll_to_point_on_page(target_page, to_point.y)
@@ -820,17 +820,17 @@ class PDFViewerWindow(tk.Toplevel):
             self.page_char_map[page_num] = char_map
             
             # Debug logging
-            logging.info(f"Extracted {len(page_chars)} characters from page {page_num}")
-            logging.info(f"Character map has {len(char_map)} coordinate mappings")
+            logging.debug(f"Extracted {len(page_chars)} characters from page {page_num}")
+            logging.debug(f"Character map has {len(char_map)} coordinate mappings")
             if page_chars:
-                logging.info(f"First char: '{page_chars[0]['char']}' at {page_chars[0]['bbox']}")
-                logging.info(f"Last char: '{page_chars[-1]['char']}' at {page_chars[-1]['bbox']}")
+                logging.debug(f"First char: '{page_chars[0]['char']}' at {page_chars[0]['bbox']}")
+                logging.debug(f"Last char: '{page_chars[-1]['char']}' at {page_chars[-1]['bbox']}")
             
         except Exception as e:
             logging.error(f"Failed to extract text using rawdict from page {page_num}: {e}")
             # Fallback to dict method if rawdict fails
             try:
-                logging.info(f"Falling back to dict method for page {page_num}")
+                logging.debug(f"Falling back to dict method for page {page_num}")
                 self._extract_page_text_fallback(page_num, page, transform_matrix, x_offset, page_top)
             except Exception as e2:
                 logging.error(f"Fallback text extraction also failed for page {page_num}: {e2}")
@@ -923,9 +923,9 @@ class PDFViewerWindow(tk.Toplevel):
                         return
         
         # Start character-precise text selection
-        logging.info(f"Canvas click at ({canvas_x}, {canvas_y})")
+        logging.debug(f"Canvas click at ({canvas_x}, {canvas_y})")
         char_pos = self._get_character_at_position(canvas_x, canvas_y)
-        logging.info(f"Character position result: {char_pos}")
+        logging.debug(f"Character position result: {char_pos}")
         
         if char_pos is not None:
             page_num, char_index = char_pos
@@ -933,9 +933,9 @@ class PDFViewerWindow(tk.Toplevel):
             self.selection_end_char = (page_num, char_index)
             self.is_dragging_selection = True
             self.text_selection_active = True
-            logging.info(f"Started text selection at page {page_num}, char {char_index}")
+            logging.debug(f"Started text selection at page {page_num}, char {char_index}")
         else:
-            logging.info("No character found at click position")
+            logging.debug("No character found at click position")
 
     def _on_canvas_drag(self, event):
         """Handle mouse dragging for character-precise text selection."""
@@ -1003,11 +1003,11 @@ class PDFViewerWindow(tk.Toplevel):
             self._debug_motion_counter = 1
             
         if self._debug_motion_counter % 50 == 0:
-            logging.info(f"Motion at ({canvas_x:.1f}, {canvas_y:.1f}): over_link={over_link}, over_text={over_text}")
-            logging.info(f"Available pages with text data: {list(self.page_text_data.keys())}")
+            logging.debug(f"Motion at ({canvas_x:.1f}, {canvas_y:.1f}): over_link={over_link}, over_text={over_text}")
+            logging.debug(f"Available pages with text data: {list(self.page_text_data.keys())}")
             if self.page_text_data:
                 total_chars = sum(len(chars) for chars in self.page_text_data.values())
-                logging.info(f"Total characters extracted: {total_chars}")
+                logging.debug(f"Total characters extracted: {total_chars}")
         
         # Update cursor based on context with proper I-beam for text
         if over_link:
@@ -1147,10 +1147,10 @@ class PDFViewerWindow(tk.Toplevel):
         self._finalize_text_selection()
         
         # Debug logging
-        logging.info(f"=== SPATIAL DOUBLE-CLICK DEBUG ===")
-        logging.info(f"Clicked character: '{clicked_char_data['char']}' at ({clicked_x:.1f}, {clicked_y:.1f})")
-        logging.info(f"Found {len(same_line_chars)} characters on same line")
-        logging.info(f"Word selection: '{word_start_char['char']}' (idx {word_start_char['global_index']}) to '{word_end_char['char']}' (idx {word_end_char['global_index']})")
+        logging.debug(f"=== SPATIAL DOUBLE-CLICK DEBUG ===")
+        logging.debug(f"Clicked character: '{clicked_char_data['char']}' at ({clicked_x:.1f}, {clicked_y:.1f})")
+        logging.debug(f"Found {len(same_line_chars)} characters on same line")
+        logging.debug(f"Word selection: '{word_start_char['char']}' (idx {word_start_char['global_index']}) to '{word_end_char['char']}' (idx {word_end_char['global_index']})")
         
         # Show selected characters for debugging
         selected_chars_debug = []
@@ -1158,8 +1158,8 @@ class PDFViewerWindow(tk.Toplevel):
             if word_start_char['global_index'] <= char_data['global_index'] <= word_end_char['global_index']:
                 selected_chars_debug.append(char_data['char'])
         
-        logging.info(f"Selected text: '{(''.join(selected_chars_debug))}'")
-        logging.info(f"=== END SPATIAL DEBUG ===")
+        logging.debug(f"Selected text: '{(''.join(selected_chars_debug))}'")
+        logging.debug(f"=== END SPATIAL DEBUG ===")
 
 
 
@@ -1437,7 +1437,7 @@ class PDFViewerWindow(tk.Toplevel):
         # Only remove leading/trailing whitespace, preserve internal structure
         self.selected_text = selected_text.strip()
         
-        logging.info(f"Extracted text ({len(self.selected_text)} chars): '{self.selected_text[:50]}{'...' if len(self.selected_text) > 50 else ''}'")
+        logging.debug(f"Extracted text ({len(self.selected_text)} chars): '{self.selected_text[:50]}{'...' if len(self.selected_text) > 50 else ''}'")
 
     def _clear_text_selection(self):
         """Clear the current character-precise text selection."""
@@ -1458,12 +1458,12 @@ class PDFViewerWindow(tk.Toplevel):
         if self.selected_text:
             self.clipboard_clear()
             self.clipboard_append(self.selected_text)
-            logging.info(f"Copied {len(self.selected_text)} characters to clipboard")
+            logging.debug(f"Copied {len(self.selected_text)} characters to clipboard")
             
             # Show enhanced feedback
             self.after(50, lambda: self._show_copy_feedback())
         else:
-            logging.info("No text selected to copy")
+            logging.debug("No text selected to copy")
 
     def _show_copy_feedback(self):
         """Show enhanced visual feedback that text was copied."""
@@ -1505,7 +1505,7 @@ class PDFViewerWindow(tk.Toplevel):
 
 
     def on_close(self):
-        logging.info("--- Closing PDFViewerWindow ---")
+        logging.debug("--- Closing PDFViewerWindow ---")
         self.doc.close()
         self.destroy()
 
