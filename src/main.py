@@ -212,12 +212,13 @@ class MainApplication:
         search_button.grid(row=1, column=1, sticky="e", pady=(8, 0))
 
     def _show_sew_database_interface(self, parent_frame, measure_only=False):
+        # Create main container with modern styling
         main_container = self.ui_style.create_modern_frame(parent_frame, bg=parent_frame['bg'])
-        main_container.pack(fill="both", expand=True, padx=15, pady=10)
+        main_container.pack(fill="both", expand=True, padx=10, pady=5)
         
-        # Modern title section
+        # Title section
         title_frame = self.ui_style.create_modern_frame(main_container, bg=parent_frame['bg'])
-        title_frame.pack(fill="x", pady=(0, 15))
+        title_frame.pack(fill="x", pady=(0, 5))
         title_frame.columnconfigure(0, weight=1)
         
         title_label = self.ui_style.create_modern_label(title_frame, self.json_data["labels"]["sew_db_title"], 
@@ -226,73 +227,87 @@ class MainApplication:
         
         help_btn = self.ui_style.create_modern_button(title_frame, self.json_data["labels"]["sew_db_help_button"], 
                                                      self._show_help_image, style='technology')
-        help_btn.grid(row=0, column=1, sticky="e", padx=(10, 0))
+        help_btn.grid(row=0, column=1, sticky="e", padx=(5, 0))
         
         subtitle_label = self.ui_style.create_modern_label(main_container, self.json_data["labels"]["sew_db_subtitle"], 
                                                           style='subtitle', bg=parent_frame['bg'])
-        subtitle_label.pack(fill="x", pady=(0, 15))
+        subtitle_label.pack(fill="x", pady=(0, 10))
         
-        # Modern search form
-        search_container = self.ui_style.create_modern_frame(main_container, bg=self.ui_style.colors['surface'], relief='solid', bd=1)
-        search_container.pack(fill="x", pady=(0, 15), padx=5)
+        # Search criteria frame
+        search_container = self.ui_style.create_modern_frame(main_container, bg=self.ui_style.colors['surface'], 
+                                                           relief='solid', bd=1)
+        search_container.pack(fill="x", pady=(0, 10), padx=5)
+        search_container_inner = self.ui_style.create_modern_frame(search_container, bg=self.ui_style.colors['surface'])
+        search_container_inner.pack(padx=8, pady=8, fill='x')
         
-        # Form title
-        form_title = self.ui_style.create_modern_label(search_container, self.json_data["labels"]["sew_db_search_criteria_label"], 
-                                                      bold=True, bg=self.ui_style.colors['surface'])
-        form_title.pack(pady=(15, 10))
-        
-        # Form content
-        form_content = self.ui_style.create_modern_frame(search_container, bg=self.ui_style.colors['surface'])
-        form_content.pack(fill="x", padx=15, pady=(0, 15))
-        form_content.columnconfigure(1, weight=1)
-        form_content.columnconfigure(3, weight=1)
+        # Configure grid layout for search fields
+        search_container_inner.columnconfigure(1, weight=1)
+        search_container_inner.columnconfigure(3, weight=1)
         
         # Error code row
-        self.ui_style.create_modern_label(form_content, self.json_data["labels"]["sew_db_error_code_label"], 
-                                         bold=True, bg=self.ui_style.colors['surface']).grid(row=0, column=0, sticky="w", pady=8, padx=(0, 10))
-        self.sew_error_code_entry = self.ui_style.create_modern_entry(form_content, width=12)
-        self.sew_error_code_entry.grid(row=0, column=1, sticky="ew", pady=8, padx=(0, 15), ipady=3)
+        self.ui_style.create_modern_label(search_container_inner, self.json_data["labels"]["sew_db_error_code_label"], 
+                                         bold=True, bg=self.ui_style.colors['surface']).grid(
+                                             row=0, column=0, sticky="w", pady=4, padx=(0, 5))
+                                             
+        self.sew_error_code_entry = self.ui_style.create_modern_entry(search_container_inner, width=12)
+        self.sew_error_code_entry.grid(row=0, column=1, sticky="ew", pady=4, padx=(0, 10))
         
-        self.ui_style.create_modern_label(form_content, self.json_data["labels"]["sew_db_suberror_code_label"], 
-                                         bold=True, bg=self.ui_style.colors['surface']).grid(row=0, column=2, sticky="w", pady=8, padx=(0, 10))
-        self.sew_suberror_code_entry = self.ui_style.create_modern_entry(form_content, width=12)
-        self.sew_suberror_code_entry.grid(row=0, column=3, sticky="ew", pady=8, ipady=3)
+        # Suberror code field
+        self.ui_style.create_modern_label(search_container_inner, self.json_data["labels"]["sew_db_suberror_code_label"], 
+                                         bold=True, bg=self.ui_style.colors['surface']).grid(
+                                             row=0, column=2, sticky="w", pady=4, padx=(0, 5))
+                                             
+        self.sew_suberror_code_entry = self.ui_style.create_modern_entry(search_container_inner, width=12)
+        self.sew_suberror_code_entry.grid(row=0, column=3, sticky="ew", pady=4)
         
-        # Error designation row
-        self.ui_style.create_modern_label(form_content, self.json_data["labels"]["sew_db_error_designation_label"], 
-                                         bold=True, bg=self.ui_style.colors['surface']).grid(row=1, column=0, sticky="w", pady=8, padx=(0, 10))
-        self.sew_error_designation_entry = self.ui_style.create_modern_entry(form_content)
-        self.sew_error_designation_entry.grid(row=1, column=1, columnspan=3, sticky="ew", pady=8, ipady=3)
+        # Error designation field
+        self.ui_style.create_modern_label(search_container_inner, self.json_data["labels"]["sew_db_error_designation_label"], 
+                                         bold=True, bg=self.ui_style.colors['surface']).grid(
+                                             row=1, column=0, sticky="w", pady=4, padx=(0, 5))
+                                             
+        self.sew_error_designation_entry = self.ui_style.create_modern_entry(search_container_inner)
+        self.sew_error_designation_entry.grid(row=1, column=1, columnspan=3, sticky="ew", pady=4)
         
         # Search button
-        button_frame = self.ui_style.create_modern_frame(search_container, bg=self.ui_style.colors['surface'])
-        button_frame.grid(row=2, column=0, columnspan=4, pady=(15, 0))
-        search_button = self.ui_style.create_modern_button(button_frame, self.json_data["labels"]["sew_db_search_button"], 
-                                                          self.search_sew_error_codes, style='submit')
-        search_button.pack(pady=(0, 10))
+        button_frame = self.ui_style.create_modern_frame(search_container_inner, bg=self.ui_style.colors['surface'])
+        button_frame.grid(row=2, column=0, columnspan=4, pady=(10, 0))
+        
+        search_button = self.ui_style.create_modern_button(button_frame, 
+                                                         self.json_data["labels"]["sew_db_search_button"], 
+                                                         self.search_sew_error_codes, 
+                                                         style='submit')
+        search_button.pack()
+        
+        # Results container
+        results_container = self.ui_style.create_modern_frame(main_container, bg=self.ui_style.colors['surface'], 
+                                                            relief='solid', bd=1)
+        results_container.pack(fill="both", expand=True, padx=5, pady=5)
+        results_container_inner = self.ui_style.create_modern_frame(results_container, bg=self.ui_style.colors['surface'])
+        results_container_inner.pack(padx=8, pady=8, fill='both', expand=True)
+        
+        results_label = self.ui_style.create_modern_label(results_container_inner, 
+                                                        self.json_data["labels"]["sew_db_results_label"],
+                                                        bold=True, 
+                                                        bg=self.ui_style.colors['surface'])
+        results_label.pack(anchor="w", pady=(0, 5))
+        
+        self.results_frame = self.ui_style.create_modern_frame(results_container_inner, bg=self.ui_style.colors['surface'])
+        self.results_frame.pack(fill="both", expand=True, pady=(5, 0))
         
         # Bind Enter key to search
         self.sew_error_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
         self.sew_suberror_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
         self.sew_error_designation_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
         
-        # Modern results container
-        results_container = self.ui_style.create_modern_frame(main_container, bg=self.ui_style.colors['surface'], relief='solid', bd=1)
-        results_container.pack(fill="both", expand=True, padx=5)
-        
-        results_title = self.ui_style.create_modern_label(results_container, self.json_data["labels"]["sew_db_results_label"], 
-                                                         bold=True, bg=self.ui_style.colors['surface'])
-        results_title.pack(pady=(15, 10))
-        
-        self.results_frame = self.ui_style.create_modern_frame(results_container, bg=self.ui_style.colors['surface'])
-        self.results_frame.pack(fill="both", expand=True, padx=15, pady=(0, 15))
+        # Show initial instructions
         self._show_search_instructions()
         
+        # Set window dimensions if not in measure mode
         if not measure_only:
             self.root.update_idletasks()
-            req_width = max(400, main_container.winfo_reqwidth() + 20)
-            req_height = max(300, main_container.winfo_reqheight() + 20)
-            self._set_window_dimensions(req_width, req_height)
+            width = min(650, self.root.winfo_reqwidth())
+            height = min(600, self.root.winfo_reqheight())
+            self._set_window_dimensions(width, height)
 
     def _show_help_image(self):
         """Displays the help image in a new window."""
