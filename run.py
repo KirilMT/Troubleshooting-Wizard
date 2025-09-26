@@ -6,10 +6,15 @@ import logging
 from typing import Dict, Any
 from src.main import MainApplication
 from src.logging_config import setup_logging
+from src.health_check import run_health_checks
 
 def main() -> None:
     """Initializes and runs the Troubleshooting Wizard application."""
     setup_logging() # Initialize logging
+    
+    # Run health checks
+    if not run_health_checks():
+        logging.warning("Some health checks failed, but continuing startup")
     
     # Create the root window but hide it initially
     root = tk.Tk()
