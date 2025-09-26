@@ -27,7 +27,7 @@ jobs:
     
     - name: Run unit tests
       run: |
-        python -m pytest tests/test_*.py -v
+        python -m pytest tests/ -v
     
     - name: Run health checks
       run: |
