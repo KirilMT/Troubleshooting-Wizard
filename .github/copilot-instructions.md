@@ -23,30 +23,66 @@ This is a Python-based GUI application for industrial equipment troubleshooting 
 
 ```
 Troubleshooting-Wizard/
-├── src/
-│   ├── main.py              # Main GUI application
-│   ├── process_pdf.py       # PDF processing utility
-│   ├── example_data.json    # Configuration template (committed)
-│   ├── data.json           # Local configuration (user-created, not committed)
-│   └── errorCodesTechnologies.db  # Generated database
+├── .github/                # GitHub configuration and workflows
+│   ├── workflows/          # CI/CD workflows
+│   ├── AGENT.md            # AI assistant instructions
+│   ├── CODEOWNERS          # Code ownership information
+│   ├── CONTRIBUTING.md     # Contribution guidelines
+│   ├── copilot-instructions.md  # This file
+│   └── GIT_WORKFLOW.md     # Git workflow guidelines
+├── data/                   # Data files and configurations
+│   └── example_data.json   # Example configuration (committed)
+├── logs/                   # Application logs (not versioned)
+├── manuals/                # PDF manuals for reference
 ├── media/                  # Images and resources
-├── .github/                # Contribution and project standards
-├── build/                  # Build artifacts
-├── requirements.txt        # Python dependencies
-├── .gitignore             # Git ignore rules
-└── README.md              # This file
+├── src/                    # Source code
+│   ├── __init__.py         # Package initialization
+│   ├── main.py             # Main application class
+│   ├── database_manager.py # Database operations
+│   ├── ui_components.py    # UI styling and components
+│   ├── pdf_viewer.py       # PDF viewing functionality
+│   └── ...                 # Other source files
+├── tests/                  # Test files
+│   ├── __init__.py         # Test package initialization
+│   ├── conftest.py         # Test configurations
+│   ├── test_core.py        # Core functionality tests
+│   └── integration/        # Integration tests
+├── tools/                  # Development tools and scripts
+├── .gitignore              # Git ignore rules
+├── .pre-commit-config.yaml # Pre-commit hooks
+├── CHANGELOG.md            # Version history
+├── LICENSE                # License information
+├── pyproject.toml         # Project metadata and build configuration
+├── pytest.ini             # Pytest configuration
+├── README.md              # Project documentation
+└── run.py                 # Application entry point
 ```
 
 ## Key Files & Development Guidelines
 
--   **`src/main.py`**: The main application entry point. 
-    -   *Guideline*: Keep the GUI logic clean and responsive, separating it from business logic where possible.
+-   **`run.py`**: The main application entry point.
+    -   *Guideline*: Keep this file minimal, focusing only on application startup and error handling.
 
--   **`src/process_pdf.py`**: A command-line utility for extracting error code tables from PDF manuals.
-    -   *Guideline*: Ensure parsing logic is robust. Add specific modes (like `--sew-mode`) for vendor-specific PDF layouts.
+-   **`src/main.py`**: Contains the MainApplication class that orchestrates the GUI and business logic.
+    -   *Guideline*: Keep the GUI logic clean and responsive, separating it from business logic.
 
--   **`src/data.json` / `src/example_data.json`**: Configuration files.
-    -   *Guideline*: When adding features, always update `example_data.json` with generic, non-sensitive placeholders. Never commit `data.json`.
+-   **`src/database_manager.py`**: Handles all database operations.
+    -   *Guideline*: Implement database queries and operations here, separate from UI logic.
+
+-   **`src/ui_components.py`**: Contains UI styling and component creation.
+    -   *Guideline*: Keep all UI styling and theming centralized here.
+
+-   **`src/pdf_viewer.py`**: Implements the PDF viewing and interaction functionality.
+    -   *Guideline*: Handle all PDF-related operations in this module.
+
+-   **`data/example_data.json` / `data/data.json`**: Configuration files.
+    -   *Guideline*: Update `example_data.json` with generic placeholders. Never commit `data.json`.
+
+-   **`tests/`**: Contains all test files.
+    -   *Guideline*: Maintain high test coverage, especially for core functionality.
+
+-   **`src/errorCodesTechnologies.db`**: The SQLite database.
+    -   *Guideline*: If the schema changes, ensure migration paths are considered.
 
 -   **`src/errorCodesTechnologies.db`**: The SQLite database.
     -   *Guideline*: If the schema changes, ensure migration paths are considered.

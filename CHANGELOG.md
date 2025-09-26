@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.2.1] - 2025-09-26
+
+### Fixed
+- **Test Suite Reliability**: Fixed flaky tests in the test suite by properly mocking UI components and ensuring consistent test execution.
+- **UI Component Testing**: Improved test coverage for UI components, particularly for the main program view and technology selection.
+- **Test Dependencies**: Updated test dependencies and ensured proper isolation between test cases.
+
 ## [1.2.0] - 2025-09-25
 
 ### Added

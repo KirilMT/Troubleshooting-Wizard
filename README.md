@@ -42,12 +42,38 @@ For more detailed output and coverage report:
 pytest -v --cov=src --cov-report=term-missing
 ```
 
+### Test Organization
+
+- **Unit Tests**: Located in `tests/` directory
+  - `test_core.py`: Tests for core application functionality
+  - `test_main.py`: Tests for the main application class and UI components
+  - `conftest.py`: Common test fixtures and configurations
+
 ### Writing Tests
 
-- Unit tests should be placed in the `tests/` directory
 - Test files should be named `test_*.py`
 - Test functions should start with `test_`
 - Use fixtures defined in `tests/conftest.py` for common test setup
+- Mock external dependencies using `unittest.mock`
+- Follow the Arrange-Act-Assert pattern
+- Keep tests focused and independent
+- Test both success and error cases
+
+### Test Coverage
+
+The project maintains high test coverage, focusing on:
+- Core application logic
+- UI component interactions
+- Error handling
+- Edge cases
+
+To generate an HTML coverage report:
+
+```bash
+pytest --cov=src --cov-report=html
+```
+
+Then open `htmlcov/index.html` in your browser to view the coverage report.
 
 ### Test Structure
 
@@ -88,23 +114,28 @@ Troubleshooting-Wizard/
 │   └── integration/       # Integration tests
 ├── logs/
 │   └── app.log              # Application log files (auto-generated)
-├── src/
-│   ├── __init__.py          # Defines src as a Python package
-│   ├── main.py              # Main GUI application logic
-│   ├── process_pdf.py       # PDF processing utility
-│   ├── logging_config.py    # Centralized logging configuration
-│   ├── example_data.json    # Configuration template
-│   └── errorCodesTechnologies.db  # Generated database
 ├── media/                  # Images and resources
-│   ├── example_*.png       # Example placeholder images (committed)
-│   └── [your_files]        # Your actual images (not committed)
-├── .github/                # Contribution and project standards
-├── build/                  # Build artifacts
-├── requirements.txt        # Python dependencies
-├── .gitignore             # Git ignore rules
-├── run.py                 # Main entry point to run the application
-└── README.md              # This file
-```
+├── src/                    # Source code
+│   ├── __init__.py         # Package initialization
+│   ├── main.py             # Main application class
+│   ├── database_manager.py # Database operations
+│   ├── ui_components.py    # UI styling and components
+│   ├── pdf_viewer.py       # PDF viewing functionality
+│   └── ...                 # Other source files
+├── tests/                  # Test files
+│   ├── __init__.py         # Test package initialization
+│   ├── conftest.py         # Test configurations
+│   ├── test_core.py        # Core functionality tests
+│   └── integration/        # Integration tests
+├── tools/                  # Development tools and scripts
+├── .gitignore              # Git ignore rules
+├── .pre-commit-config.yaml # Pre-commit hooks
+├── CHANGELOG.md            # Version history
+├── LICENSE                # License information
+├── pyproject.toml         # Project metadata and build configuration
+├── pytest.ini             # Pytest configuration
+├── README.md              # Project documentation
+└── run.py                 # Application entry point
 
 ## ⚙️ Setup and Installation
 
@@ -277,4 +308,5 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 For issues or questions, please open an issue in the project repository.
 
 ---
-**Version: 1.0.1**
+**Version: 1.2.1**  
+**Last Updated: September 26, 2025**
