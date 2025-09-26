@@ -35,7 +35,9 @@ wheels/
 *.egg
 MANIFEST
 
-# PyInstaller
+# PyInstaller - Build artifacts and generated files
+build/
+dist/
 *.manifest
 *.spec
 
