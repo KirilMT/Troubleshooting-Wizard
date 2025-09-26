@@ -20,6 +20,50 @@ A Python-based GUI application for industrial equipment troubleshooting and erro
 | *Users can select a technology from the main menu.* | *Search for specific error codes within PDF manuals.* |
 | ![Main Menu](media/example_main_menu.png) | ![Error Code Search](media/example_search.png) |
 
+## 🧪 Testing
+
+### Running Tests
+
+To run the test suite, first install the development dependencies:
+
+```bash
+pip install -e ".[dev]"
+```
+
+Then run the tests with coverage:
+
+```bash
+pytest
+```
+
+For more detailed output and coverage report:
+
+```bash
+pytest -v --cov=src --cov-report=term-missing
+```
+
+### Writing Tests
+
+- Unit tests should be placed in the `tests/` directory
+- Test files should be named `test_*.py`
+- Test functions should start with `test_`
+- Use fixtures defined in `tests/conftest.py` for common test setup
+
+### Test Structure
+
+```
+tests/
+├── __init__.py         # Makes tests a Python package
+├── conftest.py         # Test fixtures and configuration
+├── test_*.py           # Unit tests
+└── integration/        # Integration tests
+    └── test_*.py
+```
+
+### Test Coverage
+
+Test coverage reports are generated in the `coverage.xml` file and can be viewed in your IDE or CI system.
+
 ## 🛠️ Technologies Supported
 
 - WTC (Welding Technology Corporation) Controllers
@@ -37,6 +81,11 @@ A Python-based GUI application for industrial equipment troubleshooting and erro
 
 ```
 Troubleshooting-Wizard/
+├── tests/                  # Test files
+│   ├── __init__.py
+│   ├── conftest.py        # Test fixtures
+│   ├── test_*.py          # Unit tests
+│   └── integration/       # Integration tests
 ├── logs/
 │   └── app.log              # Application log files (auto-generated)
 ├── src/
