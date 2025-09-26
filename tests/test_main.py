@@ -7,7 +7,8 @@ avoiding direct testing of Tkinter UI components which are better tested manuall
 import os
 import sys
 import pytest
-from unittest.mock import MagicMock, patch, ANY
+from pathlib import Path
+from unittest.mock import MagicMock, patch, ANY, PropertyMock
 from typing import Dict, Any
 
 # Add the project root directory to the Python path
@@ -18,7 +19,7 @@ sys.modules['PIL'] = MagicMock()
 sys.modules['PIL.Image'] = MagicMock()
 sys.modules['PIL.ImageTk'] = MagicMock()
 
-# Import the main module
+# Import the main module after setting up mocks
 from src import main
 
 class MockUIStyleManager:
@@ -32,7 +33,9 @@ class MockUIStyleManager:
         }
     
     def create_modern_frame(self, *args, **kwargs):
-        return MagicMock()
+        frame = MagicMock()
+        frame.winfo_reqwidth.return_value = 100  # Return a default width for testing
+        return frame
     
     def create_modern_button(self, *args, **kwargs):
         return MagicMock()
@@ -76,33 +79,52 @@ def mock_root():
     mock = MagicMock()
     mock.winfo_screenwidth.return_value = 1920
     mock.winfo_screenheight.return_value = 1080
+    mock.tk = MagicMock()
+    # Add winfo_reqwidth and winfo_reqheight methods
+    mock.winfo_reqwidth.return_value = 100
+    mock.winfo_reqheight.return_value = 100
     return mock
 
 @pytest.fixture
-def app(mock_root):
+def app(mock_root, tmp_path):
     """Create an instance of MainApplication for testing with all UI components mocked."""
     with patch('src.main.SEWDatabaseManager'), \
          patch('src.main.UIStyleManager', new=MockUIStyleManager), \
          patch('src.main.os.path') as mock_path, \
          patch('src.main.tk.Frame'), \
          patch('src.main.tk.Toplevel'):
-        
+
         # Mock path operations
         mock_path.join.side_effect = os.path.join
-        mock_path.dirname.return_value = os.path.dirname(__file__)
+        mock_path.dirname.return_value = str(tmp_path)
         mock_path.exists.return_value = True
-        mock_path.abspath.side_effect = lambda x: x
+        mock_path.abspath.side_effect = lambda x: str(Path(x).absolute())
         
-        # Create the app instance
-        app = main.MainApplication(mock_root, TEST_JSON_DATA, os.path.dirname(__file__))
+        # Create a mock for the frame that will be returned by create_modern_frame
+        mock_frame = MagicMock()
+        mock_frame.winfo_reqwidth.return_value = 100
+        mock_frame.winfo_reqheight.return_value = 100
         
-        # Mock the view stack and current view
-        app.view_stack = []
-        app.current_view = MagicMock()
-        
-        # Mock window sizing methods
-        app.current_view.winfo_reqwidth.return_value = 800
-        app.current_view.winfo_reqheight.return_value = 600
+        # Patch the create_modern_frame method to return our mock frame
+        with patch('src.main.UIStyleManager.create_modern_frame', return_value=mock_frame):
+            # Create the app instance
+            app = main.MainApplication(mock_root, TEST_JSON_DATA, str(tmp_path))
+            # Mock the view stack and current view
+            app.view_stack = []
+            app.current_view = MagicMock()
+            
+            # Mock window sizing methods
+            app.current_view.winfo_reqwidth.return_value = 800
+            app.current_view.winfo_reqheight.return_value = 600
+            
+            # Mock the destroy method
+            app.current_view.destroy = MagicMock()
+            
+            # Mock the UI component creation
+            app._create_technology_buttons = MagicMock()
+            app._create_task_buttons = MagicMock()
+            
+            return app
         
         # Mock the destroy method
         app.current_view.destroy = MagicMock()
