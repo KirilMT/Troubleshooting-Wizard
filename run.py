@@ -7,6 +7,7 @@ from typing import Dict, Any
 from src.main import MainApplication
 from src.logging_config import setup_logging
 from src.health_check import run_health_checks
+from src.cache_manager import CacheManager
 
 def main() -> None:
     """Initializes and runs the Troubleshooting Wizard application."""
@@ -15,6 +16,11 @@ def main() -> None:
     # Run health checks
     if not run_health_checks():
         logging.warning("Some health checks failed, but continuing startup")
+    
+    # Initialize cache in data directory
+    cache_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "cache")
+    cache = CacheManager(cache_dir)
+    logging.debug(f"Cache initialized at {cache_dir}")
     
     # Create the root window but hide it initially
     root = tk.Tk()

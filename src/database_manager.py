@@ -9,6 +9,7 @@ import os
 import sqlite3
 import logging
 from typing import List, Dict, Any, Optional
+from .cache_manager import cached
 
 
 class SEWDatabaseManager:
@@ -17,6 +18,7 @@ class SEWDatabaseManager:
     def __init__(self, db_path: str) -> None:
         self.db_path = db_path
 
+    @cached(ttl=1800)  # Cache for 30 minutes
     def search_error_codes(self, error_code: Optional[str] = None, suberror_code: Optional[str] = None, error_designation: Optional[str] = None) -> List[Dict[str, Any]]:
         """Search for error codes in the SEW database based on provided criteria."""
         if not os.path.exists(self.db_path):

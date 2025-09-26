@@ -90,3 +90,7 @@ data/*.sqlite3
 # Logs
 *.log
 logs/
+
+# Application cache
+data/cache/
+cache/
