@@ -124,16 +124,11 @@ def app(mock_root, tmp_path):
             app._create_technology_buttons = MagicMock()
             app._create_task_buttons = MagicMock()
             
-            return app
-        
-        # Mock the destroy method
-        app.current_view.destroy = MagicMock()
-        
-        # Mock the UI component creation
-        app._create_technology_buttons = MagicMock()
-        app._create_task_buttons = MagicMock()
-        
-        yield app
+            # Yield the app instance for testing
+            yield app
+            
+            # Cleanup after the test
+            app.current_view.destroy()
 
 def test_initialization(app):
     """Test that the MainApplication initializes correctly."""
