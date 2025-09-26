@@ -2,7 +2,7 @@ import logging
 import os
 from logging.handlers import TimedRotatingFileHandler
 
-def setup_logging():
+def setup_logging() -> None:
     """Configures a robust logging system for the application."""
     # Create logs directory if it doesn't exist
     log_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'logs')

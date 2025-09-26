@@ -3,10 +3,11 @@ from tkinter import messagebox
 import json
 import os
 import logging
+from typing import Dict, Any
 from src.main import MainApplication
 from src.logging_config import setup_logging
 
-def main():
+def main() -> None:
     """Initializes and runs the Troubleshooting Wizard application."""
     setup_logging() # Initialize logging
     

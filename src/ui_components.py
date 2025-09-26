@@ -7,16 +7,17 @@ for consistent application theming and modern interface elements.
 
 import tkinter as tk
 from tkinter import ttk
+from typing import Dict, Any, Callable, Optional
 
 
 class UIStyleManager:
     """Manages consistent styling and UI component creation for the application."""
     
-    def __init__(self):
+    def __init__(self) -> None:
         self._configure_color_palette()
         self._configure_ttk_styles()
     
-    def _configure_color_palette(self):
+    def _configure_color_palette(self) -> None:
         """Configures modern color palette with navigation hierarchy."""
         self.colors = {
             'technology': '#4A90E2',      # Blue for technology buttons
@@ -42,7 +43,7 @@ class UIStyleManager:
             'bg_error': '#FFE4C4'         # Medium light orange
         }
     
-    def _configure_ttk_styles(self):
+    def _configure_ttk_styles(self) -> None:
         """Configure ttk styles for elements that must use ttk."""
         style = ttk.Style()
         style.configure("Modern.TFrame", background=self.colors['background'])
@@ -55,7 +56,7 @@ class UIStyleManager:
                        foreground=self.colors['text_primary'], 
                        font=("Segoe UI", 10, "bold"))
 
-    def create_modern_button(self, parent, text, command, style='technology', **kwargs):
+    def create_modern_button(self, parent: tk.Widget, text: str, command: Callable, style: str = 'technology', **kwargs: Any) -> tk.Button:
         """Creates a modern flat button with consistent styling."""
         font_weight = "normal"
         
@@ -79,14 +80,14 @@ class UIStyleManager:
                         activebackground=hover_bg, activeforeground=fg,
                         cursor="hand2", **kwargs)
 
-    def create_modern_entry(self, parent, **kwargs):
+    def create_modern_entry(self, parent: tk.Widget, **kwargs: Any) -> tk.Entry:
         """Creates a modern entry widget with consistent styling."""
         return tk.Entry(parent, font=("Segoe UI", 10), relief="flat", bd=0,
                        highlightthickness=2, highlightcolor=self.colors['technology'],
                        bg=self.colors['surface'], fg=self.colors['text_primary'],
                        insertbackground=self.colors['text_primary'], **kwargs)
 
-    def create_modern_label(self, parent, text, bold=False, style='normal', **kwargs):
+    def create_modern_label(self, parent: tk.Widget, text: str, bold: bool = False, style: str = 'normal', **kwargs: Any) -> tk.Label:
         """Creates a modern label with consistent styling."""
         if style == 'title':
             font = ("Segoe UI", 12, "bold")
@@ -102,12 +103,12 @@ class UIStyleManager:
         bg_color = kwargs.pop('bg', self.colors['background'])
         return tk.Label(parent, text=text, font=font, fg=fg, bg=bg_color, **kwargs)
 
-    def create_modern_frame(self, parent, **kwargs):
+    def create_modern_frame(self, parent: tk.Widget, **kwargs: Any) -> tk.Frame:
         """Creates a modern frame with consistent styling."""
         bg_color = kwargs.pop('bg', self.colors['background'])
         return tk.Frame(parent, bg=bg_color, **kwargs)
 
-    def set_window_theme(self, root_window, theme='technology'):
+    def set_window_theme(self, root_window: tk.Tk, theme: str = 'technology') -> str:
         """Sets the window background color based on theme."""
         if theme == 'technology':
             bg_color = self.colors['bg_technology']
@@ -121,7 +122,7 @@ class UIStyleManager:
         root_window.configure(bg=bg_color)
         return bg_color
 
-    def create_back_button_area(self, parent_frame, button_text, command):
+    def create_back_button_area(self, parent_frame: tk.Frame, button_text: str, command: Callable) -> tk.Frame:
         """Creates a standardized back button area with separator."""
         back_frame = tk.Frame(parent_frame, bg=parent_frame['bg'])
         back_frame.pack(fill="x", padx=5, pady=(5, 10))
@@ -135,7 +136,7 @@ class UIStyleManager:
         
         return back_frame
 
-    def create_dual_back_button_area(self, parent_frame, primary_text, primary_command, secondary_text, secondary_command):
+    def create_dual_back_button_area(self, parent_frame: tk.Frame, primary_text: str, primary_command: Callable, secondary_text: str, secondary_command: Callable) -> tk.Frame:
         """Creates two back buttons on the same row with one separator below both."""
         back_frame = tk.Frame(parent_frame, bg=parent_frame['bg'])
         back_frame.pack(fill="x", padx=5, pady=(5, 10))

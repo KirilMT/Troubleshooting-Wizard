@@ -11,6 +11,7 @@ from PIL import Image, ImageTk
 import json
 import os
 import logging
+from typing import Dict, Any, List, Tuple, Optional
 
 # Import from our new modules
 from .pdf_viewer import PDFViewerWindow
@@ -19,7 +20,7 @@ from .ui_components import UIStyleManager
 
 
 class MainApplication:
-    def __init__(self, root_window, initial_json_data, script_dir):
+    def __init__(self, root_window: tk.Tk, initial_json_data: Dict[str, Any], script_dir: str) -> None:
         self.root = root_window
         self.root.title(initial_json_data["MainApplication"]["title"])
         self.script_dir = script_dir # This is now the project root
@@ -36,14 +37,14 @@ class MainApplication:
         
         self.show_main_program()
 
-    def _set_window_dimensions(self, width, height):
+    def _set_window_dimensions(self, width: int, height: int) -> None:
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         x = (screen_width - width) // 2
         y = (screen_height - height) // 2
         self.root.geometry(f"{width}x{height}+{x}+{y}")
 
-    def show_main_program(self):
+    def show_main_program(self) -> None:
         self.destroy_current_view()
         self.view_stack.clear()
         # Set technology theme
@@ -74,7 +75,7 @@ class MainApplication:
         req_height = main_program_frame.winfo_reqheight() + 20
         self._set_window_dimensions(req_width, req_height)
 
-    def show_technology(self, tech_data):
+    def show_technology(self, tech_data: Dict[str, Any]) -> None:
         self.destroy_current_view()
         self.view_stack.append((self.show_main_program, None))
         # Set task theme
@@ -99,7 +100,7 @@ class MainApplication:
         req_height = tech_frame.winfo_reqheight() + 20
         self._set_window_dimensions(req_width, req_height)
 
-    def _modify_tasks(self, tech_data):
+    def _modify_tasks(self, tech_data: Dict[str, Any]) -> None:
         tasks = tech_data.get("tasks", [])
         for index, task_data in enumerate(tasks):
             task_title = list(task_data.keys())[0]
@@ -121,7 +122,7 @@ class MainApplication:
             )
             button.pack(pady=3)
 
-    def show_task(self, task_attributes, tech_data):
+    def show_task(self, task_attributes: Dict[str, Any], tech_data: Dict[str, Any]) -> None:
         task_type = task_attributes.get("task_type")
         if task_type == "error_codes":
             self.show_error_codes(task_attributes, tech_data)
@@ -135,7 +136,7 @@ class MainApplication:
                 logging.error("Task with type 'open_url' is missing a 'url_path'.")
                 messagebox.showwarning("Configuration Error", "This task is configured to open a file, but the file path is missing.")
 
-    def show_error_codes(self, task_attributes, tech_data):
+    def show_error_codes(self, task_attributes: Dict[str, Any], tech_data: Dict[str, Any]) -> None:
         self.destroy_current_view()
         self.view_stack.append((self.show_technology, tech_data))
         
@@ -502,7 +503,7 @@ class MainApplication:
         current_width = self.root.winfo_width()
         self._set_window_dimensions(current_width, req_height)
 
-    def _replace_variables(self, text):
+    def _replace_variables(self, text: str) -> str:
         while "{{" in text and "}}" in text:
             start_index = text.find("{{")
             end_index = text.find("}}")
@@ -517,11 +518,11 @@ class MainApplication:
                 break
         return text
 
-    def destroy_current_view(self):
+    def destroy_current_view(self) -> None:
         if self.current_view:
             self.current_view.destroy()
 
-    def show_previous_view(self):
+    def show_previous_view(self) -> None:
         if self.view_stack:
             self.destroy_current_view()
             previous_view_func, previous_view_data = self.view_stack.pop()
@@ -530,7 +531,7 @@ class MainApplication:
             else:
                 previous_view_func()
 
-    def _open_pdf_viewer(self, url_path, page_number=None, search_term=""):
+    def _open_pdf_viewer(self, url_path: str, page_number: Optional[int] = None, search_term: str = "") -> None:
         """Opens the PDF viewer to a specific page, optionally with a search term."""
         # Construct the full path to the PDF file.
         full_path = os.path.join(self.script_dir, url_path)

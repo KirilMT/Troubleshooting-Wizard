@@ -8,15 +8,16 @@ and other data persistence operations.
 import os
 import sqlite3
 import logging
+from typing import List, Dict, Any, Optional
 
 
 class SEWDatabaseManager:
     """Manages SEW error code database operations."""
 
-    def __init__(self, db_path):
+    def __init__(self, db_path: str) -> None:
         self.db_path = db_path
 
-    def search_error_codes(self, error_code=None, suberror_code=None, error_designation=None):
+    def search_error_codes(self, error_code: Optional[str] = None, suberror_code: Optional[str] = None, error_designation: Optional[str] = None) -> List[Dict[str, Any]]:
         """Search for error codes in the SEW database based on provided criteria."""
         if not os.path.exists(self.db_path):
             logging.critical(f"Database file not found at {self.db_path}")
