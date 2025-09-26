@@ -3,25 +3,26 @@ from tkinter import messagebox
 import json
 import os
 import logging
-from typing import Dict, Any
+
 from src.main import MainApplication
 from src.logging_config import setup_logging
 from src.health_check import run_health_checks
 from src.cache_manager import CacheManager
 
+
 def main() -> None:
     """Initializes and runs the Troubleshooting Wizard application."""
-    setup_logging() # Initialize logging
-    
+    setup_logging()  # Initialize logging
+
     # Run health checks
     if not run_health_checks():
         logging.warning("Some health checks failed, but continuing startup")
-    
-    # Initialize cache in data directory
-    cache_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "cache")
-    cache = CacheManager(cache_dir)
-    logging.debug(f"Cache initialized at {cache_dir}")
-    
+
+    # Initialize global cache in data directory
+    from src.cache_manager import _get_global_cache
+    cache = _get_global_cache()
+    logging.debug(f"Cache initialized at {cache.cache_dir}")
+
     # Create the root window but hide it initially
     root = tk.Tk()
     root.withdraw()
@@ -41,7 +42,9 @@ def main() -> None:
         logging.debug(f"Loading user configuration from {data_path}")
     elif os.path.exists(example_data_path):
         json_path_to_load = example_data_path
-        logging.warning(f"User configuration 'data.json' not found. Falling back to {example_data_path}")
+        logging.warning(
+            f"User configuration 'data.json' not found. Falling back to {example_data_path}"
+        )
 
     if not json_path_to_load:
         error_msg = "Critical Error: Neither 'data.json' nor 'example_data.json' could be found in the 'data' directory."
@@ -51,7 +54,7 @@ def main() -> None:
         return
 
     try:
-        with open(json_path_to_load, 'r', encoding='utf-8') as f:
+        with open(json_path_to_load, "r", encoding="utf-8") as f:
             initial_json_data = json.load(f)
     except json.JSONDecodeError as e:
         error_msg = f"Error: The data file at {json_path_to_load} is corrupted or not a valid JSON file.\n\nDetails: {e}"
@@ -60,16 +63,19 @@ def main() -> None:
         root.destroy()
         return
     except Exception as e:
-        error_msg = f"An unexpected error occurred while loading {json_path_to_load}.\n\nDetails: {e}"
+        error_msg = (
+            f"An unexpected error occurred while loading {json_path_to_load}.\n\nDetails: {e}"
+        )
         logging.critical(error_msg)
         messagebox.showerror("File Load Error", error_msg)
         root.destroy()
         return
 
     # If everything is fine, show the window and run the app
-    root.deiconify() 
-    app = MainApplication(root, initial_json_data, script_dir) # Pass the root project dir
+    root.deiconify()
+    MainApplication(root, initial_json_data, script_dir)  # Pass the root project dir
     root.mainloop()
+
 
 if __name__ == "__main__":
     main()
