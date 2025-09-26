@@ -20,6 +20,7 @@ def main() -> None:
 
     # Initialize global cache in data directory
     from src.cache_manager import _get_global_cache
+
     cache = _get_global_cache()
     logging.debug(f"Cache initialized at {cache.cache_dir}")
 
