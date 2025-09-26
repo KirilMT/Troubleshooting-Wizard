@@ -1,8 +1,8 @@
-"""
-Database Manager Module for Troubleshooting Wizard
+"""Database Manager Module for Troubleshooting Wizard.
 
-This module contains database management classes for handling error code databases
-and other data persistence operations.
+This module provides database management functionality for the Troubleshooting Wizard application,
+including searching and retrieving error code information from SQLite databases. It handles all
+interactions with the error code database, including query optimization and result caching.
 """
 
 import os
@@ -14,9 +14,23 @@ from .search_optimizer import SearchOptimizer
 
 
 class SEWDatabaseManager:
-    """Manages SEW error code database operations."""
+    """Manages SEW error code database operations.
+    
+    This class provides methods to search and retrieve error code information from the SEW
+    error code database. It includes caching mechanisms and query optimization for better
+    performance.
+    
+    Attributes:
+        db_path (str): Path to the SQLite database file.
+        search_optimizer (SearchOptimizer): Instance of SearchOptimizer for query optimization.
+    """
 
     def __init__(self, db_path: str) -> None:
+        """Initialize the SEWDatabaseManager with a path to the database file.
+        
+        Args:
+            db_path: Path to the SQLite database file containing error code information.
+        """
         self.db_path = db_path
         self.search_optimizer = SearchOptimizer()
 
@@ -27,7 +41,31 @@ class SEWDatabaseManager:
         suberror_code: Optional[str] = None,
         error_designation: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
-        """Search for error codes in the SEW database based on provided criteria."""
+        """Search for error codes in the SEW database based on provided criteria.
+        
+        Performs a case-insensitive search across error codes, sub-error codes, and error
+        designations. Results are cached for 30 minutes to improve performance.
+        
+        Args:
+            error_code: Full or partial error code to search for (e.g., 'F001').
+            suberror_code: Full or partial sub-error code to search for (e.g., '1').
+            error_designation: Text to search within error descriptions.
+            
+        Returns:
+            A list of dictionaries, where each dictionary represents a matching error code
+            with its associated information. Returns an empty list if no matches are found
+            or if an error occurs.
+            
+        Example:
+            >>> db = SEWDatabaseManager('error_codes.db')
+            >>> results = db.search_error_codes(error_code='F001')
+            >>> print(results)
+            [{'error_code': 'F001', 'suberror_code': '1', 'error_designation': 'Motor overload', ...}]
+            
+        Note:
+            At least one search parameter must be provided. If no parameters are provided,
+            an empty list will be returned.
+        """
         if not os.path.exists(self.db_path):
             logging.critical(f"Database file not found at {self.db_path}")
             return []

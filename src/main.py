@@ -1,8 +1,15 @@
-"""
-Refactored Main Application Module for Troubleshooting Wizard
+"""Main Application Module for Troubleshooting Wizard.
 
-This module contains the simplified MainApplication class that uses
-the modular components from separate modules.
+This module contains the MainApplication class which serves as the core of the
+Troubleshooting Wizard application. It manages the user interface, navigation,
+and integration of various components like PDF viewing, error code lookup, and
+interactive troubleshooting guides.
+
+Key Features:
+- Dynamic UI generation based on configuration
+- Navigation stack for intuitive back/forward functionality
+- Themed interfaces for different sections (Technology, Tasks, Error Codes)
+- Integration with PDF viewer and database components
 """
 
 import tkinter as tk
@@ -20,9 +27,34 @@ from .ui_components import UIStyleManager
 
 
 class MainApplication:
+    """Main application class for the Troubleshooting Wizard.
+    
+    This class manages the main application window, user interface, and navigation
+    between different views. It handles the application's lifecycle and coordinates
+    between different components.
+    
+    Attributes:
+        root (tk.Tk): The root Tkinter window.
+        script_dir (str): Directory containing the application files.
+        initial_width (int): Initial window width in pixels.
+        initial_height (int): Initial window height in pixels.
+        json_data (Dict[str, Any]): Configuration data loaded from JSON.
+        current_view (Optional[tk.Widget]): Currently displayed view widget.
+        view_stack (List[Tuple[Callable, Any]]): Navigation stack for back functionality.
+        variables (Dict[str, Any]): Variables for dynamic content substitution.
+        ui_style (UIStyleManager): Manager for UI styling and theming.
+    """
+    
     def __init__(
         self, root_window: tk.Tk, initial_json_data: Dict[str, Any], script_dir: str
     ) -> None:
+        """Initialize the MainApplication.
+        
+        Args:
+            root_window: The root Tkinter window.
+            initial_json_data: Configuration data for the application.
+            script_dir: Directory containing the application files.
+        """
         self.root = root_window
         self.root.title(initial_json_data["MainApplication"]["title"])
         self.script_dir = script_dir  # This is now the project root
@@ -40,6 +72,12 @@ class MainApplication:
         self.show_main_program()
 
     def _set_window_dimensions(self, width: int, height: int) -> None:
+        """Set the window dimensions and center it on the screen.
+        
+        Args:
+            width: Desired window width in pixels.
+            height: Desired window height in pixels.
+        """
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         x = (screen_width - width) // 2
@@ -47,6 +85,15 @@ class MainApplication:
         self.root.geometry(f"{width}x{height}+{x}+{y}")
 
     def show_main_program(self) -> None:
+        """Display the main program interface with technology selection.
+        
+        This method creates and displays the main menu where users can select
+        from different technology options. It clears any existing views and
+        resets the navigation stack.
+        
+        The interface is dynamically sized based on the number of technology
+        buttons and their content.
+        """
         self.destroy_current_view()
         self.view_stack.clear()
         # Set technology theme
@@ -78,6 +125,12 @@ class MainApplication:
         self._set_window_dimensions(req_width, req_height)
 
     def show_technology(self, tech_data: Dict[str, Any]) -> None:
+        """Display the tasks available for a selected technology.
+        
+        Args:
+            tech_data: Dictionary containing technology-specific configuration
+                     including available tasks and their properties.
+        """
         self.destroy_current_view()
         self.view_stack.append((self.show_main_program, None))
         # Set task theme
@@ -101,6 +154,15 @@ class MainApplication:
         self._set_window_dimensions(req_width, req_height)
 
     def _modify_tasks(self, tech_data: Dict[str, Any]) -> None:
+        """Create and configure task buttons for the selected technology.
+        
+        This internal method processes the task definitions and creates
+        appropriate UI buttons for each task. It handles special styling
+        for error code tasks.
+        
+        Args:
+            tech_data: Technology configuration containing task definitions.
+        """
         tasks = tech_data.get("tasks", [])
         for index, task_data in enumerate(tasks):
             task_title = list(task_data.keys())[0]
@@ -127,6 +189,22 @@ class MainApplication:
             button.pack(pady=3)
 
     def show_task(self, task_attributes: Dict[str, Any], tech_data: Dict[str, Any]) -> None:
+        """Handle task execution based on task type.
+        
+        Routes the task to the appropriate handler based on the task_type specified
+        in the task attributes. Supports different types of tasks like error code lookups
+        and PDF viewing.
+        
+        Args:
+            task_attributes: Dictionary containing task configuration including
+                           task_type and other task-specific parameters.
+            tech_data: The technology configuration this task belongs to.
+            
+        Note:
+            Currently supported task types:
+            - 'error_codes': Displays error code lookup interface
+            - 'open_url': Opens a PDF document at a specific page
+        """
         task_type = task_attributes.get("task_type")
         if task_type == "error_codes":
             self.show_error_codes(task_attributes, tech_data)
@@ -144,6 +222,20 @@ class MainApplication:
                 )
 
     def show_error_codes(self, task_attributes: Dict[str, Any], tech_data: Dict[str, Any]) -> None:
+        """Display the error code interface for the selected technology.
+        
+        Shows either a specialized SEW error code database interface (for SEW technologies)
+        or a traditional search interface for other technologies. Handles database
+        availability checks and error handling.
+        
+        Args:
+            task_attributes: Configuration for the error code task.
+            tech_data: The technology configuration this task belongs to.
+            
+        Note:
+            For SEW technologies, expects a SQLite database at 'data/errorCodesTechnologies.db'.
+            Falls back to traditional search if database is not found.
+        """
         self.destroy_current_view()
         self.view_stack.append((self.show_technology, tech_data))
 
@@ -195,7 +287,17 @@ class MainApplication:
             req_height = max(300, error_codes_frame.winfo_reqheight() + 20)
         self._set_window_dimensions(req_width, req_height)
 
-    def _show_traditional_search_interface(self, parent_frame, task_attributes):
+    def _show_traditional_search_interface(self, parent_frame: tk.Widget, task_attributes: Dict[str, Any]) -> None:
+        """Display the traditional error code search interface.
+        
+        Creates a simple search interface for non-SEW technologies that allows users
+        to search through error codes and view their descriptions. This is a fallback
+        interface when a dedicated database is not available.
+        
+        Args:
+            parent_frame: The parent widget to contain the search interface.
+            task_attributes: Configuration for the error code task.
+        """
         # Main content area (minimal padding)
         content_frame = self.ui_style.create_modern_frame(parent_frame, bg=parent_frame["bg"])
         content_frame.pack(fill="both", expand=True, padx=5)
@@ -244,7 +346,18 @@ class MainApplication:
             ),
         )
 
-    def _show_sew_database_interface(self, parent_frame, measure_only=False):
+    def _show_sew_database_interface(self, parent_frame: tk.Widget, measure_only: bool = False) -> None:
+        """Display the SEW error code database interface.
+        
+        Creates an advanced search interface for SEW technologies that connects to
+        a SQLite database of error codes. Includes search fields for error codes,
+        sub-error codes, and descriptions.
+        
+        Args:
+            parent_frame: The parent widget to contain the database interface.
+            measure_only: If True, only measures the required size without creating widgets.
+                         Used for layout calculations.
+        """
         # Create main container with modern styling
         main_container = self.ui_style.create_modern_frame(parent_frame, bg=parent_frame["bg"])
         main_container.pack(fill="both", expand=True, padx=10, pady=5)
@@ -383,8 +496,16 @@ class MainApplication:
             height = min(max_height, max(400, self.root.winfo_reqheight()))
             self._set_window_dimensions(width, height)
 
-    def _show_help_image(self):
-        """Displays the help image in a new window."""
+    def _show_help_image(self) -> None:
+        """Display the help image in a new window.
+        
+        Opens a modal window showing a help image that provides visual guidance
+        on how to use the error code search functionality. The window includes
+        a close button and is centered on the screen.
+        
+        The help image is expected to be located at 'media/example_lenze_errors.png'.
+        If the image is not found, an error message is displayed.
+        """
         image_path = os.path.join(self.script_dir, "media", "SEW_MoviPro_movitools_parameters.jpg")
         try:
             help_win = tk.Toplevel(self.root)
@@ -413,7 +534,13 @@ class MainApplication:
                 self.json_data["labels"]["sew_db_help_error_message"].format(e=e),
             )
 
-    def _show_search_instructions(self):
+    def _show_search_instructions(self) -> None:
+        """Display search instructions in a message box.
+        
+        Shows a help dialog with instructions on how to use the search
+        functionality, including tips for effective searching and available
+        search operators.
+        """
         for widget in self.results_frame.winfo_children():
             widget.destroy()
         instructions_frame = ttk.Frame(self.results_frame)
@@ -449,10 +576,25 @@ class MainApplication:
         req_height = min(max_height, max(400, self.root.winfo_reqheight()))
         self._set_window_dimensions(req_width, req_height)
 
-    def _format_single_line_content(self, text):
+    def _format_single_line_content(self, text: str) -> str:
+        """Format text content to be displayed on a single line.
+        
+        Processes the input text to ensure it displays properly on a single line
+        by replacing newlines with spaces and normalizing whitespace.
+        
+        Args:
+            text: The input text to format.
+            
+        Returns:
+            The formatted text with newlines replaced by spaces and extra whitespace removed.
+            
+        Example:
+            >>> app._format_single_line_content("line1\nline2\n   line3   ")  # doctest: +NORMALIZE_WHITESPACE
+            'line1 line2 line3'
+        """
         if not text or text.strip() == "":
             return self.json_data["labels"]["sew_db_not_specified"]
-        return " ".join(text.replace("\n", " ").replace("\n", " ").split())
+        return " ".join(text.replace("\n", " ").split())
 
     def _show_error_card(self, error_data):
         for widget in self.results_frame.winfo_children():
@@ -536,7 +678,22 @@ class MainApplication:
             )
             actions_text.pack(fill="x")
 
-    def _format_text_content(self, text):
+    def _format_text_content(self, text: str) -> str:
+        """Format multi-line text content with proper indentation and line breaks.
+        
+        Processes the input text to ensure proper formatting with consistent
+        indentation and line breaks. Handles special cases like lists and code blocks.
+        
+        Args:
+            text: The input text to format.
+            
+        Returns:
+            The formatted text with proper indentation and line breaks.
+            
+        Note:
+            This method preserves the structure of the text while normalizing
+            whitespace and ensuring consistent formatting.
+        """
         if not text or text.strip() == "":
             return self.json_data["labels"]["sew_db_not_specified"]
         text = text.replace("\n", "\n")
@@ -596,7 +753,19 @@ class MainApplication:
         )
         suggestions_label.pack()
 
-    def _display_error_code_image(self, parent_frame, image_path):
+    def _display_error_code_image(self, parent_frame: tk.Widget, image_path: str) -> None:
+        """Display an error code reference image in the interface.
+        
+        Loads and displays an image from the specified path in the given parent frame.
+        The image is resized to fit the available space while maintaining aspect ratio.
+        
+        Args:
+            parent_frame: The parent widget to contain the image.
+            image_path: Path to the image file to display.
+            
+        Note:
+            If the image cannot be loaded, an error message is displayed in the UI.
+        """
         """Display an error code reference image in the interface."""
         try:
             full_image_path = os.path.join(self.script_dir, image_path)
@@ -619,7 +788,16 @@ class MainApplication:
         except Exception as e:
             logging.warning(f"Failed to load error code image '{image_path}': {e}")
 
-    def search_sew_error_codes(self):
+    def search_sew_error_codes(self) -> None:
+        """Search for error codes in the SEW database.
+        
+        Performs a search in the SEW error code database using the current
+        search criteria (error code, sub-error code, and description).
+        Displays the search results in the results frame.
+        
+        The search is case-insensitive and supports partial matches. If no
+        search criteria are provided, a message is shown to the user.
+        """
         db_path = os.path.join(self.script_dir, "data", "errorCodesTechnologies.db")
         if not os.path.exists(db_path):
             logging.error(f"Database file not found at {db_path}")
@@ -653,6 +831,24 @@ class MainApplication:
         self._set_window_dimensions(current_width, req_height)
 
     def _replace_variables(self, text: str) -> str:
+        """Replace placeholders in the text with their corresponding values.
+        
+        Processes the input text and replaces any variables in the format
+        ${variable_name} with their corresponding values from the application's
+        variables dictionary.
+        
+        Args:
+            text: The input text containing variables to be replaced.
+            
+        Returns:
+            The text with all variables replaced by their values. If a variable
+            is not found, it remains unchanged in the output.
+            
+        Example:
+            >>> app.variables = {'version': '1.0', 'app_name': 'Troubleshooter'}
+            >>> app._replace_variables('Welcome to ${app_name} v${version}')
+            'Welcome to Troubleshooter v1.0'
+        """
         while "{{" in text and "}}" in text:
             start_index = text.find("{{")
             end_index = text.find("}}")
@@ -668,10 +864,31 @@ class MainApplication:
         return text
 
     def destroy_current_view(self) -> None:
+        """Destroy the current view widget and clean up resources.
+        
+        Safely removes the current view widget from the UI and performs
+        any necessary cleanup. This method ensures proper widget destruction
+        to prevent memory leaks.
+        
+        Note:
+            This method is typically called before switching to a new view
+            to maintain clean UI state.
+        """
         if self.current_view:
             self.current_view.destroy()
 
     def show_previous_view(self) -> None:
+        """Navigate back to the previous view in the navigation stack.
+        
+        Pops the most recent view from the navigation stack and displays it.
+        This allows users to navigate back through their view history.
+        
+        If the navigation stack is empty, this method does nothing.
+        
+        Note:
+            Each view function in the stack is called with its saved context
+            to restore the previous state.
+        """
         if self.view_stack:
             self.destroy_current_view()
             previous_view_func, previous_view_data = self.view_stack.pop()

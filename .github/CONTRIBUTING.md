@@ -2,6 +2,13 @@
 
 We'd love to accept your patches and contributions to this project. There are just a few small guidelines you need to follow.
 
+## Table of Contents
+- [Community Guidelines](#community-guidelines)
+- [Contribution Process](#contribution-process)
+- [Testing Guidelines](#testing-guidelines)
+- [Code Style](#code-style)
+- [The Review Process](#the-review-process)
+
 ## Community Guidelines
 
 ### Our Pledge
@@ -44,10 +51,70 @@ To get started, you'll need to set up the project on your local machine. This wi
 
 1.  **Follow the setup guide**: Complete the steps in the [⚙️ Setup and Installation](./../README.md#️-setup-and-installation) section of the main `README.md` file. This includes cloning the repository, creating a virtual environment, and installing the required dependencies.
 
-2.  **Run the application**: Once your environment is set up, run the application to ensure everything is working correctly:
+2.  **Install development dependencies**:
+    ```bash
+    pip install -r requirements-dev.txt
+    ```
+
+3.  **Run the application**: Once your environment is set up, run the application to ensure everything is working correctly:
     ```bash
     python run.py
     ```
+
+## Testing Guidelines
+
+### Running Tests
+
+We use `pytest` for testing. To run all tests:
+
+```bash
+python -m pytest tests/
+```
+
+To run a specific test file:
+
+```bash
+python -m pytest tests/test_database_manager.py
+```
+
+To run a specific test function:
+
+```bash
+python -m pytest tests/test_database_manager.py::test_search_error_codes
+```
+
+### Test Organization
+
+- Unit tests are in the `tests/` directory
+- Integration tests are in `tests/integration/`
+- Test files are named `test_*.py`
+- Test functions are named `test_*`
+
+### Writing Tests
+
+- Each test should be small and test one specific piece of functionality
+- Use descriptive test names
+- Use fixtures for common test setup/teardown (see `tests/conftest.py` for examples)
+- Mock external dependencies when necessary
+- Place test data in the `tests/data` directory
+
+### Testing Best Practices
+
+- Tests should be fast and independent
+- Tests should not depend on external services
+- Use the `conftest.py` file for shared fixtures
+- Keep test data in the `tests/data` directory
+- When modifying functionality, ensure corresponding tests are updated
+
+## Code Style
+
+We use `black` for code formatting and `flake8` for linting. Before committing, run:
+
+```bash
+python tools/format_code.py
+```
+
+This will automatically format your code and check for style issues.
 
 ### Before Contributing Code
 
