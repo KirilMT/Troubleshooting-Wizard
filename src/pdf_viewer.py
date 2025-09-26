@@ -186,6 +186,7 @@ class PDFViewerWindow(tk.Toplevel):
 
         self.search_entry = ttk.Entry(search_controls_frame, width=30, textvariable=self.search_term)
         self.search_entry.pack(side=tk.LEFT)
+        self.search_entry.bind("<Return>", lambda e: self.search_and_highlight())
         search_btn = ttk.Button(search_controls_frame, text="Search", command=self.search_and_highlight)
         search_btn.pack(side=tk.LEFT, padx=5)
 

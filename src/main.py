@@ -217,6 +217,9 @@ class MainApplication:
                                                           lambda: self._open_pdf_viewer(task_attributes.get("url_path"), search_term=search_entry.get()),
                                                           style='submit')
         search_button.grid(row=1, column=1, sticky="e", pady=(8, 0))
+        
+        # Bind Enter key to search
+        search_entry.bind("<Return>", lambda e: self._open_pdf_viewer(task_attributes.get("url_path"), search_term=search_entry.get()))
 
     def _show_sew_database_interface(self, parent_frame, measure_only=False):
         # Create main container with modern styling
