@@ -1,0 +1,36 @@
+name: Code Quality
+
+on:
+  push:
+    branches: [ main, master, develop ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python 3.7
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.7'
+    
+    - name: Install code quality tools
+      run: |
+        python -m pip install --upgrade pip
+        pip install black flake8 pre-commit
+    
+    - name: Run Black formatter check
+      run: |
+        black --check --line-length=100 src/ run.py
+    
+    - name: Run Flake8 linter
+      run: |
+        flake8 src/ run.py --max-line-length=100 --ignore=E203,W503,F541
+    
+    - name: Run pre-commit hooks
+      run: |
+        pre-commit run --all-files
