@@ -26,6 +26,8 @@ jobs:
     - name: Run Black formatter check
       run: |
         black --check --line-length=100 src/ run.py
+      env:
+        PYTHONIOENCODING: utf-8
     
     - name: Run Flake8 linter
       run: |

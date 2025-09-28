@@ -94,3 +94,5 @@ logs/
 # Application cache
 data/cache/
 cache/
+/.amazonq/rules/project-context.md
+/.amazonq/rules/global-instructions.md
