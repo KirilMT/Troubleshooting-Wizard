@@ -874,12 +874,14 @@ class PDFViewerWindow(tk.Toplevel):
             self.page_text_data[page_num] = page_chars
             self.page_char_map[page_num] = char_map
 
-            # Debug logging
+            # Debug logging with Unicode safety
             logging.debug(f"Extracted {len(page_chars)} characters from page {page_num}")
             logging.debug(f"Character map has {len(char_map)} coordinate mappings")
             if page_chars:
-                logging.debug(f"First char: '{page_chars[0]['char']}' at {page_chars[0]['bbox']}")
-                logging.debug(f"Last char: '{page_chars[-1]['char']}' at {page_chars[-1]['bbox']}")
+                first_char = repr(page_chars[0]['char'])  # Use repr() for safe Unicode display
+                last_char = repr(page_chars[-1]['char'])   # Use repr() for safe Unicode display
+                logging.debug(f"First char: {first_char} at {page_chars[0]['bbox']}")
+                logging.debug(f"Last char: {last_char} at {page_chars[-1]['bbox']}")
 
         except Exception as e:
             logging.error(f"Failed to extract text using rawdict from page {page_num}: {e}")
