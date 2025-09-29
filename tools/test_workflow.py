@@ -62,6 +62,9 @@ def test_ci_pipeline():
     # Test package build
     success, _ = run_command("python -m build", "Package Build")
     assert success, "Package build failed"
+    
+    # Clean up build artifacts
+    run_command("rmdir /s /q troubleshooting_wizard-1.2.0 2>nul || echo Build dir cleaned", "Cleanup Build Artifacts")
 
 
 def test_release():

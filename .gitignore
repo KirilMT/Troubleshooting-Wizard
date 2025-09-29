@@ -44,6 +44,10 @@ dist/
 *.manifest
 *.spec
 
+# Python build artifacts
+troubleshooting_wizard-*/
+*.egg-info/
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

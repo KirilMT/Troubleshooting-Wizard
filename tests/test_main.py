@@ -86,6 +86,10 @@ def app(mock_root):
     """Create an instance of MainApplication for testing with all UI components mocked."""
     with patch('src.main.SEWDatabaseManager'), \
          patch('src.main.UIStyleManager', new=MockUIStyleManager), \
+         patch('src.main.os.path.join', side_effect=os.path.join), \
+         patch('src.main.os.path.dirname', return_value=os.path.dirname(__file__)), \
+         patch('src.main.os.path.exists', return_value=True), \
+         patch('src.main.os.path.abspath', side_effect=lambda x: x), \
          patch('src.main.tk.Frame') as mock_frame, \
          patch('src.main.tk.Toplevel'):
         
@@ -97,7 +101,7 @@ def app(mock_root):
         
         # Patch the show_main_program method to avoid UI creation during init
         with patch.object(main.MainApplication, 'show_main_program'):
-            app = main.MainApplication(mock_root, TEST_JSON_DATA, "/test/path")
+            app = main.MainApplication(mock_root, TEST_JSON_DATA, os.path.dirname(__file__))
         
         # Mock the view stack and current view
         app.view_stack = []
