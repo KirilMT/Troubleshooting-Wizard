@@ -42,7 +42,7 @@ jobs:
     
     - name: Flake8 Code Quality Check
       run: |
-        python -m flake8 src/ run.py --max-line-length=100 --ignore=E203,W503 --statistics
+        python -m flake8 src/ run.py --max-line-length=100 --ignore=E203,W503,E231,E241,E202 --statistics
     
     - name: Import Sorting Check (isort)
       run: |

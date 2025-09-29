@@ -59,7 +59,7 @@ class PDFTableExtractor:
             page = pdf.pages[i]
             tables = page.extract_tables()
             if tables:
-                logging.debug(f"  - Found {len(tables)} table(s) on page {i + 1}.")
+                logging.debug(f"Found {len(tables)} table(s) on page {i + 1}.")
                 # Clean up the data by removing None and replacing newlines
                 for table in tables:
                     cleaned_table = []
@@ -70,7 +70,7 @@ class PDFTableExtractor:
                         cleaned_table.append(cleaned_row)
                     all_tables_data.append(cleaned_table)
             else:
-                logging.debug(f"  - No tables found on page {i + 1}.")
+                logging.debug(f"No tables found on page {i + 1}.")
         return all_tables_data
 
 
@@ -122,10 +122,18 @@ class DatabaseManager:
             f"""
             CREATE TABLE {table_name} (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                col1 TEXT, col2 TEXT, col3 TEXT, col4 TEXT, col5 TEXT,
-                col6 TEXT, col7 TEXT, col8 TEXT, col9 TEXT, col10 TEXT
+                col1 TEXT,
+                col2 TEXT,
+                col3 TEXT,
+                col4 TEXT,
+                col5 TEXT,
+                col6 TEXT,
+                col7 TEXT,
+                col8 TEXT,
+                col9 TEXT,
+                col10 TEXT
             )
-        """
+            """
         )
         self.conn.commit()
         logging.debug(
@@ -146,8 +154,7 @@ class DatabaseManager:
         # The column names, matching the CREATE TABLE statement
         column_names = [f"col{i}" for i in range(1, 11)]
         insert_query = (
-            f"INSERT INTO {table_name} ({', '.join(column_names)}) "
-            f"VALUES ({', '.join(['?'] * 10)})"
+            f"INSERT INTO {table_name} ({', '.join(column_names)}) VALUES ({', '.join(['?'] * 10)})"
         )
 
         for table in tables:

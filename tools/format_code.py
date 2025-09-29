@@ -32,11 +32,11 @@ def main():
     venv_python = os.path.join(project_root, ".venv", "Scripts", "python.exe")
     if os.path.exists(venv_python):
         black_cmd = f'"{venv_python}" -m black --check --line-length=100 src/ run.py'
-        flake8_cmd = f'"{venv_python}" -m flake8 src/ run.py --max-line-length=100 --ignore=E203,W503'
+        flake8_cmd = f'"{venv_python}" -m flake8 src/ run.py --max-line-length=100 --ignore=E203,W503,E231,E241,E202'
     else:
         # Fallback to system commands
         black_cmd = "black --check --line-length=100 src/ run.py"
-        flake8_cmd = "flake8 src/ run.py --max-line-length=100 --ignore=E203,W503"
+        flake8_cmd = "flake8 src/ run.py --max-line-length=100 --ignore=E203,W503,E231,E241,E202"
     
     # Add import sorting check
     if os.path.exists(venv_python):

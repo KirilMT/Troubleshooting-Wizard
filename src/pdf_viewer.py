@@ -1074,7 +1074,7 @@ class PDFViewerWindow(tk.Toplevel):
 
         if self._debug_motion_counter % 50 == 0:
             logging.debug(
-                f"Motion at ({canvas_x:.1f}, {canvas_y:.1f}): "
+                f"Motion at ({canvas_x: .1f}, {canvas_y: .1f}): "
                 f"over_link={over_link}, over_text={over_text}"
             )
             logging.debug(f"Available pages with text data: {list(self.page_text_data.keys())}")
@@ -1230,7 +1230,7 @@ class PDFViewerWindow(tk.Toplevel):
         logging.debug("=== SPATIAL DOUBLE-CLICK DEBUG ===")
         logging.debug(
             f"Clicked character: '{clicked_char_data['char']}' at "
-            f"({clicked_x:.1f}, {clicked_y:.1f})"
+            f"({clicked_x: .1f}, {clicked_y: .1f})"
         )
         logging.debug(f"Found {len(same_line_chars)} characters on same line")
         logging.debug(

@@ -919,7 +919,7 @@ class MainApplication:
         if not os.path.exists(full_path):
             logging.critical(f"PDF file not found at path: {full_path}")
             messagebox.showerror(
-                "File Not Found", f"The required PDF file could not be found at:\n{full_path}"
+                "File Not Found", f"The required PDF file could not be found at: \n{full_path}"
             )
             return
 

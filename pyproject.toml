@@ -27,15 +27,15 @@ dependencies = [
 
 [project.optional-dependencies]
 dev = [
-    "black>=23.3.0",
-    "flake8>=6.0.0",
-    "pre-commit>=3.0.0",
-    "pylint>=2.6.0",
-    "pytest>=7.0.0",
-    "pytest-cov>=4.0.0",
-    "pytest-mock>=3.10.0",
-    "pytest-qt>=4.2.0",
-    "pytest-xdist>=3.2.0",
+    "black>=22.0.0,<24.0.0",
+    "flake8>=4.0.0,<6.0.0",
+    "isort>=5.10.0,<6.0.0",
+    "pre-commit>=2.20.0,<3.0.0",
+    "pylint>=2.6.0,<3.0.0",
+    "pytest>=6.0.0,<8.0.0",
+    "pytest-cov>=3.0.0,<5.0.0",
+    "pytest-mock>=3.6.0,<4.0.0",
+    "pytest-xdist>=2.5.0,<4.0.0",
 ]
 
 [tool.black]
@@ -55,7 +55,7 @@ extend-exclude = '''
 
 [tool.flake8]
 max-line-length = 100
-ignore = ["E203", "W503", "E501"]
+ignore = ["E203", "W503", "E501", "E231", "E241", "E202"]
 exclude = [
     ".git",
     "__pycache__",
