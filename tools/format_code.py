@@ -25,11 +25,22 @@ def run_command(cmd, description):
 def main():
     """Run code formatting and quality checks."""
     # Change to project root directory
-    os.chdir(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    os.chdir(project_root)
+    
+    # Use virtual environment tools explicitly to avoid conflicts
+    venv_python = os.path.join(project_root, ".venv", "Scripts", "python.exe")
+    if os.path.exists(venv_python):
+        black_cmd = f'"{venv_python}" -m black --check --line-length=100 src/ run.py'
+        flake8_cmd = f'"{venv_python}" -m flake8 src/ run.py --max-line-length=100 --ignore=E203,W503'
+    else:
+        # Fallback to system commands
+        black_cmd = "black --check --line-length=100 src/ run.py"
+        flake8_cmd = "flake8 src/ run.py --max-line-length=100 --ignore=E203,W503"
     
     checks = [
-        ("black --check --line-length=100 src/ run.py", "Code formatting (black)"),
-        ("flake8 src/ run.py --max-line-length=100 --ignore=E203,W503", "Code linting (flake8)")
+        (black_cmd, "Code formatting (black)"),
+        (flake8_cmd, "Code linting (flake8)")
     ]
     
     all_passed = True

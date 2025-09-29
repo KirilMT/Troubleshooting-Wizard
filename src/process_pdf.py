@@ -354,9 +354,9 @@ class SEWErrorCodeExtractor:
                         # Create a new record for the suberror, inheriting the last
                         # known error code.
                         current_error = {
-                            "error_code": processed_errors[-1]["error_code"]
-                            if processed_errors
-                            else "",
+                            "error_code": (
+                                processed_errors[-1]["error_code"] if processed_errors else ""
+                            ),
                             "suberror_code": suberror_code,
                             "error_designation": error_designation,
                             "error_response": error_response,

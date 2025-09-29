@@ -1626,7 +1626,7 @@ class PDFViewerWindow(tk.Toplevel):
         label.pack()
 
         # Position near cursor
-        tooltip.geometry(f"+{x+10}+{y+10}")
+        tooltip.geometry(f"+{x + 10}+{y + 10}")
 
         # Auto-hide after 1 second
         self.after(1000, tooltip.destroy)
