@@ -47,7 +47,8 @@ class PDFTableExtractor:
 
             if start_idx >= len(pdf.pages):
                 logging.error(
-                    f"Error: Start page {start_page} is beyond the end of the document ({len(pdf.pages)} pages)."
+                    f"Error: Start page {start_page} is beyond the end of the "
+                    f"document ({len(pdf.pages)} pages)."
                 )
                 return []
 
@@ -126,7 +127,8 @@ class DatabaseManager:
         )
         self.conn.commit()
         logging.debug(
-            f"Database '{os.path.basename(self.db_path)}' is ready. Table '{table_name}' created."
+            f"Database '{os.path.basename(self.db_path)}' is ready. "
+            f"Table '{table_name}' created."
         )
 
     def insert_table_data(self, table_name, tables):
@@ -142,7 +144,8 @@ class DatabaseManager:
         # The column names, matching the CREATE TABLE statement
         column_names = [f"col{i}" for i in range(1, 11)]
         insert_query = (
-            f"INSERT INTO {table_name} ({', '.join(column_names)}) VALUES ({', '.join(['?'] * 10)})"
+            f"INSERT INTO {table_name} ({', '.join(column_names)}) "
+            f"VALUES ({', '.join(['?'] * 10)})"
         )
 
         for table in tables:
@@ -153,13 +156,14 @@ class DatabaseManager:
                 total_rows_inserted += 1
         self.conn.commit()
         logging.info(
-            f"Successfully inserted {total_rows_inserted} rows into the '{table_name}' table."
+            f"Successfully inserted {total_rows_inserted} rows into the " f"'{table_name}' table."
         )
 
 
 class SEWErrorCodeExtractor:
     """
-    Extracts robust SEW error codes from PDF tables, handling multi-row error codes, suberrors, and page/table headers.
+    Extracts robust SEW error codes from PDF tables, handling multi-row error
+    codes, suberrors, and page/table headers.
     """
 
     def __init__(self, pdf_path):
@@ -168,9 +172,12 @@ class SEWErrorCodeExtractor:
     def is_header_or_page_row(self, row):
         """
         Improved header/page row detection:
-        - Skips rows where the first column is a digit and the rest are empty or header-like (page number header).
-        - Skips rows where the first two columns are header keywords or the row is truly empty.
-        - Skips rows where the first column is a digit and the row is very short (likely a page header).
+        - Skips rows where the first column is a digit and the rest are empty or
+          header-like (page number header).
+        - Skips rows where the first two columns are header keywords or the row is
+          truly empty.
+        - Skips rows where the first column is a digit and the row is very short
+          (likely a page header).
         """
         header_keywords = [
             "Error",
@@ -199,7 +206,8 @@ class SEWErrorCodeExtractor:
             cell_str = str(cell).strip() if cell else ""
             if any(h.lower() == cell_str.lower() for h in page_header_keywords):
                 return True
-        # Check for page number header: first column is a digit, rest are empty or header-like
+        # Check for page number header: first column is a digit, rest are empty
+        # or header-like
         if str(row[0]).strip().isdigit():
             nonempty = [str(cell).strip() for cell in row[1:]]
             # If all other columns are empty or header keywords, skip
@@ -219,14 +227,17 @@ class SEWErrorCodeExtractor:
     def clean_text(self, text):
         """
         Clean up text by:
-        - Joining lines where a word is split with a hyphen at the end of a line (e.g., 'com-\nmand' -> 'command').
-        - Preserving all original formatting (bullets, dashes, numbers, paragraphs).
+        - Joining lines where a word is split with a hyphen at the end of a line
+          (e.g., 'com-\nmand' -> 'command').
+        - Preserving all original formatting (bullets, dashes, numbers,
+          paragraphs).
         - Stripping leading/trailing whitespace and normalizing spaces.
         """
         if not text:
             return ""
         # Join hyphenated line breaks (word split across lines)
-        # This regex finds a word ending with a hyphen at the end of a line, followed by a newline and a word on the next line
+        # This regex finds a word ending with a hyphen at the end of a line,
+        # followed by a newline and a word on the next line
         # It replaces 'com-\nmand' with 'command'
         text = re.sub(r"(\w+)-\s*\n\s*(\w+)", r"\1\2", text)
         # Replace multiple spaces with a single space, preserve newlines
@@ -237,7 +248,8 @@ class SEWErrorCodeExtractor:
 
     def extract_sew_error_codes_detailed(self, start_page, end_page):
         """
-        SEW error code extraction: robustly handles multi-row error codes, suberrors, and merges split rows.
+        SEW error code extraction: robustly handles multi-row error codes,
+        suberrors, and merges split rows.
         Debug output removed for production use.
         """
         processed_errors = []
@@ -249,7 +261,8 @@ class SEWErrorCodeExtractor:
 
             if start_idx >= len(pdf.pages):
                 logging.error(
-                    f"Start page {start_page} is beyond the end of the document ({len(pdf.pages)} pages)."
+                    f"Start page {start_page} is beyond the end of the document "
+                    f"({len(pdf.pages)} pages)."
                 )
                 return []
 
@@ -272,14 +285,17 @@ class SEWErrorCodeExtractor:
                     measure = row[5]
 
                     # --- State Machine Logic ---
-                    # A new error code is identified by a non-empty value in the first column.
+                    # A new error code is identified by a non-empty value in the
+                    # first column.
                     is_new_error = error_code and error_code.strip()
-                    # A suberror is identified by a non-empty value in the second column, but an empty first column.
+                    # A suberror is identified by a non-empty value in the second
+                    # column, but an empty first column.
                     is_sub_error = suberror_code and suberror_code.strip() and not is_new_error
 
                     # --- Case 1: New Error Code Found ---
                     if is_new_error:
-                        # If there's a previously accumulated error, save it before starting a new one.
+                        # If there's a previously accumulated error, save it before
+                        # starting a new one.
                         if current_error:
                             processed_errors.append(
                                 {
@@ -312,7 +328,8 @@ class SEWErrorCodeExtractor:
                         }
                     # --- Case 2: New Suberror Found ---
                     elif is_sub_error:
-                        # Save the completed main error before starting a new record for the suberror.
+                        # Save the completed main error before starting a new record
+                        # for the suberror.
                         if current_error:
                             processed_errors.append(
                                 {
@@ -334,7 +351,8 @@ class SEWErrorCodeExtractor:
                                     "measure": self.clean_text(current_error.get("measure", "")),
                                 }
                             )
-                        # Create a new record for the suberror, inheriting the last known error code.
+                        # Create a new record for the suberror, inheriting the last
+                        # known error code.
                         current_error = {
                             "error_code": processed_errors[-1]["error_code"]
                             if processed_errors
@@ -347,21 +365,26 @@ class SEWErrorCodeExtractor:
                         }
                     # --- Case 3: Continuation of a Previous Row ---
                     else:
-                        # This row is a continuation of the previous one (either a main error or a suberror).
-                        # Append the text from each cell to the corresponding field in the current error record.
+                        # This row is a continuation of the previous one (either a
+                        # main error or a suberror).
+                        # Append the text from each cell to the corresponding field
+                        # in the current error record.
                         if current_error:
-                            current_error[
-                                "error_designation"
-                            ] = f"{current_error.get('error_designation', '')} {error_designation or ''}".strip()
-                            current_error[
-                                "error_response"
-                            ] = f"{current_error.get('error_response', '')} {error_response or ''}".strip()
-                            current_error[
-                                "possible_cause"
-                            ] = f"{current_error.get('possible_cause', '')} {possible_cause or ''}".strip()
-                            current_error[
-                                "measure"
-                            ] = f"{current_error.get('measure', '')} {measure or ''}".strip()
+                            current_error["error_designation"] = (
+                                f"{current_error.get('error_designation', '')} "
+                                f"{error_designation or ''}"
+                            ).strip()
+                            current_error["error_response"] = (
+                                f"{current_error.get('error_response', '')} "
+                                f"{error_response or ''}"
+                            ).strip()
+                            current_error["possible_cause"] = (
+                                f"{current_error.get('possible_cause', '')} "
+                                f"{possible_cause or ''}"
+                            ).strip()
+                            current_error["measure"] = (
+                                f"{current_error.get('measure', '')} " f"{measure or ''}"
+                            ).strip()
 
         # After the loop, save the last accumulated error record.
         if current_error:
@@ -409,7 +432,10 @@ class SEWDatabaseManager(DatabaseManager):
         cursor = self.conn.cursor()
         for err in sew_errors:
             cursor.execute(
-                "INSERT INTO sew_error_codes_detailed (error_code, error_designation, error_response, suberror_code, suberror_designation, possible_cause, measure) VALUES (?, ?, ?, ?, ?, ?, ?)",
+                "INSERT INTO sew_error_codes_detailed "
+                "(error_code, error_designation, error_response, suberror_code, "
+                "suberror_designation, possible_cause, measure) "
+                "VALUES (?, ?, ?, ?, ?, ?, ?)",
                 (
                     err["error_code"],
                     err["error_designation"],
@@ -429,24 +455,31 @@ def main():
     """
     setup_logging()
     # --- Configuration ---
-    # The database will be created in the 'data' directory, one level above the script's 'src' directory.
+    # The database will be created in the 'data' directory, one level above the
+    # script's 'src' directory.
     script_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(script_dir, "..", "data")
     DB_PATH = os.path.join(data_dir, "errorCodesTechnologies.db")
 
     # --- Argument Parsing ---
     parser = argparse.ArgumentParser(
-        description="Extract tables from a PDF and store them in an SQLite database."
+        description="Extract tables from a PDF and store them in an SQLite " "database."
     )
     parser.add_argument("--pdf-path", required=True, help="Full path to the PDF file.")
     parser.add_argument(
         "--table-name", required=True, help="Name of the table to store error codes."
     )
     parser.add_argument(
-        "--start-page", required=True, type=int, help="The first page to process (inclusive)."
+        "--start-page",
+        required=True,
+        type=int,
+        help="The first page to process (inclusive).",
     )
     parser.add_argument(
-        "--end-page", required=True, type=int, help="The last page to process (inclusive)."
+        "--end-page",
+        required=True,
+        type=int,
+        help="The last page to process (inclusive).",
     )
     parser.add_argument(
         "--sew-mode", action="store_true", help="Enable SEW error code extraction mode."
@@ -477,7 +510,7 @@ def main():
             db.create_error_table(args.table_name)
             db.insert_table_data(args.table_name, tables_data)
 
-        logging.info(f"--- Process Complete ---")
+        logging.info("--- Process Complete ---")
         logging.info(f"Data has been successfully stored in: {DB_PATH}")
 
     except FileNotFoundError as e:

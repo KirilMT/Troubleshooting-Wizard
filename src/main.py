@@ -864,10 +864,10 @@ class MainApplication:
             start_index = text.find("{{")
             end_index = text.find("}}")
             if start_index < end_index:
-                variable_name = text[start_index + 2: end_index]
+                variable_name = text[start_index + 2 : end_index]
                 if variable_name in self.variables:
                     replacement = self.variables[variable_name]
-                    text = text[:start_index] + replacement + text[end_index + 2:]
+                    text = text[:start_index] + replacement + text[end_index + 2 :]
                 else:
                     break
             else:

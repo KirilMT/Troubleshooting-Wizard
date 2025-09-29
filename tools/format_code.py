@@ -12,7 +12,7 @@ def run_command(cmd, description):
     """Run a command and return success status."""
     print(f"Running {description}...")
     try:
-        result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
+        result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True, encoding='utf-8')
         print(f"[PASS] {description} passed")
         return True
     except subprocess.CalledProcessError as e:
@@ -29,7 +29,7 @@ def main():
     
     checks = [
         ("black --check --line-length=100 src/ run.py", "Code formatting (black)"),
-        ("flake8 src/ run.py --max-line-length=100", "Code linting (flake8)")
+        ("flake8 src/ run.py --max-line-length=100 --ignore=E203,W503", "Code linting (flake8)")
     ]
     
     all_passed = True

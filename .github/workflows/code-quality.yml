@@ -13,10 +13,10 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     
-    - name: Set up Python 3.7
+    - name: Set up Python 3.13
       uses: actions/setup-python@v4
       with:
-        python-version: '3.7'
+        python-version: '3.13'
     
     - name: Install code quality tools
       run: |
@@ -31,7 +31,7 @@ jobs:
     
     - name: Run Flake8 linter
       run: |
-        flake8 src/ run.py --max-line-length=100
+        flake8 src/ run.py --max-line-length=100 --ignore=E203,W503
     
     - name: Run pre-commit hooks
       run: |

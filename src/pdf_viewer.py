@@ -44,7 +44,8 @@ class PDFViewerWindow(tk.Toplevel):
             for i in range(self.total_pages):
                 page = self.doc.load_page(i)
                 label = page.get_label()
-                # If a page has no explicit label, fall back to its physical page number for display.
+                # If a page has no explicit label, fall back to its physical
+                # page number for display.
                 if not label:
                     labels.append(str(i + 1))
                 else:
@@ -405,7 +406,8 @@ class PDFViewerWindow(tk.Toplevel):
                     self._extract_page_text(i, page, transform_matrix, x_offset, page_top)
 
     def _update_page_label(self, *args):
-        """Updates the page entry widget and info label based on the page most visible in the viewport."""
+        """Updates the page entry widget and info label based on the page most
+        visible in the viewport."""
         scroll_region = self.canvas.cget("scrollregion")
         if not scroll_region or not self.page_layout_info:
             return
@@ -706,7 +708,8 @@ class PDFViewerWindow(tk.Toplevel):
                 logging.debug(f"External document link detected: {link.get('file', 'unknown')}")
                 messagebox.showinfo(
                     "External Document",
-                    "This link points to another document. External document links are not currently supported.",
+                    "This link points to another document. External document "
+                    "links are not currently supported.",
                 )
 
             elif link_kind == 4:  # Named destination link (common in PDFs)
@@ -966,7 +969,8 @@ class PDFViewerWindow(tk.Toplevel):
         self.page_char_map[page_num] = char_map
 
     def _on_canvas_click(self, event):
-        """Handle mouse clicks on the canvas for hyperlinks and character-precise text selection start."""
+        """Handle mouse clicks on the canvas for hyperlinks and
+        character-precise text selection start."""
         canvas_x = self.canvas.canvasx(event.x)
         canvas_y = self.canvas.canvasy(event.y)
 
@@ -1069,7 +1073,8 @@ class PDFViewerWindow(tk.Toplevel):
 
         if self._debug_motion_counter % 50 == 0:
             logging.debug(
-                f"Motion at ({canvas_x:.1f}, {canvas_y:.1f}): over_link={over_link}, over_text={over_text}"
+                f"Motion at ({canvas_x:.1f}, {canvas_y:.1f}): "
+                f"over_link={over_link}, over_text={over_text}"
             )
             logging.debug(f"Available pages with text data: {list(self.page_text_data.keys())}")
             if self.page_text_data:
@@ -1221,13 +1226,16 @@ class PDFViewerWindow(tk.Toplevel):
         self._finalize_text_selection()
 
         # Debug logging
-        logging.debug(f"=== SPATIAL DOUBLE-CLICK DEBUG ===")
+        logging.debug("=== SPATIAL DOUBLE-CLICK DEBUG ===")
         logging.debug(
-            f"Clicked character: '{clicked_char_data['char']}' at ({clicked_x:.1f}, {clicked_y:.1f})"
+            f"Clicked character: '{clicked_char_data['char']}' at "
+            f"({clicked_x:.1f}, {clicked_y:.1f})"
         )
         logging.debug(f"Found {len(same_line_chars)} characters on same line")
         logging.debug(
-            f"Word selection: '{word_start_char['char']}' (idx {word_start_char['global_index']}) to '{word_end_char['char']}' (idx {word_end_char['global_index']})"
+            f"Word selection: '{word_start_char['char']}' "
+            f"(idx {word_start_char['global_index']}) to "
+            f"'{word_end_char['char']}' (idx {word_end_char['global_index']})"
         )
 
         # Show selected characters for debugging
@@ -1241,7 +1249,7 @@ class PDFViewerWindow(tk.Toplevel):
                 selected_chars_debug.append(char_data["char"])
 
         logging.debug(f"Selected text: '{(''.join(selected_chars_debug))}'")
-        logging.debug(f"=== END SPATIAL DEBUG ===")
+        logging.debug("=== END SPATIAL DEBUG ===")
 
     def _get_page_at_position(self, canvas_y):
         """Get the page number at a given canvas Y position."""
@@ -1304,7 +1312,8 @@ class PDFViewerWindow(tk.Toplevel):
 
         if best_char:
             logging.debug(
-                f"Found nearest character at distance {min_distance}: page={best_char[0]}, char_index={best_char[1]}"
+                f"Found nearest character at distance {min_distance}: "
+                f"page={best_char[0]}, char_index={best_char[1]}"
             )
         else:
             logging.debug(f"No character found near position ({canvas_x}, {canvas_y})")
@@ -1345,7 +1354,8 @@ class PDFViewerWindow(tk.Toplevel):
     def _create_precise_selection_rectangles(
         self, start_page, start_char_idx, end_page, end_char_idx
     ):
-        """Create precise, contiguous selection rectangles that highlight exactly what's selected."""
+        """Create precise, contiguous selection rectangles that highlight
+        exactly what's selected."""
         # Collect all characters in the selection range across all pages
         selected_chars = []
 
@@ -1539,7 +1549,9 @@ class PDFViewerWindow(tk.Toplevel):
         self.selected_text = selected_text.strip()
 
         logging.debug(
-            f"Extracted text ({len(self.selected_text)} chars): '{self.selected_text[:50]}{'...' if len(self.selected_text) > 50 else ''}'"
+            f"Extracted text ({len(self.selected_text)} chars): "
+            f"'{self.selected_text[:50]}"
+            f"{'...' if len(self.selected_text) > 50 else ''}'"
         )
 
     def _clear_text_selection(self):
