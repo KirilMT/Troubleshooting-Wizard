@@ -13,11 +13,11 @@ from typing import Any, Callable
 
 class UIStyleManager:
     """Manages consistent styling and UI component creation for the application.
-    
+
     This class serves as a centralized manager for all UI-related styling and component
     creation. It maintains a consistent design language across the application by
     providing pre-styled UI components and managing the application's color scheme.
-    
+
     Attributes:
         colors (dict): A dictionary containing the application's color palette with
             keys for different UI states and elements (e.g., 'technology', 'task', 'error_critical').
@@ -25,7 +25,7 @@ class UIStyleManager:
 
     def __init__(self) -> None:
         """Initialize the UIStyleManager with default color palette and styles.
-        
+
         This constructor sets up the initial color palette and configures the ttk styles
         that will be used throughout the application.
         """
@@ -34,13 +34,13 @@ class UIStyleManager:
 
     def _configure_color_palette(self) -> None:
         """Configure the application's color palette.
-        
+
         Initializes the color scheme used throughout the application, including:
         - Primary action colors (technology, task, error states)
         - Text colors for different contexts
         - Background and surface colors
         - Hover and active state colors
-        
+
         The colors are stored in the instance's colors dictionary for easy access.
         """
         self.colors = {
@@ -69,7 +69,7 @@ class UIStyleManager:
 
     def _configure_ttk_styles(self) -> None:
         """Configure ttk styles for themed widgets.
-        
+
         Sets up custom styles for ttk widgets to match the application's design system.
         Currently configures styles for frames and labels with appropriate fonts and colors.
         """
@@ -97,21 +97,21 @@ class UIStyleManager:
         **kwargs: Any,
     ) -> tk.Button:
         """Create a modern flat button with consistent styling.
-        
+
         Creates a button with a flat design, hover effects, and consistent padding.
         The button's appearance is determined by the specified style.
-        
+
         Args:
             parent: The parent widget that will contain this button.
             text: The text to display on the button.
             command: The callback function to execute when the button is clicked.
-            style: The style of the button. Must be one of: 'technology', 'task', 
+            style: The style of the button. Must be one of: 'technology', 'task',
                    'error_critical', 'submit', or 'secondary'. Defaults to 'technology'.
             **kwargs: Additional keyword arguments to pass to the tkinter Button constructor.
-            
+
         Returns:
             A configured tkinter Button widget with the specified style and properties.
-            
+
         Example:
             >>> style_manager = UIStyleManager()
             >>> button = style_manager.create_modern_button(
@@ -177,17 +177,17 @@ class UIStyleManager:
 
     def create_modern_entry(self, parent: tk.Widget, **kwargs: Any) -> tk.Entry:
         """Create a modern entry widget with consistent styling.
-        
+
         Creates a text entry field with a clean, flat design that matches the application's
         design system. The entry includes subtle visual feedback on focus.
-        
+
         Args:
             parent: The parent widget that will contain this entry.
             **kwargs: Additional keyword arguments to pass to the tkinter Entry constructor.
-            
+
         Returns:
             A configured tkinter Entry widget with modern styling.
-            
+
         Example:
             >>> style_manager = UIStyleManager()
             >>> entry = style_manager.create_modern_entry(root, width=30)
@@ -210,20 +210,20 @@ class UIStyleManager:
         self, parent: tk.Widget, text: str, bold: bool = False, style: str = "normal", **kwargs: Any
     ) -> tk.Label:
         """Create a modern label with consistent styling.
-        
+
         Creates a text label with the application's standard typography and colors.
         Supports different styles like 'title', 'subtitle', and 'normal'.
-        
+
         Args:
             parent: The parent widget that will contain this label.
             text: The text to display in the label.
             bold: Whether to use bold font weight. Defaults to False.
             style: The style of the label. Can be 'title', 'subtitle', or 'normal'.
             **kwargs: Additional keyword arguments to pass to the tkinter Label constructor.
-            
+
         Returns:
             A configured tkinter Label widget with modern styling.
-            
+
         Example:
             >>> style_manager = UIStyleManager()
             >>> label = style_manager.create_modern_label(root, "Welcome", style="title")
@@ -245,17 +245,17 @@ class UIStyleManager:
 
     def create_modern_frame(self, parent: tk.Widget, **kwargs: Any) -> tk.Frame:
         """Create a modern frame with consistent styling.
-        
+
         Creates a container widget with the application's standard background color
         and padding. Can be used to group related UI elements.
-        
+
         Args:
             parent: The parent widget that will contain this frame.
             **kwargs: Additional keyword arguments to pass to the tkinter Frame constructor.
-            
+
         Returns:
             A configured tkinter Frame widget with modern styling.
-            
+
         Example:
             >>> style_manager = UIStyleManager()
             >>> frame = style_manager.create_modern_frame(root, padx=20, pady=20)
@@ -266,18 +266,18 @@ class UIStyleManager:
 
     def set_window_theme(self, root_window: tk.Tk, theme: str = "technology") -> str:
         """Set the window background color based on the specified theme.
-        
+
         Updates the root window's background color to match the specified theme.
         This provides visual context about the current section of the application.
-        
+
         Args:
             root_window: The root tkinter window to style.
             theme: The theme to apply. Must be one of: 'technology', 'task', or 'error'.
                    Defaults to 'technology'.
-                   
+
         Returns:
             The background color that was applied, as a hex string.
-            
+
         Example:
             >>> root = tk.Tk()
             >>> style_manager = UIStyleManager()

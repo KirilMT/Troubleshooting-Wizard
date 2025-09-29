@@ -31,7 +31,7 @@ jobs:
     
     - name: Run Flake8 linter
       run: |
-        flake8 src/ run.py --max-line-length=100 --ignore=E203,W503,F541
+        flake8 src/ run.py --max-line-length=100
     
     - name: Run pre-commit hooks
       run: |

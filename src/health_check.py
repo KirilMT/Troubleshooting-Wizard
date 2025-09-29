@@ -53,7 +53,8 @@ def _test_database_functionality() -> bool:
         """
         )
         cursor.execute(
-            "INSERT INTO sew_error_codes_detailed (error_code, suberror_code, error_designation) VALUES (?, ?, ?)",
+            "INSERT INTO sew_error_codes_detailed "
+            "(error_code, suberror_code, error_designation) VALUES (?, ?, ?)",
             ("TEST", "01", "Test error"),
         )
         conn.commit()

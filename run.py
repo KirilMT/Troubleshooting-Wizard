@@ -7,7 +7,6 @@ import logging
 from src.main import MainApplication
 from src.logging_config import setup_logging
 from src.health_check import run_health_checks
-from src.cache_manager import CacheManager
 
 
 def main() -> None:
@@ -20,6 +19,7 @@ def main() -> None:
 
     # Initialize global cache in data directory
     from src.cache_manager import _get_global_cache
+
     cache = _get_global_cache()
     logging.debug(f"Cache initialized at {cache.cache_dir}")
 
@@ -43,11 +43,14 @@ def main() -> None:
     elif os.path.exists(example_data_path):
         json_path_to_load = example_data_path
         logging.warning(
-            f"User configuration 'data.json' not found. Falling back to {example_data_path}"
+            f"User configuration 'data.json' not found. " f"Falling back to {example_data_path}"
         )
 
     if not json_path_to_load:
-        error_msg = "Critical Error: Neither 'data.json' nor 'example_data.json' could be found in the 'data' directory."
+        error_msg = (
+            "Critical Error: Neither 'data.json' nor 'example_data.json' "
+            "could be found in the 'data' directory."
+        )
         logging.critical(error_msg)
         messagebox.showerror("Configuration Error", error_msg)
         root.destroy()
@@ -57,7 +60,10 @@ def main() -> None:
         with open(json_path_to_load, "r", encoding="utf-8") as f:
             initial_json_data = json.load(f)
     except json.JSONDecodeError as e:
-        error_msg = f"Error: The data file at {json_path_to_load} is corrupted or not a valid JSON file.\n\nDetails: {e}"
+        error_msg = (
+            f"Error: The data file at {json_path_to_load} is corrupted or "
+            f"not a valid JSON file.\n\nDetails: {e}"
+        )
         logging.error(error_msg)
         messagebox.showerror("JSON Error", error_msg)
         root.destroy()

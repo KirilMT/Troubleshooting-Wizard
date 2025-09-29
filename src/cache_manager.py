@@ -84,7 +84,8 @@ def _get_global_cache():
     if _cache is None:
         # Default to data/cache relative to project root
         import sys
-        if hasattr(sys, '_MEIPASS'):  # Running as .exe
+
+        if hasattr(sys, "_MEIPASS"):  # Running as .exe
             cache_dir = os.path.join(os.path.dirname(sys.executable), "data", "cache")
         else:  # Running as script
             script_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
