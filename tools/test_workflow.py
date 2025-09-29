@@ -46,8 +46,8 @@ def test_ci_pipeline():
     success, _ = run_command("pip install -e \".[dev]\"", "Dependencies Installation")
     assert success, "Dependencies installation failed"
     
-    # Test pytest (stable core tests)
-    success, _ = run_command("python -m pytest tests/test_core.py tests/test_database_manager.py tests/test_ui_components.py -v", "Unit Tests")
+    # Test pytest (all core tests)
+    success, _ = run_command("python -m pytest tests/test_core.py tests/test_database_manager.py tests/test_ui_components.py tests/test_main.py -v", "Unit Tests")
     assert success, "Unit tests failed"
     
     # Test health checks
