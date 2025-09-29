@@ -1,9 +1,11 @@
-import pdfplumber
-import sqlite3
-import os
 import argparse
-import re
 import logging
+import os
+import re
+import sqlite3
+
+import pdfplumber
+
 from src.logging_config import setup_logging
 
 

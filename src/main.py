@@ -12,17 +12,18 @@ Key Features:
 - Integration with PDF viewer and database components
 """
 
+import logging
+import os
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import messagebox, ttk
+from typing import Any, Dict, Optional
+
 from PIL import Image, ImageTk
 
-import os
-import logging
-from typing import Dict, Any, Optional
+from src.database_manager import SEWDatabaseManager
 
 # Import from our new modules
 from src.pdf_viewer import PDFViewerWindow
-from src.database_manager import SEWDatabaseManager
 from src.ui_components import UIStyleManager
 
 

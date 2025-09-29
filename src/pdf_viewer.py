@@ -6,15 +6,16 @@ including text selection, hyperlink support, search, zoom, and navigation.
 Restored from original implementation to ensure full functionality.
 """
 
-import tkinter as tk
-from tkinter import ttk, messagebox
-from PIL import Image, ImageTk
-import os
-import fitz  # PyMuPDF
 import logging
+import os
 import threading
-import webbrowser
+import tkinter as tk
 import urllib.parse
+import webbrowser
+from tkinter import messagebox, ttk
+
+import fitz  # PyMuPDF
+from PIL import Image, ImageTk
 
 
 class PDFViewerWindow(tk.Toplevel):

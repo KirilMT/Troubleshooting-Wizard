@@ -38,9 +38,16 @@ def main():
         black_cmd = "black --check --line-length=100 src/ run.py"
         flake8_cmd = "flake8 src/ run.py --max-line-length=100 --ignore=E203,W503"
     
+    # Add import sorting check
+    if os.path.exists(venv_python):
+        isort_cmd = f'"{venv_python}" -m isort --check-only --diff src/ run.py'
+    else:
+        isort_cmd = "python -m isort --check-only --diff src/ run.py"
+    
     checks = [
         (black_cmd, "Code formatting (black)"),
-        (flake8_cmd, "Code linting (flake8)")
+        (flake8_cmd, "Code linting (flake8)"),
+        (isort_cmd, "Import sorting (isort)")
     ]
     
     all_passed = True

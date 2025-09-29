@@ -5,8 +5,8 @@ Provides optimized search algorithms for better performance with large datasets.
 """
 
 import re
-from typing import List, Dict, Any, Tuple
 from functools import lru_cache
+from typing import Any, Dict, List, Tuple
 
 
 class SearchOptimizer:

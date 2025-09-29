@@ -5,12 +5,12 @@ Provides caching functionality for frequently accessed data like search results
 and PDF metadata to improve application performance.
 """
 
-import os
 import json
-import time
 import logging
-from typing import Any, Optional
+import os
+import time
 from functools import wraps
+from typing import Any, Optional
 
 
 class CacheManager:

@@ -5,10 +5,11 @@ including searching and retrieving error code information from SQLite databases.
 interactions with the error code database, including query optimization and result caching.
 """
 
+import logging
 import os
 import sqlite3
-import logging
-from typing import List, Dict, Any, Optional
+from typing import Any, Dict, List, Optional
+
 from .cache_manager import cached
 from .search_optimizer import SearchOptimizer
 

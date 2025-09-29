@@ -1,12 +1,12 @@
+import json
+import logging
+import os
 import tkinter as tk
 from tkinter import messagebox
-import json
-import os
-import logging
 
-from src.main import MainApplication
-from src.logging_config import setup_logging
 from src.health_check import run_health_checks
+from src.logging_config import setup_logging
+from src.main import MainApplication
 
 
 def main() -> None:

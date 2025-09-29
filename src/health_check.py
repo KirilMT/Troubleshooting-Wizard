@@ -3,9 +3,9 @@ Health Check Module - Automated testing during application startup
 """
 
 import logging
-import tempfile
 import os
 import sqlite3
+import tempfile
 import tkinter as tk
 
 from .database_manager import SEWDatabaseManager
