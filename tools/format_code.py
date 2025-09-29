@@ -29,7 +29,7 @@ def main():
     
     checks = [
         ("black --check --line-length=100 src/ run.py", "Code formatting (black)"),
-        ("flake8 src/ run.py --max-line-length=100 --ignore=E203,W503,F541", "Code linting (flake8)")
+        ("flake8 src/ run.py --max-line-length=100", "Code linting (flake8)")
     ]
     
     all_passed = True

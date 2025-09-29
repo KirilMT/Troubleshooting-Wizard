@@ -20,7 +20,8 @@ class UIStyleManager:
 
     Attributes:
         colors (dict): A dictionary containing the application's color palette with
-            keys for different UI states and elements (e.g., 'technology', 'task', 'error_critical').
+            keys for different UI states and elements
+            (e.g., 'technology', 'task', 'error_critical').
     """
 
     def __init__(self) -> None:

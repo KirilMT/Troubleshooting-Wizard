@@ -60,7 +60,10 @@ class SEWDatabaseManager:
             >>> db = SEWDatabaseManager('error_codes.db')
             >>> results = db.search_error_codes(error_code='F001')
             >>> print(results)
-            [{'error_code': 'F001', 'suberror_code': '1', 'error_designation': 'Motor overload', ...}]
+            [{
+                'error_code': 'F001', 'suberror_code': '1',
+                'error_designation': 'Motor overload', ...
+            }]
 
         Note:
             At least one search parameter must be provided. If no parameters are provided,

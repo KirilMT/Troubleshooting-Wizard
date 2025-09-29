@@ -593,7 +593,9 @@ class MainApplication:
             The formatted text with newlines replaced by spaces and extra whitespace removed.
 
         Example:
-            >>> app._format_single_line_content("line1\nline2\n   line3   ")  # doctest: +NORMALIZE_WHITESPACE
+            >>> app._format_single_line_content(
+            ...     "line1\nline2\n   line3   "
+            ... )  # doctest: +NORMALIZE_WHITESPACE
             'line1 line2 line3'
         """
         if not text or text.strip() == "":
@@ -862,10 +864,10 @@ class MainApplication:
             start_index = text.find("{{")
             end_index = text.find("}}")
             if start_index < end_index:
-                variable_name = text[start_index + 2 : end_index]
+                variable_name = text[start_index + 2: end_index]
                 if variable_name in self.variables:
                     replacement = self.variables[variable_name]
-                    text = text[:start_index] + replacement + text[end_index + 2 :]
+                    text = text[:start_index] + replacement + text[end_index + 2:]
                 else:
                     break
             else:
@@ -938,5 +940,6 @@ class MainApplication:
             logging.critical(f"Failed to open PDF viewer for '{full_path}': {e}", exc_info=True)
             messagebox.showerror(
                 "PDF Viewer Error",
-                f"An unexpected error occurred while trying to open the PDF viewer.\n\nDetails: {e}",
+                "An unexpected error occurred while trying to open the PDF "
+                f"viewer.\n\nDetails: {e}",
             )
