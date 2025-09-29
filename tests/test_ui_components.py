@@ -3,6 +3,7 @@ Unit tests for the ui_components module.
 """
 import tkinter as tk
 import pytest
+from unittest.mock import MagicMock, patch
 from src.ui_components import UIStyleManager
 
 def test_ui_style_manager_initialization():
@@ -45,16 +46,13 @@ def test_create_modern_button():
 
 def test_set_window_theme():
     """Test setting window theme."""
-    root = tk.Tk()
-    try:
-        style_manager = UIStyleManager()
-        bg_color = style_manager.set_window_theme(root, "technology")
-        
-        # The method should return the background color for the technology theme
-        assert bg_color == style_manager.colors['bg_technology']
-        assert root.cget('bg') == bg_color
-    finally:
-        root.destroy()
+    root = MagicMock()
+    style_manager = UIStyleManager()
+    bg_color = style_manager.set_window_theme(root, "technology")
+    
+    # The method should return the background color for the technology theme
+    assert bg_color == style_manager.colors['bg_technology']
+    root.configure.assert_called_with(bg=bg_color)
 
 def test_create_back_button_area():
     """Test creation of back button area."""
