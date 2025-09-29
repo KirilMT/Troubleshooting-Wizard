@@ -12,6 +12,9 @@ media/DEP600_WTC_Faults.PNG
 manuals/*.pdf
 !manuals/example_*.pdf
 
+# Amazon Q chat related files (rules)
+.amazonq/
+
 # Python
 __pycache__/
 *.py[cod]
@@ -94,5 +97,3 @@ logs/
 # Application cache
 data/cache/
 cache/
-/.amazonq/rules/project-context.md
-/.amazonq/rules/global-instructions.md
