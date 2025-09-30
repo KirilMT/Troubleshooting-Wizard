@@ -1,5 +1,10 @@
 # Troubleshooting-Wizard
 
+[![CI Pipeline](https://github.com/KirilMT/Troubleshooting-Wizard/actions/workflows/ci.yml/badge.svg)](https://github.com/KirilMT/Troubleshooting-Wizard/actions/workflows/ci.yml)
+[![Code Quality](https://github.com/KirilMT/Troubleshooting-Wizard/actions/workflows/code-quality.yml/badge.svg)](https://github.com/KirilMT/Troubleshooting-Wizard/actions/workflows/code-quality.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
+
 A Python-based GUI application for industrial equipment troubleshooting and error code management. This tool provides a centralized interface for accessing error codes, manuals, and troubleshooting resources for various manufacturing technologies.
 
 ## 🚀 Features
