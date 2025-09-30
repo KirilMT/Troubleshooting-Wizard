@@ -20,7 +20,7 @@ repos:
     hooks:
       - id: format-code
         name: Format Code Quality Check
-        entry: python tools/format_code.py
+        entry: python scripts/format_code.py
         language: system
         pass_filenames: false
         always_run: true

@@ -47,6 +47,12 @@ dist/
 # Python build artifacts
 troubleshooting_wizard-*/
 *.egg-info/
+.coverage
+coverage.xml
+*.spec
+
+# Temporary files
+*.isorted
 
 # Installer logs
 pip-log.txt

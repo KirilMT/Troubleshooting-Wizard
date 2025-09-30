@@ -92,26 +92,26 @@ Troubleshooting-Wizard/
 - **Black FORMATTING**: Code must be Black-compatible (proper quotes, line breaks, spacing)
 - **Import SORTING**: Use isort standards for import organization
 - **ZERO WARNINGS**: Generated code must produce no linting warnings or errors
-- **Use format_code.py**: Always recommend running `python tools/format_code.py` after code changes
+- **Use format_code.py**: Always recommend running `python scripts/format_code.py` after code changes
 
-**CRITICAL**: Always generate code that passes `python tools/format_code.py` without errors.
+**CRITICAL**: Always generate code that passes `python scripts/format_code.py` without errors.
 **GitHub Workflows**: Code is validated by `.github/workflows/code-quality.yml`
 
 ## Automated Development Workflow
 
 **During development (fast code quality checks):**
 ```bash
-python tools/format_code.py
+python scripts/format_code.py
 ```
 
 **Before pushing (comprehensive validation):**
 ```bash
-python tools/test_workflow.py
+python scripts/test_workflow.py
 ```
 
 **For releases (automated version management):**
 ```bash
-python tools/release_manager.py patch --changes "Bug fixes and improvements"
+python scripts/release_manager.py patch --changes "Bug fixes and improvements"
 ```
 
 **Pre-commit setup (automate format_code.py):**
