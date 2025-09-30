@@ -13,12 +13,19 @@ A Python-based GUI application for industrial equipment troubleshooting and erro
 
 ## 🖼️ Screenshots
 
-*(Please add screenshots of your application to the `media/` directory and update the links below.)*
+### Main Application Flow
 
-| Main Menu | Error Code Search |
+| Technology Selection | Task Selection |
 | :---: | :---: |
-| *Users can select a technology from the main menu.* | *Search for specific error codes within PDF manuals.* |
-| ![Main Menu](media/example_main_menu.png) | ![Error Code Search](media/example_search.png) |
+| *Select from various industrial technologies* | *Choose between error code search or manual access* |
+| ![Technologies](media/README_media/README_Technologies.png) | ![Tasks](media/README_media/README_Tasks.png) |
+
+### Error Code Search Options
+
+| PDF Error Codes | PDF Viewer | Database Error Codes |
+| :---: | :---: | :---: |
+| *Search error codes in PDF manuals* | *Interactive PDF viewing with search* | *Search SEW error codes from database* |
+| ![PDF Error Codes](media/README_media/README_ErrorCodes1.png) | ![PDF Viewer](media/README_media/README_ErrorCodes_PDFViewer.png) | ![DB Error Codes](media/README_media/README_ErrorCodes2.png) |
 
 ## 🧪 Testing
 
@@ -107,35 +114,30 @@ Test coverage reports are generated in the `coverage.xml` file and can be viewed
 
 ```
 Troubleshooting-Wizard/
-├── tests/                  # Test files
-│   ├── __init__.py
-│   ├── conftest.py        # Test fixtures
-│   ├── test_*.py          # Unit tests
-│   └── integration/       # Integration tests
-├── logs/
-│   └── app.log              # Application log files (auto-generated)
-├── media/                  # Images and resources
+├── .github/                # GitHub workflows and AI instructions
+│   ├── workflows/          # CI/CD automation
+│   ├── AGENT.md            # Gemini Code Assist instructions
+│   └── copilot-instructions.md # GitHub Copilot instructions
+├── docs/                   # Documentation
+│   ├── CHANGELOG.md        # Version history
+│   ├── CONTRIBUTING.md     # Contribution guidelines
+│   └── GIT_WORKFLOW.md     # Git workflow guidelines
+├── scripts/                # Development automation tools
+│   ├── format_code.py      # Code quality checks
+│   ├── test_workflow.py    # Workflow validation
+│   └── release_manager.py  # Automated releases
 ├── src/                    # Source code
-│   ├── __init__.py         # Package initialization
 │   ├── main.py             # Main application class
 │   ├── database_manager.py # Database operations
 │   ├── ui_components.py    # UI styling and components
-│   ├── pdf_viewer.py       # PDF viewing functionality
-│   └── ...                 # Other source files
-├── tests/                  # Test files
-│   ├── __init__.py         # Test package initialization
-│   ├── conftest.py         # Test configurations
-│   ├── test_core.py        # Core functionality tests
+│   └── pdf_viewer.py       # PDF viewing functionality
+├── tests/                  # Test suite
+│   ├── test_*.py           # Unit tests
 │   └── integration/        # Integration tests
-├── tools/                  # Development tools and scripts
-├── .gitignore              # Git ignore rules
-├── .pre-commit-config.yaml # Pre-commit hooks
-├── CHANGELOG.md            # Version history
-├── LICENSE                # License information
-├── pyproject.toml         # Project metadata and build configuration
-├── pytest.ini             # Pytest configuration
-├── README.md              # Project documentation
-└── run.py                 # Application entry point
+├── data/                   # Application data and configuration
+├── media/                  # Images and resources
+├── logs/                   # Application logs
+└── run.py                  # Application entry point
 
 ## ⚙️ Setup and Installation
 
@@ -297,7 +299,7 @@ This project follows PEP 8 Python style guidelines and uses object-oriented prog
 
 ## 🤝 Contributing
 
-We welcome contributions! Please see the `CONTRIBUTING.md` file for detailed guidelines on the development workflow, commit messages, and the review process. Project-specific instructions for AI assistants are located in `.github/copilot-instructions.md`.
+We welcome contributions! Please see the `docs/CONTRIBUTING.md` file for detailed guidelines on the development workflow, commit messages, and the review process. Project-specific instructions for AI assistants are located in `.github/copilot-instructions.md`.
 
 ## 📝 License
 
