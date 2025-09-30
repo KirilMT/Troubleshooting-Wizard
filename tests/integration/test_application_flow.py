@@ -23,7 +23,10 @@ class TestApplicationFlow:
 
             # Mock UI style manager
             mock_ui_instance = MagicMock()
-            mock_ui_instance.create_modern_frame.return_value = MagicMock()
+            mock_frame = MagicMock()
+            mock_frame.winfo_reqwidth.return_value = 300
+            mock_frame.winfo_reqheight.return_value = 200
+            mock_ui_instance.create_modern_frame.return_value = mock_frame
             mock_ui_instance.create_modern_button.return_value = MagicMock()
             mock_ui_instance.set_window_theme.return_value = "#f5f5f5"
             mock_ui.return_value = mock_ui_instance
@@ -36,8 +39,8 @@ class TestApplicationFlow:
                     "Technologies": {
                         "tech1": {"button_text": "Test Tech 1", "tasks": ["Task 1", "Task 2"]}
                     },
-                    "labels": {"back_to_technologies": "Back to Technologies"},
-                }
+                },
+                "labels": {"back_to_technologies": "Back to Technologies"},
             }
 
             with patch.object(MainApplication, "show_main_program"):
@@ -52,7 +55,13 @@ class TestApplicationFlow:
 
     def test_technology_selection(self, app):
         """Test selecting a technology from the main menu."""
-        tech_data = {"button_text": "Test Tech 1", "tasks": ["Task 1", "Task 2"]}
+        tech_data = {
+            "button_text": "Test Tech 1",
+            "tasks": [
+                {"Task 1": {"task_type": "open_url", "url_path": "test.pdf"}},
+                {"Task 2": {"task_type": "error_codes"}},
+            ],
+        }
 
         # Test the show_technology method directly
         app.show_technology(tech_data)

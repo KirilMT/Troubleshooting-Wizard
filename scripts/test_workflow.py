@@ -4,7 +4,7 @@ Workflow Testing Tool for Troubleshooting Wizard
 Tests CI Pipeline, Release, and Code Quality workflows locally
 
 Run with pytest:
-pytest tools/test_workflow.py -v
+pytest scripts/test_workflow.py -v
 """
 
 import subprocess
@@ -33,7 +33,7 @@ def run_command(cmd, description, cwd=None):
 def test_code_quality():
     """Test Code Quality workflow"""
     print("\n=== Testing Code Quality Workflow ===")
-    success, _ = run_command("python tools/format_code.py", "Code Quality")
+    success, _ = run_command("python scripts/format_code.py", "Code Quality")
     assert success, "Code Quality workflow failed"
 
 
@@ -77,7 +77,7 @@ def test_release():
     print("\n=== Testing Release Workflow ===")
 
     # Test executable build
-    success, _ = run_command("powershell -File tools/build.ps1", "Executable Build")
+    success, _ = run_command("powershell -File scripts/build.ps1", "Executable Build")
     assert success, "Executable build failed"
 
     # Check if exe exists

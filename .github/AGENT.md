@@ -47,10 +47,13 @@ Troubleshooting-Wizard/
 │   ├── conftest.py         # Test configurations
 │   ├── test_core.py        # Core functionality tests
 │   └── integration/        # Integration tests
-├── tools/                  # Development tools and scripts
+├── scripts/                # Development automation tools
+├── docs/                   # Documentation
+│   ├── CHANGELOG.md        # Version history
+│   ├── CONTRIBUTING.md     # Contribution guidelines
+│   └── GIT_WORKFLOW.md     # Git workflow guidelines
 ├── .gitignore              # Git ignore rules
 ├── .pre-commit-config.yaml # Pre-commit hooks
-├── CHANGELOG.md            # Version history
 ├── LICENSE                # License information
 ├── pyproject.toml         # Project metadata and build configuration
 ├── pytest.ini             # Pytest configuration
@@ -130,7 +133,7 @@ pre-commit install
 
 When you ask me to work on an issue, I will adhere to the following process:
 
-1.  **Follow the Workflow:** I will first consult the `GIT_WORKFLOW.md` file to understand the prescribed development workflow.
+1.  **Follow the Workflow:** I will first consult the `docs/GIT_WORKFLOW.md` file to understand the prescribed development workflow.
 2.  **Use Tools Proactively**: I will use my available tools to get information about the project before asking you for details.
 3.  **Command Execution Protocol:** If terminal commands are required, I will provide them and wait for confirmation before proceeding.
 4.  **Issue and Sub-Tasks Prioritization:** I will address issues and their sub-tasks sequentially, providing a plan and asking for your approval before making changes.

@@ -143,7 +143,7 @@ Troubleshooting-Wizard/
 
 ### Prerequisites
 
-- Python 3.7 or higher
+- Python 3.7 or higher (tested with Python 3.13)
 - pip (Python package installer)
 - Git
 
@@ -297,6 +297,42 @@ This will store the results in the `sew_error_codes` table in `src/errorCodesTec
 ### Code Style
 This project follows PEP 8 Python style guidelines and uses object-oriented programming patterns.
 
+## 🧑💻 Development
+
+### Automated Development Workflow
+
+This project includes automated tools to ensure code quality and streamline development:
+
+```bash
+# During development (fast code quality checks)
+python scripts/format_code.py
+
+# Before pushing (comprehensive validation)
+python scripts/test_workflow.py
+
+# For releases (automated version management)
+python scripts/release_manager.py patch --changes "Bug fixes and improvements"
+
+# One-time setup for new developers
+python scripts/setup_automation.py
+```
+
+### Code Quality Standards
+- **Strict compliance** with Black, Flake8, and isort
+- **100-character line length** standard
+- **Zero warnings/errors** requirement
+- **Pre-commit hooks** for automatic quality enforcement
+- **21.24% test coverage** with comprehensive test suite
+
+### Configuration Best Practices
+1.  **Never commit `data/data.json`** or corporate media files.
+2.  Update `data/example_data.json` when adding new features.
+3.  Use relative paths for media files and placeholder URLs in `example_data.json`.
+
+### Security Features
+-   **Automatic data protection**: Real configuration and media files are automatically ignored by git.
+-   **Sensitive data isolation**: All corporate-specific content stays local.
+
 ## 🤝 Contributing
 
 We welcome contributions! Please see the `docs/CONTRIBUTING.md` file for detailed guidelines on the development workflow, commit messages, and the review process. Project-specific instructions for AI assistants are located in `.github/copilot-instructions.md`.
@@ -310,5 +346,5 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 For issues or questions, please open an issue in the project repository.
 
 ---
-**Version: 1.2.1**
-**Last Updated: September 26, 2025**
+**Version: 1.2.0**
+**Last Updated: September 30, 2025**

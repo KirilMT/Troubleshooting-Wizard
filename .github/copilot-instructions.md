@@ -47,10 +47,13 @@ Troubleshooting-Wizard/
 │   ├── conftest.py         # Test configurations
 │   ├── test_core.py        # Core functionality tests
 │   └── integration/        # Integration tests
-├── tools/                  # Development tools and scripts
+├── scripts/                # Development automation tools
+├── docs/                   # Documentation
+│   ├── CHANGELOG.md        # Version history
+│   ├── CONTRIBUTING.md     # Contribution guidelines
+│   └── GIT_WORKFLOW.md     # Git workflow guidelines
 ├── .gitignore              # Git ignore rules
 ├── .pre-commit-config.yaml # Pre-commit hooks
-├── CHANGELOG.md            # Version history
 ├── LICENSE                # License information
 ├── pyproject.toml         # Project metadata and build configuration
 ├── pytest.ini             # Pytest configuration
