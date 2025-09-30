@@ -346,5 +346,7 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 For issues or questions, please open an issue in the project repository.
 
 ---
+
 **Version: 1.2.0**
+
 **Last Updated: September 30, 2025**
