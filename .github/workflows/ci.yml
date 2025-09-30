@@ -67,7 +67,7 @@ jobs:
         powershell -File scripts/build.ps1
 
     - name: Upload build artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: troubleshooting-wizard-exe
         path: dist/*.exe
