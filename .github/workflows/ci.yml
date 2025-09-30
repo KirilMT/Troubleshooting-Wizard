@@ -49,7 +49,7 @@ jobs:
     name: Build Package
     needs: test
     runs-on: windows-latest
-    if: github.ref == 'refs/heads/main'
+    if: (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'develop')) || github.event_name == 'pull_request'
 
     steps:
     - uses: actions/checkout@v4
