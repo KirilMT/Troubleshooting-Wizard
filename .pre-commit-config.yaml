@@ -8,6 +8,9 @@ repos:
       - id: check-json
       - id: check-merge-conflict
       - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-symlinks
 
   - repo: https://github.com/psf/black
     rev: 23.3.0
@@ -24,3 +27,20 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
+        stages: [commit]
+
+      - id: run-tests
+        name: Run Tests Before Commit
+        entry: python -m pytest tests/ -x --tb=short
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+
+      - id: pre-push-validation
+        name: Pre-Push Validation
+        entry: python scripts/test_workflow.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [push]
