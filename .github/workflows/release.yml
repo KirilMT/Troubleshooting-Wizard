@@ -25,7 +25,7 @@ jobs:
 
     - name: Build executable
       run: |
-        powershell -File tools/build.ps1
+        powershell -File scripts/build.ps1
 
     - name: Create Release
       uses: actions/create-release@v1

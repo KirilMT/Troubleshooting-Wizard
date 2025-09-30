@@ -35,7 +35,7 @@ jobs:
 
     - name: Run code quality checks
       run: |
-        python tools/format_code.py
+        python scripts/format_code.py
 
   build:
     name: Build Package
@@ -64,7 +64,7 @@ jobs:
 
     - name: Build executable
       run: |
-        powershell -File tools/build.ps1
+        powershell -File scripts/build.ps1
 
     - name: Upload build artifacts
       uses: actions/upload-artifact@v3

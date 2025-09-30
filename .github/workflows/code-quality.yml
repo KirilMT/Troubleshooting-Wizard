@@ -30,7 +30,7 @@ jobs:
 
     - name: Run format_code.py (Local Development Match)
       run: |
-        python tools/format_code.py
+        python scripts/format_code.py
       env:
         PYTHONIOENCODING: utf-8
 
