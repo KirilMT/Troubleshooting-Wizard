@@ -143,6 +143,7 @@ Troubleshooting-Wizard/
 ├── media/                  # Images and resources
 ├── logs/                   # Application logs
 └── run.py                  # Application entry point
+```
 
 ## ⚙️ Setup and Installation
 
