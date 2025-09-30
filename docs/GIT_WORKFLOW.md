@@ -1,6 +1,6 @@
 # Professional Git Workflow Guide
 
-This document outlines the standard process for contributing to this project. Following these steps ensures the `master` branch remains stable and all changes are properly managed.
+This document outlines the standard process for contributing to this project. Following these steps ensures the `main` branch remains stable and all changes are properly managed.
 
 ---
 
@@ -20,18 +20,18 @@ cd <repository-folder>
 
 ### 2. Starting New Work (Creating a Feature Branch)
 
-Before starting any new feature, bugfix, or improvement, always create a new branch from an up-to-date `master`.
+Before starting any new feature, bugfix, or improvement, always create a new branch from an up-to-date `main`.
 
-**Step 2.1: Sync Your Local `master` Branch**
+**Step 2.1: Sync Your Local `main` Branch**
 
-Make sure your local `master` branch has the latest changes from the remote repository.
+Make sure your local `main` branch has the latest changes from the remote repository.
 
 ```sh
-# Switch to the master branch
-git checkout master
+# Switch to the main branch
+git checkout main
 
-# Pull the latest changes from the remote `master`
-git pull origin master
+# Pull the latest changes from the remote `main`
+git pull origin main
 ```
 
 **Step 2.2: Create Your New Branch**
@@ -48,7 +48,7 @@ git checkout -b new-feature-name
 
 ### 3. During Development (Committing and Pushing)
 
-Now you are on your new branch and can work safely without affecting `master`.
+Now you are on your new branch and can work safely without affecting `main`.
 
 **Step 3.0: Automated Development Workflow**
 
@@ -79,18 +79,18 @@ git commit -m "Add a clear and concise commit message here"
 
 **Step 3.2: Keep Your Branch Updated**
 
-To prevent merge conflicts and ensure your feature branch has the latest changes from `master`, you should sync it regularly. This is especially important before creating a pull request.
+To prevent merge conflicts and ensure your feature branch has the latest changes from `main`, you should sync it regularly. This is especially important before creating a pull request.
 
 ```sh
-# Switch to the master branch and pull the latest changes
-git checkout master
-git pull origin master
+# Switch to the main branch and pull the latest changes
+git checkout main
+git pull origin main
 
 # Switch back to your feature branch
 git checkout new-feature-name
 
-# Merge the latest master into your feature branch
-git merge master
+# Merge the latest main into your feature branch
+git merge main
 
 # If there are any conflicts, resolve them now, then commit the merge.
 ```
@@ -196,14 +196,14 @@ This project follows Semantic Versioning (SemVer) and uses automated release man
 
 ### 6. Finishing Your Work (Creating a Pull Request)
 
-Once your feature is complete and pushed to GitHub, you will create a Pull Request (PR) to merge it into the `master` branch. This is the standard way to propose changes and allow for review. For detailed guidelines on contributing, including commit message conventions and the review process, please refer to the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.
+Once your feature is complete and pushed to GitHub, you will create a Pull Request (PR) to merge it into the `main` branch. This is the standard way to propose changes and allow for review. For detailed guidelines on contributing, including commit message conventions and the review process, please refer to the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.
 
 **Step 5.1: Open a Pull Request on GitHub**
 
 1.  Go to your repository on GitHub in your web browser.
 2.  You will likely see a yellow banner with your recently pushed branch and a button that says **"Compare & pull request"**. Click it.
 3.  If you don't see the banner, go to the **"Pull requests"** tab and click **"New pull request"**.
-4.  Set the `base` branch to `master` and the `compare` branch to your feature branch (`new-feature-name`).
+4.  Set the `base` branch to `main` and the `compare` branch to your feature branch (`new-feature-name`).
 5.  Give the PR a clear title (e.g., "Fixes #32: Error in search functionality") and a description of the changes.
 6.  Click **"Create pull request"**.
 
@@ -263,14 +263,14 @@ After merging on GitHub, a **"Delete branch"** button will appear. Click it to d
 
 **Step 7.2: Update Your Local Repository**
 
-Now, update your local `master` branch with the changes you just merged on GitHub.
+Now, update your local `main` branch with the changes you just merged on GitHub.
 
 ```sh
-# Switch back to your local master branch
-git checkout master
+# Switch back to your local main branch
+git checkout main
 
 # Pull the latest changes from the remote (which includes your merged PR)
-git pull origin master
+git pull origin main
 ```
 
 **Step 7.3: Prune Stale Remote Branches**
@@ -291,4 +291,4 @@ Finally, delete the local feature branch as it is no longer needed.
 git branch -d new-feature-name
 ```
 
-This completes the workflow. You are now ready to start on the next task by creating a new branch from your up-to-date `master`.
+This completes the workflow. You are now ready to start on the next task by creating a new branch from your up-to-date `main`.
