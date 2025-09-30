@@ -19,6 +19,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - **Professional Documentation Structure**: Organized documentation in dedicated `docs/` directory
 - **AI Assistant Integration**: Comprehensive instructions for GitHub Copilot, Gemini Code Assist, and Amazon Q
 - **Professional Screenshots**: Added actual application screenshots to README with proper organization
+- **Robust Logging System**: Implemented centralized, file-based logging system with daily rotation
+- **Root Entry Point**: Created `run.py` for clean application startup
+- **Enhanced Error Handling**: Graceful handling of missing database and configuration files
+- **PDF Search Navigation**: Added "Next" and "Previous" buttons with result counter
 
 ### Changed
 - **Project Structure Reorganization**: Enterprise-grade directory structure
@@ -33,21 +37,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - Fixed integration tests with proper mocking
   - Comprehensive workflow validation
   - Coverage reporting and requirements
+- **Asynchronous PDF Search**: PDF viewer opens instantly with background search
+- **UI Improvements**: Centralized styling and responsive design
 
 ### Fixed
 - **Test Suite Reliability**: All 24 tests now pass consistently
 - **Integration Test Issues**: Fixed KeyError and AttributeError in application flow tests
 - **Build Artifacts**: Cleaned up and properly ignored build artifacts
 - **Path References**: Updated all tool references to use `scripts/` directory
-
-## [1.2.1] - 2025-09-26
-
-### Fixed
-- **Test Suite Reliability**: Fixed flaky tests in the test suite by properly mocking UI components and ensuring consistent test execution.
-- **UI Component Testing**: Improved test coverage for UI components, particularly for the main program view and technology selection.
-- **Test Dependencies**: Updated test dependencies and ensured proper isolation between test cases.
-
-## [1.2.0] - 2025-09-25
+- **GitHub Actions**: Fixed deprecated actions and workflow paths
+- **PDF Viewer Issues**: Fixed zoom jump, zoom out limitations, and spurious scrolling
+- **Configuration Issues**: Fixed pytest.ini duplicate addopts and CI pipeline patterns
 
 ### Added
 - **Robust Logging System**: Implemented a centralized, file-based logging system that saves daily logs to a `logs/` directory.

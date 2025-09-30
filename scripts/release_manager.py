@@ -61,6 +61,8 @@ class ReleaseManager:
 
     def update_readme_version(self, new_version):
         """Update version in README.md"""
+        current_version = self.get_current_version()
+
         with open(self.readme_path, "r") as f:
             content = f.read()
 
@@ -69,28 +71,29 @@ class ReleaseManager:
 
         with open(self.readme_path, "w") as f:
             f.write(content)
-        print(f"Updated README.md to version {new_version}")
+        print(f"Updated README.md: {current_version} -> {new_version}")
 
     def update_changelog(self, new_version, changes):
         """Update CHANGELOG.md with new version"""
         date_str = datetime.now().strftime("%Y-%m-%d")
+        current_version = self.get_current_version()
 
         with open(self.changelog_path, "r") as f:
             content = f.read()
 
-        # Find the ## [Unreleased] section and replace it
-        new_entry = f"""## [Unreleased]
+        # Add new entry after the header, before existing entries
+        header_pattern = r"(# Changelog.*?\n\n.*?\n\n)"
+        new_entry = f"## [{new_version}] - {date_str}\n{changes}\n\n"
 
-## [{new_version}] - {date_str}
-{changes}
-
-"""
-
-        content = re.sub(r"## \[Unreleased\]\s*\n", new_entry, content, count=1)
+        if re.search(header_pattern, content, re.DOTALL):
+            content = re.sub(header_pattern, f"\\1{new_entry}", content, count=1, flags=re.DOTALL)
+        else:
+            # Fallback: add after first ## entry
+            content = re.sub(r"(## \[.*?\])", f"{new_entry}\\1", content, count=1)
 
         with open(self.changelog_path, "w") as f:
             f.write(content)
-        print(f"Updated CHANGELOG.md with version {new_version}")
+        print(f"Updated CHANGELOG.md: {current_version} -> {new_version}")
 
     def create_git_tag(self, version):
         """Create and push git tag"""
