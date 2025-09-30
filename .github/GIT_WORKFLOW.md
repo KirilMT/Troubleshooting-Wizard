@@ -50,6 +50,21 @@ git checkout -b new-feature-name
 
 Now you are on your new branch and can work safely without affecting `master`.
 
+**Step 3.0: Automated Development Workflow**
+
+This project includes automated tools to ensure code quality and streamline development:
+
+```sh
+# During development (fast code quality checks)
+python tools/format_code.py
+
+# Before pushing (comprehensive validation)
+python tools/test_workflow.py
+
+# For releases (automated version management)
+python tools/release_manager.py patch --changes "Bug fixes and improvements"
+```
+
 **Step 3.1: Do Your Work and Commit Changes**
 
 Make your code changes, then commit them with clear, descriptive messages. You can make as many commits as you need.
@@ -91,9 +106,83 @@ git push -u origin new-feature-name
 
 ---
 
-### 4. Versioning
+### 4. Automated Development Tools
 
-This project follows Semantic Versioning (SemVer). When you create a pull request, you should consider if the version number needs to be updated based on the changes.
+This project provides three automated tools to streamline development and ensure quality:
+
+#### 4.1 Daily Development - Code Quality (`format_code.py`)
+
+**Purpose:** Fast code quality checks during development
+**When to use:** After making changes, before committing
+
+```sh
+python tools/format_code.py
+```
+
+**What it does:**
+- Runs Black code formatting
+- Checks Flake8 linting rules
+- Validates import sorting with isort
+- Takes 2-3 seconds to complete
+
+#### 4.2 Pre-Push Validation (`test_workflow.py`)
+
+**Purpose:** Comprehensive validation before pushing to GitHub
+**When to use:** Before creating pull requests or pushing to remote
+
+```sh
+python tools/test_workflow.py
+```
+
+**What it does:**
+- Validates all GitHub Actions workflows locally
+- Runs complete test suite with coverage
+- Tests package building and executable creation
+- Ensures CI will pass on GitHub
+- Takes 1-2 minutes to complete
+
+#### 4.3 Release Management (`release_manager.py`)
+
+**Purpose:** Automated version management and releases
+**When to use:** When ready to create a new release
+
+```sh
+# Patch release (1.2.0 -> 1.2.1) - Bug fixes
+python tools/release_manager.py patch --changes "Fixed login bug and improved error handling"
+
+# Minor release (1.2.0 -> 1.3.0) - New features
+python tools/release_manager.py minor --changes "Added user dashboard and notification system"
+
+# Major release (1.2.0 -> 2.0.0) - Breaking changes
+python tools/release_manager.py major --changes "Redesigned API with breaking changes"
+
+# Interactive mode (prompts for input)
+python tools/release_manager.py
+```
+
+**What it does:**
+- Updates version numbers in all files
+- Creates changelog entries
+- Commits changes with proper tags
+- Optionally pushes to GitHub for automated release
+
+#### 4.4 Pre-commit Hook Setup (Optional)
+
+To automatically run code quality checks before each commit:
+
+```sh
+# Install pre-commit hooks
+pip install pre-commit
+pre-commit install
+
+# Now format_code.py runs automatically before each commit
+```
+
+---
+
+### 5. Versioning
+
+This project follows Semantic Versioning (SemVer) and uses automated release management.
 
 **Format:** `MAJOR.MINOR.PATCH` (e.g., `1.1.0`)
 
@@ -101,9 +190,11 @@ This project follows Semantic Versioning (SemVer). When you create a pull reques
 -   **MINOR (`x.1.x`):** Increment for new, backward-compatible features.
 -   **PATCH (`x.x.1`):** Increment for backward-compatible bug fixes.
 
+**Note:** Use `release_manager.py` for automated version management instead of manual updates.
+
 ---
 
-### 5. Finishing Your Work (Creating a Pull Request)
+### 6. Finishing Your Work (Creating a Pull Request)
 
 Once your feature is complete and pushed to GitHub, you will create a Pull Request (PR) to merge it into the `master` branch. This is the standard way to propose changes and allow for review. For detailed guidelines on contributing, including commit message conventions and the review process, please refer to the [`CONTRIBUTING.md`](./CONTRIBUTING.md) file.
 
@@ -125,7 +216,7 @@ On the GitHub PR page, you can see your changes, and others can review them. Onc
 
 ---
 
-### 6. Handling Work-in-Progress (Creating a Draft Pull Request)
+### 7. Handling Work-in-Progress (Creating a Draft Pull Request)
 
 If your work is not yet finished but you want to get feedback, or simply want to see your changes on GitHub, you should create a **Draft Pull Request**. This signals to others that the work is still in progress.
 
@@ -162,7 +253,7 @@ This will change the status of the PR and notify reviewers that it is ready to b
 
 ---
 
-### 7. Cleaning Up After Merging
+### 8. Cleaning Up After Merging
 
 After your PR is merged, the final step is to clean up your local and remote branches.
 

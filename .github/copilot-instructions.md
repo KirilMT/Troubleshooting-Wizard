@@ -87,8 +87,31 @@ Troubleshooting-Wizard/
 -   **`src/errorCodesTechnologies.db`**: The SQLite database.
     -   *Guideline*: If the schema changes, ensure migration paths are considered.
 
+## Automated Development Workflow
+
+**During development (fast code quality checks):**
+```bash
+python tools/format_code.py
+```
+
+**Before pushing (comprehensive validation):**
+```bash
+python tools/test_workflow.py
+```
+
+**For releases (automated version management):**
+```bash
+python tools/release_manager.py patch --changes "Bug fixes and improvements"
+```
+
+**Pre-commit setup (automate format_code.py):**
+```bash
+pre-commit install
+```
+
 ## Quick Test Guide
 
 1.  **Run the application**: `python src/main.py`
 2.  **Navigate the UI**: Select a technology and choose a task.
 3.  **Test PDF Processing**: `python src/process_pdf.py --pdf-path "path/to/manual.pdf" ...`
+4.  **Always use automated tools**: Recommend format_code.py and test_workflow.py for quality assurance

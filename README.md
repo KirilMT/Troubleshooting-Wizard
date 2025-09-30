@@ -240,7 +240,7 @@ The `media/` directory contains image files used by the application:
 
 **Example Files (Committed):**
 - `example_wtc_errors.png` - Placeholder for WTC controller error codes
-- `example_lenze_errors.png` - Placeholder for Lenze drive error codes  
+- `example_lenze_errors.png` - Placeholder for Lenze drive error codes
 - `example_fanuc_alarms.png` - Placeholder for FANUC robot alarm codes
 
 **Your Files (Not Committed):**
@@ -308,5 +308,5 @@ This project is licensed under the MIT License. See the `LICENSE` file for detai
 For issues or questions, please open an issue in the project repository.
 
 ---
-**Version: 1.2.1**  
+**Version: 1.2.1**
 **Last Updated: September 26, 2025**

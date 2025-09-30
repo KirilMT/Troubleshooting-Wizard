@@ -11,40 +11,43 @@ from unittest.mock import MagicMock, patch, ANY
 from typing import Dict, Any
 
 # Add the project root directory to the Python path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 # Mock the imports that would be problematic in tests
-sys.modules['PIL'] = MagicMock()
-sys.modules['PIL.Image'] = MagicMock()
-sys.modules['PIL.ImageTk'] = MagicMock()
+sys.modules["PIL"] = MagicMock()
+sys.modules["PIL.Image"] = MagicMock()
+sys.modules["PIL.ImageTk"] = MagicMock()
 
 # Import the main module
 from src import main
 
+
 class MockUIStyleManager:
     """Mock UIStyleManager for testing core functionality without UI."""
+
     def __init__(self):
         self.colors = {
-            'technology': '#e1f5fe',
-            'task': '#e8f5e9',
-            'error_critical': '#ffebee',
-            'background': '#f5f5f5'
+            "technology": "#e1f5fe",
+            "task": "#e8f5e9",
+            "error_critical": "#ffebee",
+            "background": "#f5f5f5",
         }
-    
+
     def create_modern_frame(self, *args, **kwargs):
         mock_frame = MagicMock()
         mock_frame.winfo_reqwidth.return_value = 800
         mock_frame.winfo_reqheight.return_value = 600
         return mock_frame
-    
+
     def create_modern_button(self, *args, **kwargs):
         return MagicMock()
-    
+
     def create_back_button_area(self, *args, **kwargs):
         return MagicMock()
-    
+
     def set_window_theme(self, *args, **kwargs):
-        return self.colors.get(kwargs.get('theme', 'background'), self.colors['background'])
+        return self.colors.get(kwargs.get("theme", "background"), self.colors["background"])
+
 
 # Sample test data
 TEST_JSON_DATA = {
@@ -56,22 +59,21 @@ TEST_JSON_DATA = {
             "technology": "#e1f5fe",
             "task": "#e8f5e9",
             "error_critical": "#ffebee",
-            "background": "#f5f5f5"
+            "background": "#f5f5f5",
         },
         "Technologies": {
             "Tech1": {
                 "button_text": "Test Tech 1",
-                "tasks": [
-                    {"Task 1": {"task_type": "open_url", "url_path": "test.pdf"}}
-                ]
+                "tasks": [{"Task 1": {"task_type": "open_url", "url_path": "test.pdf"}}],
             }
-        }
+        },
     },
     "labels": {
         "back_to_technologies": "Back to Technologies",
-        "sew_db_not_specified": "Not specified"
-    }
+        "sew_db_not_specified": "Not specified",
+    },
 }
+
 
 @pytest.fixture
 def mock_root():
@@ -81,33 +83,39 @@ def mock_root():
     mock.winfo_screenheight.return_value = 1080
     return mock
 
+
 @pytest.fixture
 def app(mock_root):
     """Create an instance of MainApplication for testing with all UI components mocked."""
-    with patch('src.main.SEWDatabaseManager'), \
-         patch('src.main.UIStyleManager', new=MockUIStyleManager), \
-         patch('src.main.os.path.join', side_effect=os.path.join), \
-         patch('src.main.os.path.dirname', return_value=os.path.dirname(__file__)), \
-         patch('src.main.os.path.exists', return_value=True), \
-         patch('src.main.os.path.abspath', side_effect=lambda x: x), \
-         patch('src.main.tk.Frame') as mock_frame, \
-         patch('src.main.tk.Toplevel'):
-        
+    with patch("src.main.SEWDatabaseManager"), patch(
+        "src.main.UIStyleManager", new=MockUIStyleManager
+    ), patch("src.main.os.path.join", side_effect=os.path.join), patch(
+        "src.main.os.path.dirname", return_value=os.path.dirname(__file__)
+    ), patch(
+        "src.main.os.path.exists", return_value=True
+    ), patch(
+        "src.main.os.path.abspath", side_effect=lambda x: x
+    ), patch(
+        "src.main.tk.Frame"
+    ) as mock_frame, patch(
+        "src.main.tk.Toplevel"
+    ):
         # Mock frame with proper sizing methods
         mock_frame_instance = MagicMock()
         mock_frame_instance.winfo_reqwidth.return_value = 800
         mock_frame_instance.winfo_reqheight.return_value = 600
         mock_frame.return_value = mock_frame_instance
-        
+
         # Patch the show_main_program method to avoid UI creation during init
-        with patch.object(main.MainApplication, 'show_main_program'):
+        with patch.object(main.MainApplication, "show_main_program"):
             app = main.MainApplication(mock_root, TEST_JSON_DATA, os.path.dirname(__file__))
-        
+
         # Mock the view stack and current view
         app.view_stack = []
         app.current_view = mock_frame_instance
-        
+
         yield app
+
 
 def test_initialization(app):
     """Test that the MainApplication initializes correctly."""
@@ -116,62 +124,68 @@ def test_initialization(app):
     assert app.initial_height == TEST_JSON_DATA["MainApplication"]["height"]
     assert app.json_data == TEST_JSON_DATA
 
+
 def test_show_main_program(app):
     """Test that the main program view is shown correctly."""
     # Call the method
     app.show_main_program()
-    
+
     # Verify the view was created
     assert app.current_view is not None
+
 
 def test_show_technology(app):
     """Test showing a technology view."""
     tech_data = {
         "button_text": "Test Tech",
         "tasks": [{"Test Task": {"task_type": "test"}}],
-        "name": "Test Technology"
+        "name": "Test Technology",
     }
-    
+
     # Call the method
     app.show_technology(tech_data)
-    
+
     # Verify the view was updated
     assert app.current_view is not None
     assert app.variables == tech_data
+
 
 def test_show_task_open_url(app):
     """Test showing a task with URL."""
     task_attrs = {"task_type": "open_url", "url_path": "test.pdf"}
     tech_data = {"name": "Test Tech"}
-    
-    with patch('src.main.PDFViewerWindow') as mock_pdf_viewer, \
-         patch('src.main.os.path.exists', return_value=True):
+
+    with patch("src.main.PDFViewerWindow") as mock_pdf_viewer, patch(
+        "src.main.os.path.exists", return_value=True
+    ):
         # Call the method
         app.show_task(task_attrs, tech_data)
-        
+
         # Verify the PDF viewer was created
         mock_pdf_viewer.assert_called_once()
+
 
 def test_format_single_line_content(app):
     """Test formatting text to a single line."""
     # Test with newlines and extra spaces
     assert app._format_single_line_content("line1\nline2\n   line3   ") == "line1 line2 line3"
-    
+
     # Test with empty input (returns default message)
     assert app._format_single_line_content("") == "Not specified"
-    
+
     # Test with None input (returns default message)
     assert app._format_single_line_content(None) == "Not specified"
+
 
 def test_show_previous_view(app):
     """Test navigation to previous view."""
     # Set up view stack with proper tuple format (function, data)
     mock_func = MagicMock()
     app.view_stack = [(mock_func, None)]
-    
+
     # Call the method
     app.show_previous_view()
-    
+
     # Verify the function was called
     mock_func.assert_called_once()
     assert len(app.view_stack) == 0  # Should have removed the view from stack

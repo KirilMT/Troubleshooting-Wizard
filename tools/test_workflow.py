@@ -19,8 +19,7 @@ def run_command(cmd, description, cwd=None):
     print(f"Running {description}...")
     try:
         result = subprocess.run(
-            cmd, shell=True, check=True, capture_output=True, 
-            text=True, encoding='utf-8', cwd=cwd
+            cmd, shell=True, check=True, capture_output=True, text=True, encoding="utf-8", cwd=cwd
         )
         print(f"[PASS] {description} passed")
         return True, result.stdout
@@ -41,40 +40,46 @@ def test_code_quality():
 def test_ci_pipeline():
     """Test CI Pipeline workflow"""
     print("\n=== Testing CI Pipeline Workflow ===")
-    
+
     # Test dependency installation
-    success, _ = run_command("pip install -e \".[dev]\"", "Dependencies Installation")
+    success, _ = run_command('pip install -e ".[dev]"', "Dependencies Installation")
     assert success, "Dependencies installation failed"
-    
+
     # Test pytest (all core tests)
-    success, _ = run_command("python -m pytest tests/test_core.py tests/test_database_manager.py tests/test_ui_components.py tests/test_main.py -v", "Unit Tests")
+    success, _ = run_command(
+        "python -m pytest tests/test_core.py tests/test_database_manager.py tests/test_ui_components.py tests/test_main.py -v",
+        "Unit Tests",
+    )
     assert success, "Unit tests failed"
-    
+
     # Test health checks
     health_cmd = (
-        "python -c \"from src.logging_config import setup_logging; "
+        'python -c "from src.logging_config import setup_logging; '
         "setup_logging(); from src.health_check import run_health_checks; "
-        "exit(0 if run_health_checks() else 1)\""
+        'exit(0 if run_health_checks() else 1)"'
     )
     success, _ = run_command(health_cmd, "Health Checks")
     assert success, "Health checks failed"
-    
+
     # Test package build
     success, _ = run_command("python -m build", "Package Build")
     assert success, "Package build failed"
-    
+
     # Clean up build artifacts
-    run_command("rmdir /s /q troubleshooting_wizard-1.2.0 2>nul || echo Build dir cleaned", "Cleanup Build Artifacts")
+    run_command(
+        "rmdir /s /q troubleshooting_wizard-1.2.0 2>nul || echo Build dir cleaned",
+        "Cleanup Build Artifacts",
+    )
 
 
 def test_release():
     """Test Release workflow"""
     print("\n=== Testing Release Workflow ===")
-    
+
     # Test executable build
     success, _ = run_command("powershell -File tools/build.ps1", "Executable Build")
     assert success, "Executable build failed"
-    
+
     # Check if exe exists
     assert os.path.exists("dist/run.exe"), "Executable not found"
 
@@ -89,4 +94,5 @@ def setup_module():
 if __name__ == "__main__":
     # Allow running directly for backwards compatibility
     import pytest
+
     pytest.main([__file__, "-v"])
