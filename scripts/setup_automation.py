@@ -31,34 +31,41 @@ def main():
     os.chdir(project_root)
 
     success_count = 0
-    total_steps = 3
+    total_steps = 5
 
-    # Install pre-commit
-    if run_command("pip install pre-commit", "Pre-commit package"):
+    # Install all requirements (including pre-commit)
+    if run_command("pip install -r requirements.txt", "Project dependencies"):
         success_count += 1
 
     # Install pre-commit hooks
     if run_command("pre-commit install", "Pre-commit hooks"):
         success_count += 1
 
-    # Test the automation
-    if run_command("python tools/format_code.py", "Code quality automation"):
+    # Migrate pre-commit config if needed
+    if run_command("pre-commit migrate-config", "Pre-commit configuration migration"):
+        success_count += 1
+
+    # Test pre-commit hooks
+    if run_command("pre-commit run --all-files", "Pre-commit hook validation"):
+        success_count += 1
+
+    # Test the code quality automation
+    if run_command("python scripts/format_code.py", "Code quality automation"):
         success_count += 1
 
     print(f"\n🎉 Setup complete! ({success_count}/{total_steps} steps successful)")
 
     if success_count == total_steps:
         print("\n✨ Your automated development workflow is ready!")
-        print("\n📋 Quick Reference:")
-        print("   • During development: python tools/format_code.py")
-        print("   • Before pushing: python tools/test_workflow.py")
-        print("   • For releases: python tools/release_manager.py patch --changes '...'")
-        print("   • Pre-commit hooks: Automatically run on git commit")
-        return 0
+        print("📋 What's been set up:")
+        print("   • All project dependencies installed")
+        print("   • Pre-commit hooks installed and configured")
+        print("   • Code formatting and linting automation")
+        print("   • Git hooks for automatic code quality checks")
+        print("\n🔧 Next time, just run: python scripts/setup_automation.py")
     else:
-        print("\n⚠️  Some setup steps failed. Check the errors above.")
-        return 1
+        print(f"\n⚠️  Some steps failed. Please check the errors above.")
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

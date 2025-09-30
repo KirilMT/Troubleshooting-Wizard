@@ -214,9 +214,24 @@ class TestMainApplication:
         assert self.app.current_view == mock_frame
 
     def test_show_task_open_url(self):
-        """Test showing a task with URL."""
+        """Test showing a task with URL (web browser)."""
         # Setup
-        task_attrs = {"task_type": "open_url", "url_path": "test.pdf"}
+        task_attrs = {"task_type": "open_url", "url_path": "https://example.com"}
+        tech_data = {"name": "Test Tech"}
+
+        # Mock the _open_web_browser method
+        self.app._open_web_browser = MagicMock()
+
+        # Call the method
+        self.app.show_task(task_attrs, tech_data)
+
+        # Verify _open_web_browser was called with the correct arguments
+        self.app._open_web_browser.assert_called_once_with("https://example.com")
+
+    def test_show_task_open_pdf(self):
+        """Test showing a task with PDF file."""
+        # Setup
+        task_attrs = {"task_type": "open_pdf", "pdf_path": "test.pdf"}
         tech_data = {"name": "Test Tech"}
 
         # Mock the _open_pdf_viewer method
@@ -226,8 +241,22 @@ class TestMainApplication:
         self.app.show_task(task_attrs, tech_data)
 
         # Verify _open_pdf_viewer was called with the correct arguments
-        # Note: The method is called with page_number=None by default
         self.app._open_pdf_viewer.assert_called_once_with("test.pdf", page_number=None)
+
+    def test_show_task_open_pdf_with_page(self):
+        """Test showing a task with PDF file and specific page."""
+        # Setup
+        task_attrs = {"task_type": "open_pdf", "pdf_path": "test.pdf", "pdf_page_number": 5}
+        tech_data = {"name": "Test Tech"}
+
+        # Mock the _open_pdf_viewer method
+        self.app._open_pdf_viewer = MagicMock()
+
+        # Call the method
+        self.app.show_task(task_attrs, tech_data)
+
+        # Verify _open_pdf_viewer was called with the correct arguments
+        self.app._open_pdf_viewer.assert_called_once_with("test.pdf", page_number=5)
 
     def test_format_single_line_content(self):
         """Test formatting text to a single line."""

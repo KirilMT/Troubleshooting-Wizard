@@ -151,8 +151,21 @@ def test_show_technology(app):
 
 
 def test_show_task_open_url(app):
-    """Test showing a task with URL."""
-    task_attrs = {"task_type": "open_url", "url_path": "test.pdf"}
+    """Test showing a task with URL (web browser)."""
+    task_attrs = {"task_type": "open_url", "url_path": "https://example.com"}
+    tech_data = {"name": "Test Tech"}
+
+    with patch("src.main.webbrowser.open") as mock_webbrowser:
+        # Call the method
+        app.show_task(task_attrs, tech_data)
+
+        # Verify the web browser was opened with the correct URL
+        mock_webbrowser.assert_called_once_with("https://example.com")
+
+
+def test_show_task_open_pdf(app):
+    """Test showing a task with PDF file."""
+    task_attrs = {"task_type": "open_pdf", "pdf_path": "test.pdf"}
     tech_data = {"name": "Test Tech"}
 
     with patch("src.main.PDFViewerWindow") as mock_pdf_viewer, patch(

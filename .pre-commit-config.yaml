@@ -27,7 +27,7 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        stages: [commit]
+        stages: [pre-commit]
 
       - id: run-tests
         name: Run Tests Before Commit
@@ -35,7 +35,7 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        stages: [commit]
+        stages: [pre-commit]
 
       - id: pre-push-validation
         name: Pre-Push Validation
@@ -43,4 +43,4 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        stages: [push]
+        stages: [pre-push]

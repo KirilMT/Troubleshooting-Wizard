@@ -93,4 +93,4 @@ def _test_ui_components() -> bool:
 def _test_logging_system() -> bool:
     """Test logging system is properly configured."""
     logger = logging.getLogger()
-    return logger.level == logging.DEBUG and len(logger.handlers) >= 1
+    return logger.level == logging.WARNING and len(logger.handlers) >= 1

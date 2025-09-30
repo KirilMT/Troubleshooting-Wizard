@@ -15,6 +15,7 @@ Key Features:
 import logging
 import os
 import tkinter as tk
+import webbrowser
 from tkinter import messagebox, ttk
 from typing import Any, Dict, Optional
 
@@ -168,9 +169,16 @@ class MainApplication:
         for index, task_data in enumerate(tasks):
             task_title = list(task_data.keys())[0]
             task_attributes = task_data[task_title]
-            task_attributes["url_path"] = self._replace_variables(
-                task_attributes.get("url_path", "")
-            )
+
+            # Replace variables in paths if they exist
+            if "url_path" in task_attributes:
+                task_attributes["url_path"] = self._replace_variables(
+                    task_attributes.get("url_path", "")
+                )
+            if "pdf_path" in task_attributes:
+                task_attributes["pdf_path"] = self._replace_variables(
+                    task_attributes.get("pdf_path", "")
+                )
 
             # Error codes button gets critical styling, others get task styling
             task_title_lower = task_title.lower()
@@ -193,8 +201,8 @@ class MainApplication:
         """Handle task execution based on task type.
 
         Routes the task to the appropriate handler based on the task_type specified
-        in the task attributes. Supports different types of tasks like error code lookups
-        and PDF viewing.
+        in the task attributes. Supports different types of tasks like error code lookups,
+        PDF viewing, and URL opening.
 
         Args:
             task_attributes: Dictionary containing task configuration including
@@ -204,23 +212,44 @@ class MainApplication:
         Note:
             Currently supported task types:
             - 'error_codes': Displays error code lookup interface
-            - 'open_url': Opens a PDF document at a specific page
+            - 'open_pdf': Opens a PDF document in the PDF viewer
+            - 'open_url': Opens a URL in the default web browser
         """
         task_type = task_attributes.get("task_type")
+
         if task_type == "error_codes":
             self.show_error_codes(task_attributes, tech_data)
+        elif task_type == "open_pdf":
+            pdf_path = task_attributes.get("pdf_path")
+            page_identifier = task_attributes.get("pdf_page_number")
+
+            if pdf_path:
+                resolved_pdf_path = self._replace_variables(pdf_path)
+                self._open_pdf_viewer(resolved_pdf_path, page_number=page_identifier)
+            else:
+                logging.error("Task with type 'open_pdf' is missing a 'pdf_path'.")
+                messagebox.showwarning(
+                    "Configuration Error",
+                    "This task is configured to open a PDF, but the PDF path is missing.",
+                )
         elif task_type == "open_url":
             url_path = task_attributes.get("url_path")
-            # Get page identifier. If not present, it will be None.
-            page_identifier = task_attributes.get("pdf_page_number")
+
             if url_path:
-                self._open_pdf_viewer(url_path, page_number=page_identifier)
+                resolved_url_path = self._replace_variables(url_path)
+                self._open_web_browser(resolved_url_path)
             else:
                 logging.error("Task with type 'open_url' is missing a 'url_path'.")
                 messagebox.showwarning(
                     "Configuration Error",
-                    "This task is configured to open a file, but the file path is missing.",
+                    "This task is configured to open a URL, but the URL path is missing.",
                 )
+        else:
+            logging.error(f"Unknown task_type: {task_type}")
+            messagebox.showwarning(
+                "Configuration Error",
+                f"Unknown task type '{task_type}'. Please check the configuration.",
+            )
 
     def show_error_codes(self, task_attributes: Dict[str, Any], tech_data: Dict[str, Any]) -> None:
         """Display the error code interface for the selected technology.
@@ -335,7 +364,7 @@ class MainApplication:
             input_frame,
             self.json_data["labels"]["search"],
             lambda: self._open_pdf_viewer(
-                task_attributes.get("url_path"), search_term=search_entry.get()
+                task_attributes.get("pdf_path"), search_term=search_entry.get()
             ),
             style="submit",
         )
@@ -345,7 +374,7 @@ class MainApplication:
         search_entry.bind(
             "<Return>",
             lambda e: self._open_pdf_viewer(
-                task_attributes.get("url_path"), search_term=search_entry.get()
+                task_attributes.get("pdf_path"), search_term=search_entry.get()
             ),
         )
 
@@ -943,4 +972,17 @@ class MainApplication:
                 "PDF Viewer Error",
                 "An unexpected error occurred while trying to open the PDF "
                 f"viewer.\n\nDetails: {e}",
+            )
+
+    def _open_web_browser(self, url: str) -> None:
+        """Open the specified URL in the default web browser."""
+        try:
+            webbrowser.open(url)
+            logging.info(f"Opened web browser to URL: {url}")
+        except Exception as e:
+            logging.error(f"Failed to open web browser for URL '{url}': {e}")
+            messagebox.showerror(
+                "Web Browser Error",
+                "An unexpected error occurred while trying to open the web browser.\n\n"
+                f"Details: {e}",
             )

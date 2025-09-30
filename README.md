@@ -16,6 +16,49 @@ A Python-based GUI application for industrial equipment troubleshooting and erro
 - **Configuration-Driven**: JSON-based configuration for easy customization and maintenance.
 - **Security**: Sensitive data (configuration, media files) is kept local and excluded from version control by default.
 
+## ⚡ Quick Start
+
+### Automated Setup (Recommended)
+
+For new project setup or after cloning, run the automated setup script:
+
+```bash
+# Create and activate virtual environment
+python -m venv .venv
+.venv\Scripts\activate  # Windows
+# source .venv/bin/activate  # Linux/macOS
+
+# Run automated setup (installs everything including pre-commit hooks)
+python scripts/setup_automation.py
+```
+
+This will automatically:
+- Install all project dependencies (including pre-commit)
+- Set up pre-commit hooks for automatic code quality checks
+- Configure Git hooks to run on every commit
+- Validate the setup by running tests
+
+### Manual Setup
+
+If you prefer manual setup:
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Install pre-commit hooks
+pre-commit install
+
+# Test everything works
+python scripts/format_code.py
+```
+
+### Running the Application
+
+```bash
+python run.py
+```
+
 ## 🖼️ Screenshots
 
 ### Main Application Flow
