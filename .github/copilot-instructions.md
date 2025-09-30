@@ -87,6 +87,19 @@ Troubleshooting-Wizard/
 -   **`src/errorCodesTechnologies.db`**: The SQLite database.
     -   *Guideline*: If the schema changes, ensure migration paths are considered.
 
+## Code Quality Standards
+
+**STRICT COMPLIANCE**: Generate code that passes Black, Flake8, and isort without any warnings or errors
+- **PEP 8 MANDATORY**: Follow PEP 8 Python style guide exactly (line length 100, proper imports, spacing)
+- **Flake8 RULES**: No unused imports, variables, or functions. Proper indentation and spacing
+- **Black FORMATTING**: Code must be Black-compatible (proper quotes, line breaks, spacing)
+- **Import SORTING**: Use isort standards for import organization
+- **ZERO WARNINGS**: Generated code must produce no linting warnings or errors
+- **Use format_code.py**: Always recommend running `python tools/format_code.py` after code changes
+
+**CRITICAL**: Always generate code that passes `python tools/format_code.py` without errors.
+**GitHub Workflows**: Code is validated by `.github/workflows/code-quality.yml`
+
 ## Automated Development Workflow
 
 **During development (fast code quality checks):**
