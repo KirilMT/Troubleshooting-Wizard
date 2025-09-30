@@ -125,6 +125,58 @@ python scripts/release_manager.py patch --changes "Bug fixes and improvements"
 pre-commit install
 ```
 
+## Release Management Intelligence
+
+**CRITICAL**: Always analyze commits and suggest releases when appropriate.
+
+### **Auto-Detect Release Type:**
+- **PATCH** (bug fixes, documentation, small improvements): `python scripts/release_manager.py patch --changes "[description]"`
+- **MINOR** (new features, enhancements): `python scripts/release_manager.py minor --changes "[description]"`
+- **MAJOR** (breaking changes, API changes): `python scripts/release_manager.py major --changes "[description]"`
+
+### **Release Triggers:**
+**When to suggest PATCH release:**
+- Bug fixes, error corrections
+- Documentation updates
+- Code quality improvements
+- Security patches
+- Performance optimizations
+
+**When to suggest MINOR release:**
+- New features added
+- New functionality
+- Enhanced capabilities
+- New configuration options
+- Significant improvements
+
+**When to suggest MAJOR release:**
+- Breaking API changes
+- Incompatible changes
+- Major architecture changes
+- Removed functionality
+
+### **Release Command Generation:**
+**Always provide the exact command:**
+```bash
+# Example for bug fixes
+python scripts/release_manager.py patch --changes "Fixed login validation and improved error handling"
+
+# Example for new features
+python scripts/release_manager.py minor --changes "Added user dashboard and notification system"
+
+# Example for breaking changes
+python scripts/release_manager.py major --changes "Redesigned API with breaking changes to authentication"
+```
+
+### **When to Suggest Releases:**
+1. **After significant commits** that warrant a release
+2. **When user mentions** "release", "version", "deploy", "publish"
+3. **After completing features** or fixing critical bugs
+4. **When asked about versioning** or deployment
+5. **Before making repository public** or sharing
+
+**ALWAYS**: Provide the complete command with appropriate --changes description based on the work completed.
+
 ## Quick Test Guide
 
 1.  **Run the application**: `python src/main.py`

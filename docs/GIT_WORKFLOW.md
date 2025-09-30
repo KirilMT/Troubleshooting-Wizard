@@ -56,13 +56,13 @@ This project includes automated tools to ensure code quality and streamline deve
 
 ```sh
 # During development (fast code quality checks)
-python tools/format_code.py
+python scripts/format_code.py
 
 # Before pushing (comprehensive validation)
-python tools/test_workflow.py
+python scripts/test_workflow.py
 
 # For releases (automated version management)
-python tools/release_manager.py patch --changes "Bug fixes and improvements"
+python scripts/release_manager.py patch --changes "Bug fixes and improvements"
 ```
 
 **Step 3.1: Do Your Work and Commit Changes**
@@ -116,7 +116,7 @@ This project provides three automated tools to streamline development and ensure
 **When to use:** After making changes, before committing
 
 ```sh
-python tools/format_code.py
+python scripts/format_code.py
 ```
 
 **What it does:**
@@ -131,7 +131,7 @@ python tools/format_code.py
 **When to use:** Before creating pull requests or pushing to remote
 
 ```sh
-python tools/test_workflow.py
+python scripts/test_workflow.py
 ```
 
 **What it does:**
@@ -148,16 +148,16 @@ python tools/test_workflow.py
 
 ```sh
 # Patch release (1.2.0 -> 1.2.1) - Bug fixes
-python tools/release_manager.py patch --changes "Fixed login bug and improved error handling"
+python scripts/release_manager.py patch --changes "Fixed login bug and improved error handling"
 
 # Minor release (1.2.0 -> 1.3.0) - New features
-python tools/release_manager.py minor --changes "Added user dashboard and notification system"
+python scripts/release_manager.py minor --changes "Added user dashboard and notification system"
 
 # Major release (1.2.0 -> 2.0.0) - Breaking changes
-python tools/release_manager.py major --changes "Redesigned API with breaking changes"
+python scripts/release_manager.py major --changes "Redesigned API with breaking changes"
 
 # Interactive mode (prompts for input)
-python tools/release_manager.py
+python scripts/release_manager.py
 ```
 
 **What it does:**
