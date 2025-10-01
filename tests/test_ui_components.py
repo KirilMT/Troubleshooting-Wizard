@@ -17,6 +17,7 @@ def test_ui_style_manager_initialization():
     assert "background" in style_manager.colors  # Check for background color
 
 
+@pytest.mark.gui
 def test_create_modern_frame():
     """Test creation of a modern frame."""
     root = tk.Tk()
@@ -31,6 +32,7 @@ def test_create_modern_frame():
         root.destroy()
 
 
+@pytest.mark.gui
 def test_create_modern_button():
     """Test creation of a modern button."""
     root = tk.Tk()
@@ -57,6 +59,7 @@ def test_set_window_theme():
     root.configure.assert_called_with(bg=bg_color)
 
 
+@pytest.mark.gui
 def test_create_back_button_area():
     """Test creation of back button area."""
     root = tk.Tk()

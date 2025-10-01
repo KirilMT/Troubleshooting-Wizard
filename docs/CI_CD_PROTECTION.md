@@ -35,29 +35,12 @@ This document explains the comprehensive CI/CD protection system implemented to 
 
 ## Setup Instructions
 
-### Automatic Setup
-Run the comprehensive setup script:
-```bash
-python scripts/setup_ci_cd_protection.py
-```
+To set up the complete CI/CD protection environment, run the unified setup script:
 
-### Manual Setup
-
-#### 1. Install Pre-Commit Hooks
 ```bash
-pre-commit install
-pre-commit install --hook-type pre-push
+python scripts/setup_environment.py
 ```
-
-#### 2. Set Up Branch Protection
-```bash
-python scripts/setup_branch_protection.py
-```
-
-#### 3. Verify Setup
-```bash
-python scripts/test_workflow.py
-```
+This single command handles pre-commit hook installation, environment validation, and GitHub branch protection setup.
 
 ## How It Works
 
@@ -149,8 +132,8 @@ python scripts/test_workflow.py
 # Check protection status
 gh api repos/:owner/:repo/branches/main/protection
 
-# Reset protection rules
-python scripts/setup_branch_protection.py
+# Reset protection rules by re-running the setup script
+python scripts/setup_environment.py
 ```
 
 ## Benefits
@@ -177,8 +160,8 @@ python scripts/setup_branch_protection.py
 
 ### Check Protection Status
 ```bash
-# Verify branch protection
-python scripts/setup_branch_protection.py --verify
+# Verify branch protection by re-running the setup script
+python scripts/setup_environment.py
 
 # Check hook installation
 pre-commit --version

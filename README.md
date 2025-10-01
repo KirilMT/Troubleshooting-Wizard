@@ -267,7 +267,7 @@ The `media/` directory contains image files used by the application:
 ## 🎯 Usage
 
 ### Main Application
-1.  Launch the application: `python run.py`
+1.  Launch the. application: `python run.py`
 2.  Select a technology from the main menu.
 3.  Choose from available tasks (e.g., search error codes, open manuals).
 
@@ -291,24 +291,18 @@ This will store the results in the `sew_error_codes` table in `src/errorCodesTec
 
 ## 🧑‍💻 Development
 
-### Configuration Best Practices
-1.  **Never commit `src/data.json`** or corporate media files.
-2.  Update `src/example_data.json` when adding new features.
-3.  Use relative paths for media files and placeholder URLs in `example_data.json`.
-
-### Security Features
--   **Automatic data protection**: Real configuration and media files are automatically ignored by git.
--   **Sensitive data isolation**: All corporate-specific content stays local.
-
-### Code Style
-This project follows PEP 8 Python style guidelines and uses object-oriented programming patterns.
-
-## 🧑💻 Development
-
 ### Automated Development Workflow
 
-This project includes automated tools to ensure code quality and streamline development:
+This project includes automated tools to ensure code quality and streamline development.
 
+To set up the complete development environment, including pre-commit hooks and branch protection, run the unified setup script once:
+
+```bash
+# One-time setup for new developers
+python scripts/setup_environment.py
+```
+
+Other useful scripts:
 ```bash
 # During development (fast code quality checks)
 python scripts/format_code.py
@@ -318,21 +312,19 @@ python scripts/test_workflow.py
 
 # For releases (automated version management)
 python scripts/release_manager.py patch --changes "Bug fixes and improvements"
-
-# One-time setup for new developers
-python scripts/setup_automation.py
 ```
 
-### Code Quality Standards
-- **Strict compliance** with Black, Flake8, and isort
-- **100-character line length** standard
-- **Zero warnings/errors** requirement
-- **Pre-commit hooks** for automatic quality enforcement
-- **21.24% test coverage** with comprehensive test suite
+### Code Quality and Style
+- This project follows PEP 8 Python style guidelines and uses object-oriented programming patterns.
+- **Strict compliance** with Black, Flake8, and isort.
+- **100-character line length** standard.
+- **Zero warnings/errors** requirement.
+- **Pre-commit hooks** for automatic quality enforcement.
+- **21.24% test coverage** with comprehensive test suite.
 
 ### Configuration Best Practices
-1.  **Never commit `data/data.json`** or corporate media files.
-2.  Update `data/example_data.json` when adding new features.
+1.  **Never commit `src/data.json`** or corporate media files.
+2.  Update `src/example_data.json` when adding new features.
 3.  Use relative paths for media files and placeholder URLs in `example_data.json`.
 
 ### Security Features
