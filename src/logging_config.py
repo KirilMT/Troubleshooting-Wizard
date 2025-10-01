@@ -15,7 +15,7 @@ def setup_logging() -> None:
         "%(asctime)s - %(name)s - %(levelname)s - %(funcName)s:%(lineno)d - %(message)s"
     )
     logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)  # Set to DEBUG for development
+    logger.setLevel(logging.WARNING)  # Set to DEBUG for development
 
     # File handler with daily rotation
     log_file = os.path.join(log_dir, "app.log")
