@@ -47,7 +47,7 @@ def test_ci_pipeline():
 
     # Test pytest (all core tests)
     success, _ = run_command(
-        "python -m pytest tests/test_core.py tests/test_database_manager.py tests/test_ui_components.py tests/test_main.py -v",
+        "python -m pytest --cache-clear tests/test_core.py tests/test_database_manager.py tests/test_ui_components.py tests/test_main.py -v",
         "Unit Tests",
     )
     assert success, "Unit tests failed"

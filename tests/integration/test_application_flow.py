@@ -37,7 +37,10 @@ class TestApplicationFlow:
                     "width": 800,
                     "height": 600,
                     "Technologies": {
-                        "tech1": {"button_text": "Test Tech 1", "tasks": ["Task 1", "Task 2"]}
+                        "tech1": {
+                            "button_text": "Test Tech 1",
+                            "tasks": ["Task 1", "Task 2"],
+                        }
                     },
                 },
                 "labels": {"back_to_technologies": "Back to Technologies"},
@@ -58,7 +61,7 @@ class TestApplicationFlow:
         tech_data = {
             "button_text": "Test Tech 1",
             "tasks": [
-                {"Task 1": {"task_type": "open_url", "url_path": "test.pdf"}},
+                {"Task 1": {"task_type": "open_pdf", "pdf_path": "test.pdf"}},
                 {"Task 2": {"task_type": "error_codes"}},
             ],
         }

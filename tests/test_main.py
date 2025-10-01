@@ -6,6 +6,7 @@ avoiding direct testing of Tkinter UI components which are better tested manuall
 """
 import os
 import sys
+import webbrowser
 import pytest
 from unittest.mock import MagicMock, patch, ANY
 from typing import Dict, Any
@@ -31,6 +32,7 @@ class MockUIStyleManager:
             "task": "#e8f5e9",
             "error_critical": "#ffebee",
             "background": "#f5f5f5",
+            "surface": "#ffffff",
         }
 
     def create_modern_frame(self, *args, **kwargs):
@@ -42,7 +44,16 @@ class MockUIStyleManager:
     def create_modern_button(self, *args, **kwargs):
         return MagicMock()
 
+    def create_modern_label(self, *args, **kwargs):
+        return MagicMock()
+
+    def create_modern_entry(self, *args, **kwargs):
+        return MagicMock()
+
     def create_back_button_area(self, *args, **kwargs):
+        return MagicMock()
+
+    def create_dual_back_button_area(self, *args, **kwargs):
         return MagicMock()
 
     def set_window_theme(self, *args, **kwargs):
@@ -55,22 +66,22 @@ TEST_JSON_DATA = {
         "title": "Test Application",
         "width": 800,
         "height": 600,
-        "colors": {
-            "technology": "#e1f5fe",
-            "task": "#e8f5e9",
-            "error_critical": "#ffebee",
-            "background": "#f5f5f5",
-        },
         "Technologies": {
             "Tech1": {
                 "button_text": "Test Tech 1",
-                "tasks": [{"Task 1": {"task_type": "open_url", "url_path": "test.pdf"}}],
+                "tasks": [
+                    {"PDF Task": {"task_type": "open_pdf", "pdf_path": "test.pdf"}},
+                    {"URL Task": {"task_type": "open_url", "url_path": "http://example.com"}},
+                ],
             }
         },
     },
     "labels": {
         "back_to_technologies": "Back to Technologies",
+        "back_to_tasks": "Back to Tasks",
         "sew_db_not_specified": "Not specified",
+        "insert_fault_code": "Search:",
+        "search": "Go",
     },
 }
 
@@ -99,7 +110,9 @@ def app(mock_root):
         "src.main.tk.Frame"
     ) as mock_frame, patch(
         "src.main.tk.Toplevel"
-    ):
+    ), patch(
+        "src.main.webbrowser.open_new"
+    ) as mock_webbrowser:
         # Mock frame with proper sizing methods
         mock_frame_instance = MagicMock()
         mock_frame_instance.winfo_reqwidth.return_value = 800
@@ -113,6 +126,7 @@ def app(mock_root):
         # Mock the view stack and current view
         app.view_stack = []
         app.current_view = mock_frame_instance
+        app.webbrowser = mock_webbrowser
 
         yield app
 
@@ -150,9 +164,9 @@ def test_show_technology(app):
     assert app.variables == tech_data
 
 
-def test_show_task_open_url(app):
-    """Test showing a task with URL."""
-    task_attrs = {"task_type": "open_url", "url_path": "test.pdf"}
+def test_show_task_open_pdf(app):
+    """Test showing a task to open a PDF."""
+    task_attrs = {"task_type": "open_pdf", "pdf_path": "test.pdf"}
     tech_data = {"name": "Test Tech"}
 
     with patch("src.main.PDFViewerWindow") as mock_pdf_viewer, patch(
@@ -163,6 +177,53 @@ def test_show_task_open_url(app):
 
         # Verify the PDF viewer was created
         mock_pdf_viewer.assert_called_once()
+
+
+def test_show_task_open_url(app):
+    """Test showing a task to open a URL."""
+    task_attrs = {"task_type": "open_url", "url_path": "http://example.com"}
+    tech_data = {"name": "Test Tech"}
+
+    # Call the method
+    app.show_task(task_attrs, tech_data)
+
+    # Verify webbrowser.open_new was called
+    app.webbrowser.assert_called_once_with("http://example.com")
+
+
+def test_show_error_codes_search_uses_pdf_path(app):
+    """Test that traditional error search uses pdf_path."""
+    task_attrs = {"task_type": "error_codes", "pdf_path": "error_manual.pdf"}
+    tech_data = {"button_text": "Some Other Tech"}  # To ensure traditional search is used
+
+    # Mock the entry field to return a search term
+    mock_entry = MagicMock()
+    mock_entry.get.return_value = "E-123"
+    app.ui_style.create_modern_entry = MagicMock(return_value=mock_entry)
+
+    # Use a side effect to capture the command from the search button
+    captured_command = {}
+
+    def capture_command_side_effect(*args, **kwargs):
+        # args[1] is the button text, args[2] is the command lambda
+        if args[1] == app.json_data["labels"]["search"]:
+            captured_command["command"] = args[2]
+        return MagicMock()
+
+    app.ui_style.create_modern_button = MagicMock(side_effect=capture_command_side_effect)
+
+    with patch.object(app, "_open_pdf_viewer") as mock_open_pdf_viewer:
+        # This will build the UI and trigger the side effect
+        app.show_error_codes(task_attrs, tech_data)
+
+        # Ensure the command was captured
+        assert "command" in captured_command, "Search button command was not captured."
+
+        # Execute the captured command
+        captured_command["command"]()
+
+        # Verify that the PDF viewer was called with the correct path and search term
+        mock_open_pdf_viewer.assert_called_once_with("error_manual.pdf", search_term="E-123")
 
 
 def test_format_single_line_content(app):

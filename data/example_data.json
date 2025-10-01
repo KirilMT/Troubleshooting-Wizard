@@ -42,9 +42,9 @@
         "title": "Troubleshooting-Wizard - WTC Controllers",
         "width": 370,
         "height": 210,
-        "wtc_flowchart_url_path": "manuals/wtc_flowchart.pdf",
-        "wtc_manual_url_path": "manuals/example_wtc_manual.pdf",
-        "wtc_advanced_manual_url_path": "manuals/wtc_advanced_manual.pdf",
+        "wtc_flowchart_pdf_path": "manuals/wtc_flowchart.pdf",
+        "wtc_manual_pdf_path": "manuals/example_wtc_manual.pdf",
+        "wtc_advanced_manual_pdf_path": "manuals/wtc_advanced_manual.pdf",
         "tasks": [
           {
             "WTC Error Codes": {
@@ -53,80 +53,81 @@
               "title": "Troubleshooting-Wizard - WTC Controllers - Error Codes",
               "width": 800,
               "height": 650,
-              "url_path": "{{wtc_manual_url_path}}",
+              "pdf_path": "{{wtc_manual_pdf_path}}",
               "image_path": "media/example_wtc_errors.png"
             }
           },
           {
             "WTC Flowchart": {
-              "task_type": "open_url",
-              "url_path": "{{wtc_flowchart_url_path}}"
+              "task_type": "open_pdf",
+              "pdf_path": "{{wtc_flowchart_pdf_path}}"
             }
           },
           {
             "WTC Manual": {
-              "task_type": "open_url",
-              "url_path": "{{wtc_manual_url_path}}"
+              "task_type": "open_pdf",
+              "pdf_path": "{{wtc_manual_pdf_path}}"
             }
           },
           {
             "WTC Advanced Manual": {
-              "task_type": "open_url",
-              "url_path": "{{wtc_advanced_manual_url_path}}"
+              "task_type": "open_pdf",
+              "pdf_path": "{{wtc_advanced_manual_pdf_path}}"
             }
           }
         ]
       },
       "Lenze": {
-        "button_text": "Lenze Drives",
-        "title": "Troubleshooting-Wizard - Lenze Drives",
+        "button_text": "Lenze",
+        "title": "Troubleshooting-Wizard - Lenze",
         "width": 370,
         "height": 300,
-        "lenze_manual_url_path": "manuals/lenze_manual.pdf",
-        "lenze_diagnostic_training_url_path": "manuals/lenze_diagnostic_training.pdf",
-        "lenze_replacement_guide_url_path": "manuals/lenze_replacement_guide.pdf",
-        "lenze_training_docs_url_path": "manuals/lenze_training_documentation",
+        "manual_8400_protec_highline_pdf_path": "manuals/Software__8400 protec HighLine__v5-0__EN.pdf",
+        "diagnostic_training_url_path": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+        "changing_8400_protec_highline_url_path": "https://en.wikipedia.org/wiki/Variable-frequency_drive",
+        "general_lenze_training_url_path": "https://www.google.com/search?q=Lenze+training+documentation",
         "tasks": [
           {
-            "Lenze Error Codes": {
+            "Engineer Error Codes": {
               "task_type": "error_codes",
               "button_text": "Lenze Error Codes",
-              "title": "Troubleshooting-Wizard - Lenze Drives - Error Codes",
+              "title": "Troubleshooting-Wizard - Lenze - Error Codes",
               "width": 800,
               "height": 730,
-              "url_path": "{{lenze_manual_url_path}}",
+              "pdf_path": "{{manual_8400_protec_highline_pdf_path}}",
+              "url_wait_time": 6,
               "image_path": "media/example_lenze_errors.png"
             }
           },
           {
-            "LED Status Displays": {
-              "task_type": "open_url",
-              "url_path": "{{lenze_manual_url_path}}",
+            "LED status displays": {
+              "task_type": "open_pdf",
+              "pdf_path": "{{manual_8400_protec_highline_pdf_path}}",
               "pdf_page_number": 591
             }
           },
           {
             "Diagnostic Training": {
               "task_type": "open_url",
-              "url_path": "{{lenze_diagnostic_training_url_path}}"
+              "url_path": "{{diagnostic_training_url_path}}"
             }
           },
           {
-            "Drive Replacement Guide": {
+            "Changing Lenze Drive": {
               "task_type": "open_url",
-              "url_path": "{{lenze_replacement_guide_url_path}}"
+              "url_path": "{{changing_8400_protec_highline_url_path}}"
             }
           },
           {
-            "Training Documentation": {
+            "Training Docs": {
               "task_type": "open_url",
-              "url_path": "{{lenze_training_docs_url_path}}"
+              "url_path": "{{general_lenze_training_url_path}}"
             }
           },
           {
-            "Drive System Manual": {
-              "task_type": "open_url",
-              "url_path": "{{lenze_manual_url_path}}"
+            "8400 Protec HighLine Manual": {
+              "task_type": "open_pdf",
+              "pdf_path": "{{manual_8400_protec_highline_pdf_path}}"
             }
           }
         ]
@@ -136,15 +137,15 @@
         "title": "Troubleshooting-Wizard - FANUC Robotics",
         "width": 370,
         "height": 200,
-        "fanuc_error_manual_url_path": "manuals/example_fanuc_error_codes.pdf",
+        "fanuc_error_manual_pdf_path": "manuals/example_fanuc_error_codes.pdf",
         "tasks": [
           {
-            "FANUC Alarm Codes": {
+            "FANUC Error Codes": {
               "task_type": "error_codes",
               "title": "Troubleshooting-Wizard - FANUC Robotics - Alarm Codes",
               "width": 800,
               "height": 750,
-              "url_path": "{{fanuc_error_manual_url_path}}",
+              "pdf_path": "{{fanuc_error_manual_pdf_path}}",
               "image_path": "media/example_fanuc_alarms.png"
             }
           }
@@ -155,7 +156,7 @@
         "title": "Troubleshooting-Wizard - SEW Drive Systems",
         "width": 370,
         "height": 210,
-        "sew_manual_url_path": "manuals/sew_manual.pdf",
+        "sew_manual_pdf_path": "manuals/sew_manual.pdf",
         "tasks": [
           {
             "Error Codes - MoviPro": {
@@ -164,25 +165,14 @@
               "title": "Troubleshooting-Wizard - SEW Drive Systems - MoviPro Error Codes",
               "width": 1000,
               "height": 800,
-              "url_path": "{{sew_manual_url_path}}",
-              "image_path": "media/SEW_MoviPro_movitools_parameters.jpg"
-            }
-          },
-          {
-            "SEW Error Codes": {
-              "task_type": "error_codes",
-              "button_text": "SEW Error Codes",
-              "title": "Troubleshooting-Wizard - SEW Drive Systems - Error Codes",
-              "width": 800,
-              "height": 650,
-              "url_path": "{{sew_manual_url_path}}",
+              "pdf_path": "{{sew_manual_pdf_path}}",
               "image_path": "media/SEW_MoviPro_movitools_parameters.jpg"
             }
           },
           {
             "SEW Manual": {
-              "task_type": "open_url",
-              "url_path": "{{sew_manual_url_path}}"
+              "task_type": "open_pdf",
+              "pdf_path": "{{sew_manual_pdf_path}}"
             }
           }
         ]

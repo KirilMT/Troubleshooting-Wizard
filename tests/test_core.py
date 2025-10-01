@@ -34,7 +34,10 @@ TEST_JSON_DATA = {
         "Technologies": {
             "Tech1": {
                 "button_text": "Test Tech 1",
-                "tasks": [{"Task 1": {"task_type": "open_url", "url_path": "test.pdf"}}],
+                "tasks": [
+                    {"PDF Task": {"task_type": "open_pdf", "pdf_path": "test.pdf"}},
+                    {"URL Task": {"task_type": "open_url", "url_path": "http://example.com"}},
+                ],
             }
         },
         "labels": {
@@ -213,21 +216,30 @@ class TestMainApplication:
         assert len(self.app.view_stack) == 1
         assert self.app.current_view == mock_frame
 
-    def test_show_task_open_url(self):
-        """Test showing a task with URL."""
+    def test_show_task_open_pdf(self):
+        """Test showing a task to open a PDF."""
         # Setup
-        task_attrs = {"task_type": "open_url", "url_path": "test.pdf"}
+        task_attrs = {"task_type": "open_pdf", "pdf_path": "test.pdf"}
         tech_data = {"name": "Test Tech"}
 
-        # Mock the _open_pdf_viewer method
-        self.app._open_pdf_viewer = MagicMock()
-
-        # Call the method
+        # Mock is already in setup_method, just call the method
         self.app.show_task(task_attrs, tech_data)
 
-        # Verify _open_pdf_viewer was called with the correct arguments
-        # Note: The method is called with page_number=None by default
+        # Verify _open_pdf_viewer was called
         self.app._open_pdf_viewer.assert_called_once_with("test.pdf", page_number=None)
+
+    def test_show_task_open_url(self):
+        """Test showing a task with a URL."""
+        # Setup
+        task_attrs = {"task_type": "open_url", "url_path": "http://example.com"}
+        tech_data = {"name": "Test Tech"}
+
+        with patch("src.main.webbrowser.open_new") as mock_open_new:
+            # Call the method
+            self.app.show_task(task_attrs, tech_data)
+
+            # Verify webbrowser.open_new was called
+            mock_open_new.assert_called_once_with("http://example.com")
 
     def test_format_single_line_content(self):
         """Test formatting text to a single line."""
