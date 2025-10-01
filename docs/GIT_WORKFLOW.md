@@ -36,12 +36,24 @@ git pull origin main
 
 **Step 2.2: Create Your New Branch**
 
-Create a new branch with a descriptive name (e.g., `fix-login-bug`, `add-user-profiles`, `refactor-database-queries`).
+When working on a GitHub issue, create a new branch with a descriptive name that includes the issue number and a prefix indicating the type of work.
+
+**Branch Naming Convention:**
+`<type>/<issue-number>-<short-description>`
+
+-   **`<type>`**: Can be one of the following:
+    -   `feature`: For new features (e.g., `feature/123-add-user-profile`)
+    -   `bugfix`: For fixing bugs (e.g., `bugfix/45-fix-login-error`)
+    -   `chore`: For maintenance, refactoring, or dependency updates (e.g., `chore/56-update-dependencies`)
+    -   `docs`: For documentation changes (e.g., `docs/78-add-api-guide`)
+-   **`<issue-number>`**: The number of the GitHub issue you are addressing.
+-   **`<short-description>`**: A brief, kebab-case description of the work.
+
+This convention links the branch directly to the issue and provides clear context.
 
 ```sh
-# Create a new branch and switch to it in one command
-# Replace `new-feature-name` with your actual branch name
-git checkout -b new-feature-name
+# Example for a new feature branch
+git checkout -b feature/123-add-user-profile
 ```
 
 ---
@@ -87,7 +99,7 @@ git checkout main
 git pull origin main
 
 # Switch back to your feature branch
-git checkout new-feature-name
+git checkout <type>/<issue-number>-<short-description>
 
 # Merge the latest main into your feature branch
 git merge main
@@ -101,7 +113,7 @@ Push your branch to the remote repository. This is required before you can open 
 
 ```sh
 # The -u flag sets the upstream branch, so next time you can just `git push`
-git push -u origin new-feature-name
+git push -u origin <type>/<issue-number>-<short-description>
 ```
 
 ---
@@ -203,7 +215,7 @@ Once your feature is complete and pushed to GitHub, you will create a Pull Reque
 1.  Go to your repository on GitHub in your web browser.
 2.  You will likely see a yellow banner with your recently pushed branch and a button that says **"Compare & pull request"**. Click it.
 3.  If you don't see the banner, go to the **"Pull requests"** tab and click **"New pull request"**.
-4.  Set the `base` branch to `main` and the `compare` branch to your feature branch (`new-feature-name`).
+4.  Set the `base` branch to `main` and the `compare` branch to your feature branch (`<type>/<issue-number>-<short-description>`).
 5.  Give the PR a clear title (e.g., "Fixes #32: Error in search functionality") and a description of the changes.
 6.  Click **"Create pull request"**.
 
@@ -288,7 +300,7 @@ Finally, delete the local feature branch as it is no longer needed.
 
 ```sh
 # Delete the local branch
-git branch -d new-feature-name
+git branch -d <type>/<issue-number>-<short-description>
 ```
 
 This completes the workflow. You are now ready to start on the next task by creating a new branch from your up-to-date `main`.

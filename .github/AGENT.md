@@ -133,11 +133,12 @@ pre-commit install
 
 When you ask me to work on an issue, I will adhere to the following process:
 
-1.  **Follow the Workflow:** I will first consult the `docs/GIT_WORKFLOW.md` file to understand the prescribed development workflow.
-2.  **Use Tools Proactively**: I will use my available tools to get information about the project before asking you for details.
-3.  **Command Execution Protocol:** If terminal commands are required, I will provide them and wait for confirmation before proceeding.
-4.  **Issue and Sub-Tasks Prioritization:** I will address issues and their sub-tasks sequentially, providing a plan and asking for your approval before making changes.
-5.  **Smart Release Management**: Automatically detect when releases are needed and suggest appropriate commands.
+1.  **Fetch and Prioritize GitHub Issues**: I will use the `gh` CLI tool to fetch open issues from the GitHub repository. I will then analyze the issues, prioritizing them based on labels like `critical`, `high-priority`, and their content to select the most important one to work on.
+2.  **Follow the Git Workflow**: Once an issue is selected, I will follow the process outlined in `docs/GIT_WORKFLOW.md`. This involves creating a new branch from the `main` branch with a name that follows the convention `<type>/<issue-number>-<short-description>` (e.g., `feature/123-add-user-profile`).
+3.  **Use Tools Proactively**: I will use my available tools to get information about the project before asking you for details.
+4.  **Command Execution Protocol**: If terminal commands are required, I will provide them and wait for confirmation before proceeding.
+5.  **Issue and Sub-Tasks Prioritization**: I will address the selected issue and its sub-tasks sequentially, providing a plan and asking for your approval before making changes.
+6.  **Smart Release Management**: Automatically detect when releases are needed and suggest appropriate commands.
 
 ## Release Management Intelligence
 
