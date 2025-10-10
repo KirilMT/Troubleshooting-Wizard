@@ -1,0 +1,110 @@
+# User-specific configuration (contains sensitive URLs and paths)
+data/data.json
+
+# Media files - Keep only example files committed, ignore corporate-specific files
+media/*
+!media/example_*.png
+!media/example_*.jpg
+!media/README_media/
+# Specifically ignore the original corporate WTC file
+media/DEP600_WTC_Faults.PNG
+
+# PDF Manuals - Ignore all PDFs, but keep example files
+manuals/*.pdf
+!manuals/example_*.pdf
+
+# Amazon Q chat related files (rules)
+.amazonq/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller - Build artifacts and generated files
+build/
+dist/
+*.manifest
+*.spec
+
+# Python build artifacts
+troubleshooting_wizard-*/
+*.egg-info/
+.coverage
+coverage.xml
+*.spec
+
+# Temporary files
+*.isorted
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+.pytest_cache/
+
+# Virtual environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Database files (generated)
+data/*.db
+data/*.sqlite
+data/*.sqlite3
+
+# Logs
+*.log
+logs/
+
+# Application cache
+data/cache/
+cache/

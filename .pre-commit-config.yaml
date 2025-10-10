@@ -1,0 +1,46 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+      - id: check-merge-conflict
+      - id: check-added-large-files
+      - id: check-case-conflict
+      - id: check-executables-have-shebangs
+      - id: check-symlinks
+
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+      - id: black
+        language_version: python3
+        args: [--line-length=100]
+
+  - repo: local
+    hooks:
+      - id: format-code
+        name: Format Code Quality Check
+        entry: python scripts/format_code.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+
+      - id: run-tests
+        name: Run Tests Before Commit
+        entry: python -m pytest tests/ -x --tb=short
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [commit]
+
+      - id: pre-push-validation
+        name: Pre-Push Validation
+        entry: python scripts/test_workflow.py
+        language: system
+        pass_filenames: false
+        always_run: true
+        stages: [push]

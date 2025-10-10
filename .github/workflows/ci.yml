@@ -1,0 +1,82 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  test:
+    name: Run Tests
+    runs-on: windows-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -e ".[dev]"
+
+    - name: Run pre-commit checks
+      run: |
+        pre-commit run --all-files
+
+    - name: Run unit tests with coverage
+      run: |
+        python -m pytest tests/ -v --cov=src --cov-report=xml --cov-fail-under=17
+
+    - name: Run health checks
+      run: |
+        python -c "from src.logging_config import setup_logging; setup_logging(); from src.health_check import run_health_checks; exit(0 if run_health_checks() else 1)"
+
+    - name: Run comprehensive code quality checks
+      run: |
+        python scripts/format_code.py
+
+    - name: Run workflow validation
+      run: |
+        python scripts/test_workflow.py
+
+  build:
+    name: Build Package
+    needs: test
+    runs-on: windows-latest
+    if: (github.event_name == 'push' && (github.ref_name == 'main' || github.ref_name == 'develop')) || github.event_name == 'pull_request'
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python 3.13
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.13'
+        cache: 'pip'
+
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+        pip install build
+
+    - name: Build package
+      run: |
+        python -m build
+
+    - name: Build executable
+      run: |
+        powershell -File scripts/build.ps1
+
+    - name: Upload build artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: troubleshooting-wizard-exe
+        path: dist/*.exe
+        retention-days: 30
