@@ -1,13 +1,20 @@
 # User-specific configuration (contains sensitive URLs and paths)
-src/data.json
+data/data.json
 
 # Media files - Keep only example files committed, ignore corporate-specific files
 media/*
 !media/example_*.png
 !media/example_*.jpg
-!media/README.md
+!media/README_media/
 # Specifically ignore the original corporate WTC file
 media/DEP600_WTC_Faults.PNG
+
+# PDF Manuals - Ignore all PDFs, but keep example files
+manuals/*.pdf
+!manuals/example_*.pdf
+
+# Amazon Q chat related files (rules)
+.amazonq/
 
 # Python
 __pycache__/
@@ -32,9 +39,21 @@ wheels/
 *.egg
 MANIFEST
 
-# PyInstaller
+# PyInstaller - Build artifacts and generated files
+build/
+dist/
 *.manifest
 *.spec
+
+# Python build artifacts
+troubleshooting_wizard-*/
+*.egg-info/
+.coverage
+coverage.xml
+*.spec
+
+# Temporary files
+*.isorted
 
 # Installer logs
 pip-log.txt
@@ -78,10 +97,14 @@ ehthumbs.db
 Thumbs.db
 
 # Database files (generated)
-src/*.db
-src/*.sqlite
-src/*.sqlite3
+data/*.db
+data/*.sqlite
+data/*.sqlite3
 
 # Logs
 *.log
 logs/
+
+# Application cache
+data/cache/
+cache/

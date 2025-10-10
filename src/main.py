@@ -1,231 +1,928 @@
-import tkinter as tk
-from tkinter import ttk
-from PIL import Image, ImageTk
-import json
-import webbrowser
-import time
-import pyautogui
+"""Main Application Module for Troubleshooting Wizard.
+
+This module contains the MainApplication class which serves as the core of the
+Troubleshooting Wizard application. It manages the user interface, navigation,
+and integration of various components like PDF viewing, error code lookup, and
+interactive troubleshooting guides.
+
+Key Features:
+- Dynamic UI generation based on configuration
+- Navigation stack for intuitive back/forward functionality
+- Themed interfaces for different sections (Technology, Tasks, Error Codes)
+- Integration with PDF viewer and database components
+"""
+
+import logging
 import os
+import tkinter as tk
+import webbrowser
+from tkinter import messagebox, ttk
+from typing import Any, Dict, Optional
+
+from PIL import Image, ImageTk
+
+from src.database_manager import SEWDatabaseManager
+
+# Import from our new modules
+from src.pdf_viewer import PDFViewerWindow
+from src.ui_components import UIStyleManager
 
 
 class MainApplication:
-    def __init__(self, root_window, initial_json_data, script_dir):
+    """Main application class for the Troubleshooting Wizard.
+
+    This class manages the main application window, user interface, and navigation
+    between different views. It handles the application's lifecycle and coordinates
+    between different components.
+
+    Attributes:
+        root (tk.Tk): The root Tkinter window.
+        script_dir (str): Directory containing the application files.
+        initial_width (int): Initial window width in pixels.
+        initial_height (int): Initial window height in pixels.
+        json_data (Dict[str, Any]): Configuration data loaded from JSON.
+        current_view (Optional[tk.Widget]): Currently displayed view widget.
+        view_stack (List[Tuple[Callable, Any]]): Navigation stack for back functionality.
+        variables (Dict[str, Any]): Variables for dynamic content substitution.
+        ui_style (UIStyleManager): Manager for UI styling and theming.
+    """
+
+    def __init__(
+        self, root_window: tk.Tk, initial_json_data: Dict[str, Any], script_dir: str
+    ) -> None:
+        """Initialize the MainApplication.
+
+        Args:
+            root_window: The root Tkinter window.
+            initial_json_data: Configuration data for the application.
+            script_dir: Directory containing the application files.
+        """
         self.root = root_window
         self.root.title(initial_json_data["MainApplication"]["title"])
-        self.script_dir = script_dir
-
-        # Get the window dimensions from JSON data
+        self.script_dir = script_dir  # This is now the project root
         self.initial_width = initial_json_data["MainApplication"]["width"]
         self.initial_height = initial_json_data["MainApplication"]["height"]
-        self._set_window_dimensions(self.initial_width, self.initial_height)  # Center the window
-
+        self._set_window_dimensions(self.initial_width, self.initial_height)
         self.json_data = initial_json_data
         self.current_view = None
-        self.view_stack = []  # Stack to manage view history
+        self.view_stack = []
+        self.variables = {}
 
-        self.variables = {}  # Initialize variables dictionary
+        # Initialize UI style manager
+        self.ui_style = UIStyleManager()
 
-        self.show_main_program()  # Show the Main Program initially
+        self.show_main_program()
 
-    def _set_window_dimensions(self, width, height):
-        """Set window dimensions and center it on screen."""
+    def _set_window_dimensions(self, width: int, height: int) -> None:
+        """Set the window dimensions and center it on the screen.
+
+        Args:
+            width: Desired window width in pixels.
+            height: Desired window height in pixels.
+        """
         screen_width = self.root.winfo_screenwidth()
         screen_height = self.root.winfo_screenheight()
         x = (screen_width - width) // 2
         y = (screen_height - height) // 2
         self.root.geometry(f"{width}x{height}+{x}+{y}")
 
-    def _search_pdf(self, fault_message, url_path):
-        """Open PDF and search for fault message using browser automation."""
-        # Open the PDF file in a web browser
-        webbrowser.open(url_path)
+    def show_main_program(self) -> None:
+        """Display the main program interface with technology selection.
 
-        # Wait for the specified wait time for the PDF file to load
-        time.sleep(2)
+        This method creates and displays the main menu where users can select
+        from different technology options. It clears any existing views and
+        resets the navigation stack.
 
-        # Simulate pressing Ctrl + F
-        pyautogui.hotkey('ctrl', 'f')
-        time.sleep(1)
-
-        # Type the search string and press Enter
-        pyautogui.typewrite(fault_message)
-        pyautogui.press('enter')
-
-    def show_main_program(self):
+        The interface is dynamically sized based on the number of technology
+        buttons and their content.
+        """
         self.destroy_current_view()
-        self.view_stack.clear()  # Clear the view history
-        self._set_window_dimensions(self.initial_width, self.initial_height)
-
-        main_program_frame = ttk.Frame(self.root)
-        main_program_frame.pack(fill="both", expand=True)
+        self.view_stack.clear()
+        # Set technology theme
+        bg_color = self.ui_style.set_window_theme(self.root, "technology")
+        main_program_frame = self.ui_style.create_modern_frame(self.root, bg=bg_color)
+        main_program_frame.pack(fill="both", expand=True, padx=10, pady=10)
         self.current_view = main_program_frame
 
         technologies_data = self.json_data["MainApplication"]["Technologies"]
-        for tech_name, tech_data in technologies_data.items():
-            tech_button = ttk.Button(
-                main_program_frame,
-                text=tech_data.get("button_text", ""),
-                command=lambda data=tech_data: self.show_technology(data)
-            )
-            tech_button.pack(padx=10, pady=10)  # Place the Technologies button vertically
+        tech_list = list(technologies_data.items())
 
-    def show_technology(self, tech_data):
+        # Create grid layout: max 10 rows per column
+        for i, (tech_name, tech_data) in enumerate(tech_list):
+            row = i % 10
+            col = i // 10
+            tech_button = self.ui_style.create_modern_button(
+                main_program_frame,
+                tech_data.get("button_text", ""),
+                lambda data=tech_data: self.show_technology(data),
+                style="technology",
+            )
+            tech_button.grid(row=row, column=col, padx=5, pady=3, sticky="ew")
+            main_program_frame.columnconfigure(col, weight=1)
+
+        # Dynamic sizing
+        self.root.update_idletasks()
+        req_width = max(200, main_program_frame.winfo_reqwidth() + 20)
+        req_height = main_program_frame.winfo_reqheight() + 20
+        self._set_window_dimensions(req_width, req_height)
+
+    def show_technology(self, tech_data: Dict[str, Any]) -> None:
+        """Display the tasks available for a selected technology.
+
+        Args:
+            tech_data: Dictionary containing technology-specific configuration
+                     including available tasks and their properties.
+        """
         self.destroy_current_view()
         self.view_stack.append((self.show_main_program, None))
-
-        tech_width = tech_data.get("width", self.initial_width)
-        tech_height = tech_data.get("height", self.initial_height)
-
-        tech_frame = ttk.Frame(self.root)
-        tech_frame.pack(fill="both", expand=True)
+        # Set task theme
+        bg_color = self.ui_style.set_window_theme(self.root, "task")
+        tech_frame = self.ui_style.create_modern_frame(self.root, bg=bg_color)
+        tech_frame.pack(fill="both", expand=True, padx=10, pady=10)
         self.current_view = tech_frame
-
-        if tech_width and tech_height:
-            # Set dimensions only if they are provided in the JSON data
-            self._set_window_dimensions(tech_width, tech_height)
-
-        # Extract variables data for the current technology from the JSON configuration
         self.variables = tech_data
 
-        back_button = ttk.Button(
-            tech_frame,
-            text="< Back to Technologies",
-            command=self.show_previous_view  # Use the previous view function
+        # Create standardized back button area
+        self.ui_style.create_back_button_area(
+            tech_frame, self.json_data["labels"]["back_to_technologies"], self.show_previous_view
         )
-        back_button.pack(side="left", anchor="nw", padx=10, pady=10)  # Move to the top-left corner
 
-        self._modify_tasks(tech_data)  # Modify and create task buttons
+        self._modify_tasks(tech_data)
 
-    def _modify_tasks(self, tech_data):
-        """Create task buttons for the current technology."""
+        # Dynamic sizing
+        self.root.update_idletasks()
+        req_width = max(200, tech_frame.winfo_reqwidth() + 20)
+        req_height = tech_frame.winfo_reqheight() + 20
+        self._set_window_dimensions(req_width, req_height)
+
+    def _modify_tasks(self, tech_data: Dict[str, Any]) -> None:
+        """Create and configure task buttons for the selected technology.
+
+        This internal method processes the task definitions and creates
+        appropriate UI buttons for each task. It handles special styling
+        for error code tasks.
+
+        Args:
+            tech_data: Technology configuration containing task definitions.
+        """
         tasks = tech_data.get("tasks", [])
         for index, task_data in enumerate(tasks):
-            # Extract task attributes from the task_data dictionary
             task_title = list(task_data.keys())[0]
             task_attributes = task_data[task_title]
+            if "pdf_path" in task_attributes:
+                task_attributes["pdf_path"] = self._replace_variables(
+                    task_attributes.get("pdf_path", "")
+                )
+            if "url_path" in task_attributes:
+                task_attributes["url_path"] = self._replace_variables(
+                    task_attributes.get("url_path", "")
+                )
 
-            # Replace variables in the URL paths with their values
-            task_attributes["url_path"] = self._replace_variables(task_attributes.get("url_path", ""))
+            # Error codes button gets critical styling, others get task styling
+            task_title_lower = task_title.lower()
+            if "error" in task_title_lower and (
+                "code" in task_title_lower or "codes" in task_title_lower
+            ):
+                button_style = "error_critical"
+            else:
+                button_style = "task"
 
-            # Define custom style for the first button with a yellow background
-            style = ttk.Style()
-            style.configure("Yellow.TButton", background="yellow")
-
-            button = ttk.Button(
-                self.current_view,  # Use the current view frame
-                text=task_title,
-                command=lambda attrs=task_attributes, tech=tech_data: self.show_task(attrs, tech),
-                style="Yellow.TButton" if index == 0 else None  # Apply custom style to the first button
+            button = self.ui_style.create_modern_button(
+                self.current_view,
+                task_title,
+                lambda attrs=task_attributes, tech=tech_data: self.show_task(attrs, tech),
+                style=button_style,
             )
-            button.pack(pady=10)
+            button.pack(pady=3)
 
-    def show_task(self, task_attributes, tech_data):
+    def show_task(self, task_attributes: Dict[str, Any], tech_data: Dict[str, Any]) -> None:
+        """Handle task execution based on task type.
+
+        Routes the task to the appropriate handler based on the task_type specified
+        in the task attributes. Supports different types of tasks like error code lookups
+        and PDF viewing.
+
+        Args:
+            task_attributes: Dictionary containing task configuration including
+                           task_type and other task-specific parameters.
+            tech_data: The technology configuration this task belongs to.
+
+        Note:
+            Currently supported task types:
+            - 'error_codes': Displays error code lookup interface
+            - 'open_pdf': Opens a PDF document at a specific page
+            - 'open_url': Opens a URL in the default web browser
+        """
         task_type = task_attributes.get("task_type")
-
         if task_type == "error_codes":
             self.show_error_codes(task_attributes, tech_data)
+        elif task_type == "open_pdf":
+            pdf_path = task_attributes.get("pdf_path")
+            page_identifier = task_attributes.get("pdf_page_number")
+            if pdf_path:
+                self._open_pdf_viewer(pdf_path, page_number=page_identifier)
+            else:
+                logging.error("Task with type 'open_pdf' is missing a 'pdf_path'.")
+                messagebox.showwarning(
+                    "Configuration Error",
+                    "This task is configured to open a PDF, but the file path is missing.",
+                )
         elif task_type == "open_url":
-            self._open_url(task_attributes.get("url_path"), task_attributes.get("pdf_page_number"))
+            url_path = task_attributes.get("url_path")
+            if url_path:
+                try:
+                    webbrowser.open_new(url_path)
+                except Exception as e:
+                    logging.error(f"Failed to open URL '{url_path}': {e}")
+                    messagebox.showerror(
+                        "URL Error", f"Could not open the URL: {url_path}\nError: {e}"
+                    )
+            else:
+                logging.error("Task with type 'open_url' is missing a 'url_path'.")
+                messagebox.showwarning(
+                    "Configuration Error",
+                    "This task is configured to open a URL, but the URL is missing.",
+                )
 
-    def _open_url(self, url_path, pdf_page_number=None):
-        """Open URL or PDF with optional page number."""
-        # If a page number is provided, construct the URL with the page number
-        if pdf_page_number is not None:
-            url_with_page = self._replace_variables(f"{url_path}#page={pdf_page_number}")
-            webbrowser.open(url_with_page)
-        else:
-            # Open the PDF with the default web browser
-            url_path = self._replace_variables(url_path)
-            webbrowser.open(url_path)
+    def show_error_codes(self, task_attributes: Dict[str, Any], tech_data: Dict[str, Any]) -> None:
+        """Display the error code interface for the selected technology.
 
-    def show_error_codes(self, task_attributes, tech_data):
+        Shows either a specialized SEW error code database interface (for SEW technologies)
+        or a traditional search interface for other technologies. Handles database
+        availability checks and error handling.
+
+        Args:
+            task_attributes: Configuration for the error code task.
+            tech_data: The technology configuration this task belongs to.
+
+        Note:
+            For SEW technologies, expects a SQLite database at 'data/errorCodesTechnologies.db'.
+            Falls back to traditional search if database is not found.
+        """
         self.destroy_current_view()
         self.view_stack.append((self.show_technology, tech_data))
 
-        error_codes_width = task_attributes.get("width", 800)
-        error_codes_height = task_attributes.get("height", 730)
-        image_path = task_attributes.get("image_path", "")
+        is_sew_technology = tech_data.get("button_text", "").lower().find("sew") != -1
 
-        error_codes_frame = ttk.Frame(self.root)
+        # --- Robustness Check for SEW Database ---
+        if is_sew_technology:
+            db_path = os.path.join(self.script_dir, "data", "errorCodesTechnologies.db")
+            if not os.path.exists(db_path):
+                logging.critical(f"Database file not found at expected path: {db_path}")
+                messagebox.showerror(
+                    "Database Not Found",
+                    f"The SEW error code database could not be found.\n\nExpected at: {db_path}",
+                )
+                # Revert to the previous view since we cannot proceed
+                self.show_previous_view()
+                return
+
+        # Set error theme and create frame
+        bg_color = self.ui_style.set_window_theme(self.root, "error")
+        error_codes_frame = self.ui_style.create_modern_frame(self.root, bg=bg_color)
         error_codes_frame.pack(fill="both", expand=True)
         self.current_view = error_codes_frame
 
-        # Center the error_codes window
-        self._set_window_dimensions(error_codes_width, error_codes_height)
-
-        button_frame = ttk.Frame(error_codes_frame)
-        button_frame.pack(side="top", anchor="nw", padx=10, pady=10)  # Place the button frame at the top-left corner
-
-        home_button = ttk.Button(
-            button_frame,
-            text="< Back to Technologies",
-            command=self.show_main_program  # Navigate to the main program
-        )
-        home_button.pack(side="left", padx=10)  # Place "Technologies" button on the left side of the button frame
-
-        back_button = ttk.Button(
-            button_frame,
-            text="< Back to Tasks",
-            command=self.show_previous_view  # Use the previous view function
-        )
-        back_button.pack(side="left", padx=10)  # Place "Tasks" button on the left side of the button frame
-
-        try:
-            if image_path:
-                # Construct absolute path for the image relative to the script's directory
-                abs_image_path = os.path.abspath(os.path.join(self.script_dir, image_path))
-                # Load and display an image
-                image = Image.open(abs_image_path)
-                photo = ImageTk.PhotoImage(image)
-                image_label = ttk.Label(error_codes_frame, image=photo)
-                image_label.image = photo
-                image_label.pack(pady=10)
-        except Exception as e:
-            print(f"Error loading image: {e}")
-
-        label_frame = ttk.Frame(error_codes_frame)
-        label_frame.pack(pady=10)
-
-        label_style = ttk.Style()
-        label_style.configure("Bold.TLabel", font=("Helvetica", 15, "bold"))
-        ttk.Label(label_frame, text="Insert fault code/message:", style="Bold.TLabel").pack(side="left")
-
-        entry_style = ttk.Style()
-        entry_style.configure("Large.TEntry", font=("Helvetica", 16))
-
-        search_entry = ttk.Entry(label_frame, style="Large.TEntry", width=65)
-        search_entry.pack(side="left", padx=10)
-
-        search_button_style = ttk.Style()
-        search_button_style.configure("Large.TButton", font=("Helvetica", 12))
-        search_button = ttk.Button(
+        # Create dual navigation buttons
+        self.ui_style.create_dual_back_button_area(
             error_codes_frame,
-            text="Search",
-            command=lambda: self._search_pdf(search_entry.get(), task_attributes.get("url_path"))
+            self.json_data["labels"]["back_to_technologies"],
+            self.show_main_program,
+            self.json_data["labels"]["back_to_tasks"],
+            self.show_previous_view,
         )
-        search_button.pack(side="right", padx=10)
 
-    def _replace_variables(self, text):
-        """Replace variables in double curly braces with their values from the JSON configuration."""
+        if is_sew_technology:
+            self._show_sew_database_interface(error_codes_frame)
+        else:
+            self._show_traditional_search_interface(error_codes_frame, task_attributes)
+
+        # Dynamic sizing after content is created
+        self.root.update_idletasks()
+        screen_height = self.root.winfo_screenheight()
+        max_height = int(screen_height * 0.85)
+        if is_sew_technology:
+            # Use compact dimensions for SEW interface (laptop-friendly)
+            req_width = min(650, max(400, error_codes_frame.winfo_reqwidth() + 20))
+            req_height = min(max_height, max(400, error_codes_frame.winfo_reqheight()))
+        else:
+            req_width = max(400, error_codes_frame.winfo_reqwidth() + 20)
+            req_height = max(300, error_codes_frame.winfo_reqheight() + 20)
+        self._set_window_dimensions(req_width, req_height)
+
+    def _show_traditional_search_interface(
+        self, parent_frame: tk.Widget, task_attributes: Dict[str, Any]
+    ) -> None:
+        """Display the traditional error code search interface.
+
+        Creates a simple search interface for non-SEW technologies that allows users
+        to search through error codes and view their descriptions. This is a fallback
+        interface when a dedicated database is not available.
+
+        Args:
+            parent_frame: The parent widget to contain the search interface.
+            task_attributes: Configuration for the error code task.
+        """
+        # Main content area (minimal padding)
+        content_frame = self.ui_style.create_modern_frame(parent_frame, bg=parent_frame["bg"])
+        content_frame.pack(fill="both", expand=True, padx=5)
+
+        # Display the configured image if available (center-aligned)
+        image_path = task_attributes.get("image_path")
+        if image_path:
+            image_container = self.ui_style.create_modern_frame(
+                content_frame, bg=parent_frame["bg"]
+            )
+            image_container.pack()
+            self._display_error_code_image(image_container, image_path)
+
+        # Search input frame (center-aligned)
+        input_frame = self.ui_style.create_modern_frame(content_frame, bg=parent_frame["bg"])
+        input_frame.pack(pady=(8, 0))
+        input_frame.grid_columnconfigure(1, weight=1)
+
+        search_label = self.ui_style.create_modern_label(
+            input_frame,
+            self.json_data["labels"]["insert_fault_code"],
+            style="title",
+            bg=parent_frame["bg"],
+        )
+        search_label.grid(row=0, column=0, sticky="w")
+
+        search_entry = self.ui_style.create_modern_entry(input_frame, width=42)
+        search_entry.grid(row=0, column=1, sticky="w", padx=(10, 0), ipady=5)
+
+        # Search button on new row, aligned to right edge of entry
+        search_button = self.ui_style.create_modern_button(
+            input_frame,
+            self.json_data["labels"]["search"],
+            lambda: self._open_pdf_viewer(
+                task_attributes.get("pdf_path"), search_term=search_entry.get()
+            ),
+            style="submit",
+        )
+        search_button.grid(row=1, column=1, sticky="e", pady=(8, 0))
+
+        # Bind Enter key to search
+        search_entry.bind(
+            "<Return>",
+            lambda e: self._open_pdf_viewer(
+                task_attributes.get("pdf_path"), search_term=search_entry.get()
+            ),
+        )
+
+    def _show_sew_database_interface(
+        self, parent_frame: tk.Widget, measure_only: bool = False
+    ) -> None:
+        """Display the SEW error code database interface.
+
+        Creates an advanced search interface for SEW technologies that connects to
+        a SQLite database of error codes. Includes search fields for error codes,
+        sub-error codes, and descriptions.
+
+        Args:
+            parent_frame: The parent widget to contain the database interface.
+            measure_only: If True, only measures the required size without creating widgets.
+                         Used for layout calculations.
+        """
+        # Create main container with modern styling
+        main_container = self.ui_style.create_modern_frame(parent_frame, bg=parent_frame["bg"])
+        main_container.pack(fill="both", expand=True, padx=10, pady=5)
+
+        # Title section
+        title_frame = self.ui_style.create_modern_frame(main_container, bg=parent_frame["bg"])
+        title_frame.pack(fill="x", pady=(0, 5))
+        title_frame.columnconfigure(0, weight=1)
+
+        title_label = self.ui_style.create_modern_label(
+            title_frame,
+            self.json_data["labels"]["sew_db_title"],
+            style="title",
+            bg=parent_frame["bg"],
+        )
+        title_label.grid(row=0, column=0, sticky="ew")
+
+        help_btn = self.ui_style.create_modern_button(
+            title_frame,
+            self.json_data["labels"]["sew_db_help_button"],
+            self._show_help_image,
+            style="technology",
+        )
+        help_btn.grid(row=0, column=1, sticky="e", padx=(5, 0))
+
+        subtitle_label = self.ui_style.create_modern_label(
+            main_container,
+            self.json_data["labels"]["sew_db_subtitle"],
+            style="subtitle",
+            bg=parent_frame["bg"],
+        )
+        subtitle_label.pack(fill="x", pady=(0, 10))
+
+        # Search criteria frame
+        search_container = self.ui_style.create_modern_frame(
+            main_container, bg=self.ui_style.colors["surface"], relief="solid", bd=1
+        )
+        search_container.pack(fill="x", pady=(0, 10), padx=5)
+        search_container_inner = self.ui_style.create_modern_frame(
+            search_container, bg=self.ui_style.colors["surface"]
+        )
+        search_container_inner.pack(padx=8, pady=8, fill="x")
+
+        # Configure grid layout for search fields
+        search_container_inner.columnconfigure(1, weight=1)
+        search_container_inner.columnconfigure(3, weight=1)
+
+        # Error code row
+        self.ui_style.create_modern_label(
+            search_container_inner,
+            self.json_data["labels"]["sew_db_error_code_label"],
+            bold=True,
+            bg=self.ui_style.colors["surface"],
+        ).grid(row=0, column=0, sticky="w", pady=4, padx=(0, 5))
+
+        self.sew_error_code_entry = self.ui_style.create_modern_entry(
+            search_container_inner, width=12
+        )
+        self.sew_error_code_entry.grid(row=0, column=1, sticky="ew", pady=4, padx=(0, 10))
+
+        # Suberror code field
+        self.ui_style.create_modern_label(
+            search_container_inner,
+            self.json_data["labels"]["sew_db_suberror_code_label"],
+            bold=True,
+            bg=self.ui_style.colors["surface"],
+        ).grid(row=0, column=2, sticky="w", pady=4, padx=(0, 5))
+
+        self.sew_suberror_code_entry = self.ui_style.create_modern_entry(
+            search_container_inner, width=12
+        )
+        self.sew_suberror_code_entry.grid(row=0, column=3, sticky="ew", pady=4)
+
+        # Error designation field
+        self.ui_style.create_modern_label(
+            search_container_inner,
+            self.json_data["labels"]["sew_db_error_designation_label"],
+            bold=True,
+            bg=self.ui_style.colors["surface"],
+        ).grid(row=1, column=0, sticky="w", pady=4, padx=(0, 5))
+
+        self.sew_error_designation_entry = self.ui_style.create_modern_entry(search_container_inner)
+        self.sew_error_designation_entry.grid(row=1, column=1, columnspan=3, sticky="ew", pady=4)
+
+        # Search button
+        button_frame = self.ui_style.create_modern_frame(
+            search_container_inner, bg=self.ui_style.colors["surface"]
+        )
+        button_frame.grid(row=2, column=0, columnspan=4, pady=(10, 0))
+
+        search_button = self.ui_style.create_modern_button(
+            button_frame,
+            self.json_data["labels"]["sew_db_search_button"],
+            self.search_sew_error_codes,
+            style="submit",
+        )
+        search_button.pack()
+
+        # Results container
+        results_container = self.ui_style.create_modern_frame(
+            main_container, bg=self.ui_style.colors["surface"], relief="solid", bd=1
+        )
+        results_container.pack(fill="both", expand=True, padx=5, pady=5)
+        results_container_inner = self.ui_style.create_modern_frame(
+            results_container, bg=self.ui_style.colors["surface"]
+        )
+        results_container_inner.pack(padx=8, pady=8, fill="both", expand=True)
+
+        results_label = self.ui_style.create_modern_label(
+            results_container_inner,
+            self.json_data["labels"]["sew_db_results_label"],
+            bold=True,
+            bg=self.ui_style.colors["surface"],
+        )
+        results_label.pack(anchor="w", pady=(0, 5))
+
+        self.results_frame = self.ui_style.create_modern_frame(
+            results_container_inner, bg=self.ui_style.colors["surface"]
+        )
+        self.results_frame.pack(fill="both", expand=True, pady=(5, 0))
+
+        # Bind Enter key to search
+        self.sew_error_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
+        self.sew_suberror_code_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
+        self.sew_error_designation_entry.bind("<Return>", lambda e: self.search_sew_error_codes())
+
+        # Show initial instructions
+        self._show_search_instructions()
+
+        # Set window dimensions if not in measure mode
+        if not measure_only:
+            self.root.update_idletasks()
+            screen_height = self.root.winfo_screenheight()
+            max_height = int(screen_height * 0.85)
+            width = min(650, self.root.winfo_reqwidth())
+            height = min(max_height, max(400, self.root.winfo_reqheight()))
+            self._set_window_dimensions(width, height)
+
+    def _show_help_image(self) -> None:
+        """Display the help image in a new window.
+
+        Opens a modal window showing a help image that provides visual guidance
+        on how to use the error code search functionality. The window includes
+        a close button and is centered on the screen.
+
+        The help image is expected to be located at 'media/example_lenze_errors.png'.
+        If the image is not found, an error message is displayed.
+        """
+        image_path = os.path.join(self.script_dir, "media", "SEW_MoviPro_movitools_parameters.jpg")
+        try:
+            help_win = tk.Toplevel(self.root)
+            help_win.title(self.json_data["labels"]["sew_db_help_title"])
+            help_win.transient(self.root)
+            help_win.grab_set()
+            help_win.resizable(False, False)
+            img = Image.open(image_path)
+            img = img.resize((680, 320), Image.LANCZOS)
+            photo = ImageTk.PhotoImage(img)
+            img_label = tk.Label(help_win, image=photo)
+            img_label.image = photo
+            img_label.pack()
+
+            help_win.update_idletasks()
+            req_width = help_win.winfo_reqwidth()
+            req_height = help_win.winfo_reqheight()
+            screen_width = help_win.winfo_screenwidth()
+            screen_height = help_win.winfo_screenheight()
+            x = (screen_width - req_width) // 2
+            y = (screen_height - req_height) // 2
+            help_win.geometry(f"{req_width}x{req_height}+{x}+{y}")
+        except Exception as e:
+            messagebox.showerror(
+                self.json_data["labels"]["sew_db_help_error_title"],
+                self.json_data["labels"]["sew_db_help_error_message"].format(e=e),
+            )
+
+    def _show_search_instructions(self) -> None:
+        """Display search instructions in a message box.
+
+        Shows a help dialog with instructions on how to use the search
+        functionality, including tips for effective searching and available
+        search operators.
+        """
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
+        instructions_frame = ttk.Frame(self.results_frame)
+        instructions_frame.pack(fill="x", padx=10, pady=10)
+        icon_label = ttk.Label(
+            instructions_frame,
+            text=self.json_data["labels"]["sew_db_search_instructions_icon"],
+            font=("Segoe UI", 18),
+        )
+        icon_label.pack(pady=(0, 5))
+        title_label = ttk.Label(
+            instructions_frame,
+            text=self.json_data["labels"]["sew_db_search_instructions_title"],
+            font=("Segoe UI", 11, "bold"),
+            foreground="#2E86AB",
+        )
+        title_label.pack(pady=(0, 8))
+        instructions_text = self.json_data["labels"]["sew_db_search_instructions"]
+        instructions_label = ttk.Label(
+            instructions_frame,
+            text=instructions_text,
+            font=("Segoe UI", 9),
+            foreground="#666666",
+            justify="left",
+        )
+        instructions_label.pack()
+
+        # Resize window to fit instructions content
+        self.root.update_idletasks()
+        screen_height = self.root.winfo_screenheight()
+        max_height = int(screen_height * 0.85)
+        req_width = min(650, max(400, self.root.winfo_reqwidth()))
+        req_height = min(max_height, max(400, self.root.winfo_reqheight()))
+        self._set_window_dimensions(req_width, req_height)
+
+    def _format_single_line_content(self, text: str) -> str:
+        """Format text content to be displayed on a single line.
+
+        Processes the input text to ensure it displays properly on a single line
+        by replacing newlines with spaces and normalizing whitespace.
+
+        Args:
+            text: The input text to format.
+
+        Returns:
+            The formatted text with newlines replaced by spaces and extra whitespace removed.
+
+        Example:
+            >>> app._format_single_line_content(
+            ...     "line1\nline2\n   line3   "
+            ... )  # doctest: +NORMALIZE_WHITESPACE
+            'line1 line2 line3'
+        """
+        if not text or text.strip() == "":
+            return self.json_data["labels"]["sew_db_not_specified"]
+        return " ".join(text.replace("\n", " ").split())
+
+    def _show_error_card(self, error_data):
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
+        card_frame = ttk.Frame(self.results_frame)
+        card_frame.pack(fill="x", padx=10, pady=10)
+        header_frame = ttk.Frame(card_frame)
+        header_frame.pack(fill="x", pady=(0, 10))
+        error_code_frame = ttk.Frame(header_frame)
+        error_code_frame.pack(anchor="w")
+        code_text = self.json_data["labels"]["sew_db_error_card_error_code_label"].format(
+            error_code=error_data.get("error_code", "N/A")
+        )
+        if error_data.get("suberror_code"):
+            code_text += f".{error_data.get('suberror_code')}"
+        code_label = ttk.Label(
+            error_code_frame,
+            text=code_text,
+            font=("Segoe UI", 14, "bold"),
+            foreground="#FFFFFF",
+            background="#E74C3C",
+            padding=(10, 5),
+        )
+        code_label.pack(side="left")
+        designation_text = self._format_single_line_content(
+            error_data.get(
+                "error_designation", self.json_data["labels"]["sew_db_error_card_unknown_error"]
+            )
+        )
+        designation_label = ttk.Label(
+            header_frame,
+            text=designation_text,
+            font=("Segoe UI", 16, "bold"),
+            foreground="#2C3E50",
+        )
+        designation_label.pack(anchor="w", pady=(10, 0))
+        if error_data.get("error_response"):
+            response_text = self.json_data["labels"]["sew_db_error_card_response_label"].format(
+                response=self._format_single_line_content(error_data.get("error_response"))
+            )
+            response_label = ttk.Label(
+                header_frame,
+                text=response_text,
+                font=("Segoe UI", 11),
+                foreground="#E67E22",
+            )
+            response_label.pack(anchor="w", pady=(5, 0))
+        separator = ttk.Separator(card_frame, orient="horizontal")
+        separator.pack(fill="x", pady=10)
+        content_frame = ttk.Frame(card_frame)
+        content_frame.pack(fill="x")
+        if error_data.get("possible_cause"):
+            causes_frame = ttk.LabelFrame(
+                content_frame,
+                text=self.json_data["labels"]["sew_db_error_card_possible_causes_label"],
+                padding=10,
+            )
+            causes_frame.pack(fill="x", pady=(0, 10))
+            causes_text = tk.Label(
+                causes_frame,
+                text=self._format_text_content(error_data.get("possible_cause", "")),
+                font=("Segoe UI", 10),
+                background="#FFF5F5",
+                foreground="#2C3E50",
+                anchor="w",
+                justify="left",
+            )
+            causes_text.pack(fill="x")
+        if error_data.get("measure"):
+            actions_frame = ttk.LabelFrame(
+                content_frame,
+                text=self.json_data["labels"]["sew_db_error_card_recommended_actions_label"],
+                padding=10,
+            )
+            actions_frame.pack(fill="x")
+            actions_text = tk.Label(
+                actions_frame,
+                text=self._format_text_content(error_data.get("measure", "")),
+                font=("Segoe UI", 10),
+                background="#F0FFF4",
+                foreground="#2C3E50",
+                anchor="w",
+                justify="left",
+            )
+            actions_text.pack(fill="x")
+
+    def _format_text_content(self, text: str) -> str:
+        """Format multi-line text content with proper indentation and line breaks.
+
+        Processes the input text to ensure proper formatting with consistent
+        indentation and line breaks. Handles special cases like lists and code blocks.
+
+        Args:
+            text: The input text to format.
+
+        Returns:
+            The formatted text with proper indentation and line breaks.
+
+        Note:
+            This method preserves the structure of the text while normalizing
+            whitespace and ensuring consistent formatting.
+        """
+        if not text or text.strip() == "":
+            return self.json_data["labels"]["sew_db_not_specified"]
+        text = text.replace("\n", "\n")
+        lines = text.split("\n")
+        processed_lines = []
+        current_line = ""
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+            if line.startswith("•"):
+                if current_line:
+                    processed_lines.append(current_line.strip())
+                current_line = line
+            else:
+                if current_line:
+                    if current_line.rstrip().endswith((".", ":", "!", "?")):
+                        processed_lines.append(current_line.strip())
+                        current_line = line
+                    else:
+                        current_line += " " + line
+                else:
+                    current_line = line
+        if current_line:
+            processed_lines.append(current_line.strip())
+        return (
+            "\n".join(processed_lines)
+            if processed_lines
+            else self.json_data["labels"]["sew_db_not_specified"]
+        )
+
+    def _show_no_results(self):
+        for widget in self.results_frame.winfo_children():
+            widget.destroy()
+        no_results_frame = ttk.Frame(self.results_frame)
+        no_results_frame.pack(fill="x", padx=10, pady=10)
+        icon_label = ttk.Label(
+            no_results_frame,
+            text=self.json_data["labels"]["sew_db_no_results_icon"],
+            font=("Segoe UI", 18),
+        )
+        icon_label.pack(pady=(0, 5))
+        title_label = ttk.Label(
+            no_results_frame,
+            text=self.json_data["labels"]["sew_db_no_results_title"],
+            font=("Segoe UI", 11, "bold"),
+            foreground="#E74C3C",
+        )
+        title_label.pack(pady=(0, 8))
+        suggestions_text = self.json_data["labels"]["sew_db_no_results_suggestions"]
+        suggestions_label = ttk.Label(
+            no_results_frame,
+            text=suggestions_text,
+            font=("Segoe UI", 9),
+            foreground="#666666",
+            justify="left",
+        )
+        suggestions_label.pack()
+
+    def _display_error_code_image(self, parent_frame: tk.Widget, image_path: str) -> None:
+        """Display an error code reference image in the interface.
+
+        Loads and displays an image from the specified path in the given parent frame.
+        The image is resized to fit the available space while maintaining aspect ratio.
+
+        Args:
+            parent_frame: The parent widget to contain the image.
+            image_path: Path to the image file to display.
+
+        Note:
+            If the image cannot be loaded, an error message is displayed in the UI.
+        """
+        """Display an error code reference image in the interface."""
+        try:
+            full_image_path = os.path.join(self.script_dir, image_path)
+            if os.path.exists(full_image_path):
+                img = Image.open(full_image_path)
+                # Resize preserving aspect ratio with max width of 500px
+                max_width = 500
+                original_width, original_height = img.size
+                if original_width > max_width:
+                    ratio = max_width / original_width
+                    new_height = int(original_height * ratio)
+                    img = img.resize((max_width, new_height), Image.LANCZOS)
+                photo = ImageTk.PhotoImage(img)
+
+                img_label = tk.Label(parent_frame, image=photo)
+                img_label.image = photo
+                img_label.pack(padx=2, pady=2)
+            else:
+                logging.error(f"Error code image not found: {full_image_path}")
+        except Exception as e:
+            logging.warning(f"Failed to load error code image '{image_path}': {e}")
+
+    def search_sew_error_codes(self) -> None:
+        """Search for error codes in the SEW database.
+
+        Performs a search in the SEW error code database using the current
+        search criteria (error code, sub-error code, and description).
+        Displays the search results in the results frame.
+
+        The search is case-insensitive and supports partial matches. If no
+        search criteria are provided, a message is shown to the user.
+        """
+        db_path = os.path.join(self.script_dir, "data", "errorCodesTechnologies.db")
+        if not os.path.exists(db_path):
+            logging.error(f"Database file not found at {db_path}")
+            messagebox.showerror(
+                "Database Error",
+                "The database file 'errorCodesTechnologies.db' was not found in "
+                "the 'data' directory. Please run the PDF processing script to "
+                "generate it.",
+            )
+            return
+
+        error_code = self.sew_error_code_entry.get().strip()
+        suberror_code = self.sew_suberror_code_entry.get().strip()
+        error_designation = self.sew_error_designation_entry.get().strip()
+        if not any([error_code, suberror_code, error_designation]):
+            self._show_search_instructions()
+            return
+
+        db_manager = SEWDatabaseManager(db_path)
+        results = db_manager.search_error_codes(error_code, suberror_code, error_designation)
+
+        if results:
+            self._show_error_card(results[0])
+        else:
+            self._show_no_results()
+
+        # Resize window to fit the new content
+        self.root.update_idletasks()
+        screen_height = self.root.winfo_screenheight()
+        max_height = int(screen_height * 0.85)
+        req_height = min(max_height, max(400, self.root.winfo_reqheight()))
+        current_width = self.root.winfo_width()
+        self._set_window_dimensions(current_width, req_height)
+
+    def _replace_variables(self, text: str) -> str:
+        """Replace placeholders in the text with their corresponding values.
+
+        Processes the input text and replaces any variables in the format
+        ${variable_name} with their corresponding values from the application's
+        variables dictionary.
+
+        Args:
+            text: The input text containing variables to be replaced.
+
+        Returns:
+            The text with all variables replaced by their values. If a variable
+            is not found, it remains unchanged in the output.
+
+        Example:
+            >>> app.variables = {'version': '1.0', 'app_name': 'Troubleshooter'}
+            >>> app._replace_variables('Welcome to ${app_name} v${version}')
+            'Welcome to Troubleshooter v1.0'
+        """
         while "{{" in text and "}}" in text:
             start_index = text.find("{{")
             end_index = text.find("}}")
             if start_index < end_index:
-                variable_name = text[start_index + 2:end_index]
+                variable_name = text[start_index + 2 : end_index]
                 if variable_name in self.variables:
                     replacement = self.variables[variable_name]
-                    text = text[:start_index] + replacement + text[end_index + 2:]
+                    text = text[:start_index] + replacement + text[end_index + 2 :]
                 else:
                     break
             else:
                 break
         return text
 
-    def destroy_current_view(self):
+    def destroy_current_view(self) -> None:
+        """Destroy the current view widget and clean up resources.
+
+        Safely removes the current view widget from the UI and performs
+        any necessary cleanup. This method ensures proper widget destruction
+        to prevent memory leaks.
+
+        Note:
+            This method is typically called before switching to a new view
+            to maintain clean UI state.
+        """
         if self.current_view:
             self.current_view.destroy()
 
-    def show_previous_view(self):
+    def show_previous_view(self) -> None:
+        """Navigate back to the previous view in the navigation stack.
+
+        Pops the most recent view from the navigation stack and displays it.
+        This allows users to navigate back through their view history.
+
+        If the navigation stack is empty, this method does nothing.
+
+        Note:
+            Each view function in the stack is called with its saved context
+            to restore the previous state.
+        """
         if self.view_stack:
             self.destroy_current_view()
             previous_view_func, previous_view_data = self.view_stack.pop()
@@ -234,20 +931,38 @@ class MainApplication:
             else:
                 previous_view_func()
 
+    def _open_pdf_viewer(
+        self, pdf_path: str, page_number: Optional[int] = None, search_term: str = ""
+    ) -> None:
+        """Opens the PDF viewer to a specific page, optionally with a search term."""
+        # Construct the full path to the PDF file.
+        full_path = os.path.join(self.script_dir, pdf_path)
 
-if __name__ == "__main__":
-    root = tk.Tk()
+        if not os.path.exists(full_path):
+            logging.critical(f"PDF file not found at path: {full_path}")
+            messagebox.showerror(
+                "File Not Found", f"The required PDF file could not be found at: \n{full_path}"
+            )
+            return
 
-    # Get the directory where the script is located
-    script_dir = os.path.dirname(os.path.abspath(__file__))
+        # --- Consolidated Logging ---
+        log_message = f"Opening PDF '{pdf_path}'"
+        if search_term:
+            log_message += f" to search for: '{search_term}'."
+        elif page_number is not None:
+            log_message += f" to page: {page_number}."
+        else:
+            log_message += "."
+        logging.debug(log_message)
 
-    # Try to load the local data file, fall back to the example file
-    data_file_path = os.path.join(script_dir, "data.json")
-    if not os.path.exists(data_file_path):
-        data_file_path = os.path.join(script_dir, "example_data.json")
-
-    with open(data_file_path, "r") as json_file:
-        json_data = json.load(json_file)
-
-    app = MainApplication(root, json_data, script_dir)
-    root.mainloop()
+        try:
+            PDFViewerWindow(
+                self.root, full_path, initial_page_identifier=page_number, search_term=search_term
+            )
+        except Exception as e:
+            logging.critical(f"Failed to open PDF viewer for '{full_path}': {e}", exc_info=True)
+            messagebox.showerror(
+                "PDF Viewer Error",
+                "An unexpected error occurred while trying to open the PDF "
+                f"viewer.\n\nDetails: {e}",
+            )

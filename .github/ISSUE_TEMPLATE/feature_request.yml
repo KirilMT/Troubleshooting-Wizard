@@ -1,0 +1,113 @@
+name: ✨ Feature Request
+description: Suggest a new feature or improvement for the Troubleshooting Wizard
+title: "[Feature]: "
+labels: ["enhancement", "needs-triage"]
+assignees: []
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## ✨ Feature Request
+
+        Thank you for suggesting a new feature! We appreciate your input in making the Troubleshooting Wizard better.
+
+  - type: textarea
+    id: problem-description
+    attributes:
+      label: Problem Description
+      description: Describe the problem or limitation you're facing that this feature would solve.
+      placeholder: |
+        What issue are you experiencing that this feature would help resolve?
+        Why is this feature important to you?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed Solution
+      description: Describe the feature you'd like to see implemented.
+      placeholder: |
+        How should this feature work?
+        What would the user interface look like?
+        How would it integrate with existing functionality?
+    validations:
+      required: true
+
+  - type: textarea
+    id: use-cases
+    attributes:
+      label: Use Cases
+      description: Provide specific examples of how this feature would be used.
+      placeholder: |
+        Example scenarios:
+        - A user troubleshooting a network connectivity issue needs...
+        - When diagnosing database problems, it would be helpful if...
+        - For server maintenance tasks, having this feature would allow...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: Have you considered any alternative solutions or workarounds?
+      placeholder: |
+        Are there existing features that partially solve this problem?
+        What workarounds are you currently using?
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Any additional information that might help us understand your request.
+      placeholder: |
+        - Screenshots, mockups, or diagrams
+        - Links to related issues or discussions
+        - Technical specifications or requirements
+        - Business impact or urgency
+
+  - type: dropdown
+    id: feature-type
+    attributes:
+      label: Feature Type
+      description: What type of feature is this?
+      options:
+        - Diagnostic Tool Enhancement
+        - User Interface Improvement
+        - Error Handling Feature
+        - Integration Capability
+        - Performance Optimization
+        - Documentation/Help System
+        - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: complexity
+    attributes:
+      label: Estimated Complexity
+      description: How complex do you think this feature would be to implement?
+      options:
+        - Simple (few hours of work)
+        - Moderate (few days of work)
+        - Complex (week or more of work)
+        - Very Complex (major architectural change)
+        - I'm not sure
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Before Submitting
+      description: Please check the following before submitting this feature request.
+      options:
+        - label: I have searched existing issues to make sure this is not a duplicate
+          required: true
+        - label: I have clearly described the problem this feature would solve
+          required: true
+        - label: I have provided specific use cases and examples
+          required: true
+        - label: I understand this is a request and may not be implemented immediately
+          required: true

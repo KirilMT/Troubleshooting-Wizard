@@ -1,0 +1,182 @@
+{
+  "labels": {
+    "back_to_technologies": "Back to Technologies",
+    "back_to_tasks": "Back to Tasks",
+    "search": "Search",
+    "insert_fault_code": "Insert fault code/message:",
+    "sew_db_title": "SEW MoviPro Error Code Database",
+    "sew_db_subtitle": "Search and troubleshoot SEW drive system error codes",
+    "sew_db_help_button": "?",
+    "sew_db_help_title": "SEW MoviPro Help",
+    "sew_db_help_close_button": "Close",
+    "sew_db_help_error_title": "Help Image Error",
+    "sew_db_help_error_message": "Could not load help image: {e}",
+    "sew_db_search_criteria_label": "Search Criteria",
+    "sew_db_error_code_label": "Error Code:",
+    "sew_db_suberror_code_label": "Suberror Code:",
+    "sew_db_error_designation_label": "Error Description:",
+    "sew_db_search_button": "🔍 Search Error Code",
+    "sew_db_results_label": "Error Code Details",
+    "sew_db_search_instructions_icon": "🔍",
+    "sew_db_search_instructions_title": "Search for SEW Error Codes",
+    "sew_db_search_instructions": "Enter search criteria above and click 'Search Error Code':\n\n• Error Code: Main fault code (e.g., '01', '02', '03')\n• Suberror Code: Additional specification (e.g., '0', '1', '5')\n• Error Description: Partial description (e.g., 'Overcurrent')\n\nUse partial matches for better results.",
+    "sew_db_not_specified": "Not specified",
+    "sew_db_error_card_error_code_label": "Error Code: {error_code}",
+    "sew_db_error_card_unknown_error": "Unknown Error",
+    "sew_db_error_card_response_label": "Response: {response}",
+    "sew_db_error_card_possible_causes_label": "🔍 Possible Causes",
+    "sew_db_error_card_recommended_actions_label": "✅ Recommended Actions",
+    "sew_db_no_results_icon": "❌",
+    "sew_db_no_results_title": "No Error Code Found",
+    "sew_db_no_results_suggestions": "Try these suggestions:\n\n• Use partial matches (e.g., \"01\" instead of \"01.0\")\n• Check spelling of error descriptions\n• Try searching with just the main error code\n• Verify the error code exists in the database",
+    "search_no_results_title": "Search Results",
+    "search_no_results_message": "The search term was not found in the document."
+  },
+  "MainApplication": {
+    "title": "Troubleshooting-Wizard",
+    "width": 350,
+    "height": 470,
+    "Technologies": {
+      "WTC": {
+        "button_text": "WTC Controllers",
+        "title": "Troubleshooting-Wizard - WTC Controllers",
+        "width": 370,
+        "height": 210,
+        "wtc_flowchart_pdf_path": "manuals/wtc_flowchart.pdf",
+        "wtc_manual_pdf_path": "manuals/example_wtc_manual.pdf",
+        "wtc_advanced_manual_pdf_path": "manuals/wtc_advanced_manual.pdf",
+        "tasks": [
+          {
+            "WTC Error Codes": {
+              "task_type": "error_codes",
+              "button_text": "WTC Error Codes",
+              "title": "Troubleshooting-Wizard - WTC Controllers - Error Codes",
+              "width": 800,
+              "height": 650,
+              "pdf_path": "{{wtc_manual_pdf_path}}",
+              "image_path": "media/example_wtc_errors.png"
+            }
+          },
+          {
+            "WTC Flowchart": {
+              "task_type": "open_pdf",
+              "pdf_path": "{{wtc_flowchart_pdf_path}}"
+            }
+          },
+          {
+            "WTC Manual": {
+              "task_type": "open_pdf",
+              "pdf_path": "{{wtc_manual_pdf_path}}"
+            }
+          },
+          {
+            "WTC Advanced Manual": {
+              "task_type": "open_pdf",
+              "pdf_path": "{{wtc_advanced_manual_pdf_path}}"
+            }
+          }
+        ]
+      },
+      "Lenze": {
+        "button_text": "Lenze",
+        "title": "Troubleshooting-Wizard - Lenze",
+        "width": 370,
+        "height": 300,
+        "manual_8400_protec_highline_pdf_path": "manuals/Software__8400 protec HighLine__v5-0__EN.pdf",
+        "diagnostic_training_url_path": "https://en.wikipedia.org/wiki/Programmable_logic_controller",
+        "changing_8400_protec_highline_url_path": "https://en.wikipedia.org/wiki/Variable-frequency_drive",
+        "general_lenze_training_url_path": "https://www.google.com/search?q=Lenze+training+documentation",
+        "tasks": [
+          {
+            "Engineer Error Codes": {
+              "task_type": "error_codes",
+              "button_text": "Lenze Error Codes",
+              "title": "Troubleshooting-Wizard - Lenze - Error Codes",
+              "width": 800,
+              "height": 730,
+              "pdf_path": "{{manual_8400_protec_highline_pdf_path}}",
+              "url_wait_time": 6,
+              "image_path": "media/example_lenze_errors.png"
+            }
+          },
+          {
+            "LED status displays": {
+              "task_type": "open_pdf",
+              "pdf_path": "{{manual_8400_protec_highline_pdf_path}}",
+              "pdf_page_number": 591
+            }
+          },
+          {
+            "Diagnostic Training": {
+              "task_type": "open_url",
+              "url_path": "{{diagnostic_training_url_path}}"
+            }
+          },
+          {
+            "Changing Lenze Drive": {
+              "task_type": "open_url",
+              "url_path": "{{changing_8400_protec_highline_url_path}}"
+            }
+          },
+          {
+            "Training Docs": {
+              "task_type": "open_url",
+              "url_path": "{{general_lenze_training_url_path}}"
+            }
+          },
+          {
+            "8400 Protec HighLine Manual": {
+              "task_type": "open_pdf",
+              "pdf_path": "{{manual_8400_protec_highline_pdf_path}}"
+            }
+          }
+        ]
+      },
+      "FANUC": {
+        "button_text": "FANUC Robotics",
+        "title": "Troubleshooting-Wizard - FANUC Robotics",
+        "width": 370,
+        "height": 200,
+        "fanuc_error_manual_pdf_path": "manuals/example_fanuc_error_codes.pdf",
+        "tasks": [
+          {
+            "FANUC Error Codes": {
+              "task_type": "error_codes",
+              "title": "Troubleshooting-Wizard - FANUC Robotics - Alarm Codes",
+              "width": 800,
+              "height": 750,
+              "pdf_path": "{{fanuc_error_manual_pdf_path}}",
+              "image_path": "media/example_fanuc_alarms.png"
+            }
+          }
+        ]
+      },
+      "SEW": {
+        "button_text": "SEW Drive Systems",
+        "title": "Troubleshooting-Wizard - SEW Drive Systems",
+        "width": 370,
+        "height": 210,
+        "sew_manual_pdf_path": "manuals/sew_manual.pdf",
+        "tasks": [
+          {
+            "Error Codes - MoviPro": {
+              "task_type": "error_codes",
+              "button_text": "Error Codes - MoviPro",
+              "title": "Troubleshooting-Wizard - SEW Drive Systems - MoviPro Error Codes",
+              "width": 1000,
+              "height": 800,
+              "pdf_path": "{{sew_manual_pdf_path}}",
+              "image_path": "media/SEW_MoviPro_movitools_parameters.jpg"
+            }
+          },
+          {
+            "SEW Manual": {
+              "task_type": "open_pdf",
+              "pdf_path": "{{sew_manual_pdf_path}}"
+            }
+          }
+        ]
+      }
+    }
+  }
+}

@@ -1,82 +1,138 @@
-# Industrial Troubleshooting Application
+# Troubleshooting-Wizard
+
+[![CI Pipeline](https://github.com/KirilMT/Troubleshooting-Wizard/actions/workflows/ci.yml/badge.svg)](https://github.com/KirilMT/Troubleshooting-Wizard/actions/workflows/ci.yml)
+[![Code Quality](https://github.com/KirilMT/Troubleshooting-Wizard/actions/workflows/code-quality.yml/badge.svg)](https://github.com/KirilMT/Troubleshooting-Wizard/actions/workflows/code-quality.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Python 3.13+](https://img.shields.io/badge/python-3.13+-blue.svg)](https://www.python.org/downloads/)
 
 A Python-based GUI application for industrial equipment troubleshooting and error code management. This tool provides a centralized interface for accessing error codes, manuals, and troubleshooting resources for various manufacturing technologies.
 
-## Features
+## 🚀 Features
 
-- **Multi-Technology Support**: Configurable support for different industrial technologies (WTC, Lenze, FANUC, etc.)
-- **Error Code Search**: Interactive search functionality for error codes with PDF integration
+- **Multi-Technology Support**: Configurable support for different industrial technologies
+- **Error Code Search**: Interactive search functionality with PDF integration
 - **PDF Processing**: Extract and store error code tables from PDF manuals into SQLite database
 - **Intuitive GUI**: User-friendly tkinter interface with navigation and search capabilities
 - **Configuration-Driven**: JSON-based configuration for easy customization and maintenance
+- **Security**: Sensitive data is kept local and excluded from version control
 
-## Technologies Supported
+## 🛠️ Technologies Supported
 
 - WTC (Welding Technology Corporation) Controllers
 - Lenze Drive Systems
 - FANUC Robotics Systems
-- Atlas Copco Systems
-- Clinching Systems
-- Control Systems
-- Tightening Systems
-- Laser Systems
 - SEW Drive Systems
 - And more (easily extensible via configuration)
 
-## Installation
+## 🖼️ Screenshots
+
+### Main Application Flow
+
+| Technology Selection | Task Selection |
+| :---: | :---: |
+| *Select from various industrial technologies* | *Choose between error code search or manual access* |
+| ![Technologies](media/README_media/README_Technologies.png) | ![Tasks](media/README_media/README_Tasks.png) |
+
+### Error Code Search Options
+
+| PDF Error Codes | PDF Viewer | Database Error Codes |
+| :---: | :---: | :---: |
+| *Search error codes in PDF manuals* | *Interactive PDF viewing with search* | *Search SEW error codes from database* |
+| ![PDF Error Codes](media/README_media/README_ErrorCodes1.png) | ![PDF Viewer](media/README_media/README_ErrorCodes_PDFViewer.png) | ![DB Error Codes](media/README_media/README_ErrorCodes2.png) |
+
+## ⚙️ Setup and Installation
 
 ### Prerequisites
 
-- Python 3.7 or higher
-- Required Python packages (see requirements.txt)
+- Python 3.7+ (tested with Python 3.13)
+- pip (Python package installer)
+- Git
 
-### Setup
+### Installation Steps
 
-1. Clone or download this repository
-2. Install required dependencies:
+1. **Clone the repository:**
+   ```bash
+   git clone <repository-url>
+   cd <repository-folder>
+   ```
+
+2. **Create and activate a virtual environment:**
+   ```powershell
+   # Windows (PowerShell)
+   py -3 -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   ```
+   ```bash
+   # macOS/Linux
+   python3 -m venv .venv
+   source .venv/bin/activate
+   ```
+
+3. **Install dependencies:**
    ```bash
    pip install -r requirements.txt
    ```
-3. **Configure your application**:
-   - Copy `src/example_data.json` to `src/data.json`
-   - Update `src/data.json` with your specific file paths and URLs
-   - Replace example URLs with your actual document locations
-4. **Setup media files**:
-   - Replace placeholder files in `media/` with your actual error code screenshots
-   - Add additional images as needed for your equipment
-   - See `media/README.md` for detailed instructions
-5. Run the application:
+
+4. **Configure your application:**
    ```bash
-   python src/main.py
+   cp src/example_data.json src/data.json
    ```
+   Update `src/data.json` with your specific file paths and URLs. This file is ignored by Git.
 
-## Configuration
+5. **Set up media files:**
+   - Place error code screenshots, manuals, and diagrams in the `media/` directory
+   - Replace example files with actual content
+   - Update `data.json` to reference correct image file names
+   - Use descriptive names (e.g., `WTC_ErrorCodes_Screenshot.png`)
+   - Recommended formats: PNG (screenshots), JPG (photographs)
+   - Recommended size: 800x600 pixels or larger
 
-### Standard Configuration Approach
+## ▶️ Usage
 
-The application uses a dual-file configuration system designed for security and ease of use:
+### Running the Application
 
-#### Configuration Files:
-1. **`src/example_data.json`** (committed to repository)
-   - Template with example URLs and standardized structure
-   - Safe to commit to version control
-   - Used as fallback if `data.json` doesn't exist
-   - Contains generic `https://example.com/` URLs
+```bash
+python run.py
+```
 
-2. **`src/data.json`** (user-created, not committed)
-   - Copy from `example_data.json` and customize for your environment
-   - Contains actual URLs, file paths, and credentials
-   - Automatically ignored by git for security
+### Main Application Workflow
 
-#### Media Files:
-1. **Example files** (committed)
-   - `media/example_*.png` - Placeholder files showing structure
-   - Safe generic examples for demonstration
+1. Launch the application
+2. Select a technology from the main menu
+3. Choose from available tasks (search error codes, open manuals)
 
-2. **Your actual files** (not committed)
-   - Replace examples with real screenshots and diagrams
-   - Add new files as needed for your specific equipment
-   - Automatically ignored by git to protect corporate data
+### PDF Processing Tool
+
+Extract error code tables from PDF manuals:
+
+```bash
+python src/process_pdf.py --pdf-path "path/to/manual.pdf" --table-name "error_codes" --start-page 1 --end-page 10
+```
+
+**Parameters:**
+- `--pdf-path`: Full path to the PDF file
+- `--table-name`: Database table name for storing data
+- `--start-page`: First page to process
+- `--end-page`: Last page to process
+
+### SEW Error Code Extraction
+
+For SEW Drive System error codes, use the specialized mode:
+
+```bash
+python src/process_pdf.py --pdf-path <path_to_sew_pdf> --start-page <first_page> --end-page <last_page> --sew-mode
+```
+
+Results are stored in the `sew_error_codes` table in `src/errorCodesTechnologies.db`.
+
+## 🔧 Configuration
+
+### Configuration System
+
+The application uses a dual-file configuration system:
+
+1. **`src/example_data.json`** (Template, committed to repository)
+2. **`src/data.json`** (User configuration, automatically ignored by Git)
 
 ### Configuration Structure
 
@@ -101,10 +157,23 @@ The application uses a dual-file configuration system designed for security and 
 
 1. Add a new technology section in your `data.json`
 2. Define URL variables for your documents
-3. Create tasks with appropriate task types:
-   - `error_codes`: Interactive error code search with PDF automation
-   - `open_url`: Direct URL/file opening
+3. Create tasks with appropriate types: `error_codes` or `open_url`
 4. Add corresponding image files to the `media/` directory
+
+### Media Files Management
+
+**Example Files (Committed):**
+- `example_wtc_errors.png` - Placeholder for WTC controller error codes
+- `example_lenze_errors.png` - Placeholder for Lenze drive error codes
+- `example_fanuc_alarms.png` - Placeholder for FANUC robot alarm codes
+
+**Your Files (Not Committed):**
+- Screenshots of actual error code displays
+- System diagrams and flowcharts
+- Training documentation images
+- Corporate-specific visual content
+
+**Security Note:** Actual image files containing corporate-specific information are not committed to version control.
 
 ### Path Configuration
 
@@ -112,90 +181,154 @@ The application uses a dual-file configuration system designed for security and 
 - **Document URLs**: Use full URLs or local file paths
 - **Variable substitution**: Use `{{variable_name}}` syntax for URL variables
 
-## Usage
+## 📁 Project Structure
 
-### Main Application
+```
+Troubleshooting-Wizard/
+├── .github/                # GitHub workflows and AI instructions
+│   ├── workflows/          # CI/CD automation
+│   ├── AGENT.md            # Gemini Code Assist instructions
+│   └── copilot-instructions.md # GitHub Copilot instructions
+├── docs/                   # Documentation
+│   ├── CHANGELOG.md        # Version history
+│   ├── CONTRIBUTING.md     # Contribution guidelines
+│   └── GIT_WORKFLOW.md     # Git workflow guidelines
+├── scripts/                # Development automation tools
+│   ├── format_code.py      # Code quality checks
+│   ├── test_workflow.py    # Workflow validation
+│   └── release_manager.py  # Automated releases
+├── src/                    # Source code
+│   ├── main.py             # Main application class
+│   ├── database_manager.py # Database operations
+│   ├── ui_components.py    # UI styling and components
+│   └── pdf_viewer.py       # PDF viewing functionality
+├── tests/                  # Test suite
+│   ├── test_*.py           # Unit tests
+│   └── integration/        # Integration tests
+├── data/                   # Application data and configuration
+├── media/                  # Images and resources
+├── logs/                   # Application logs
+└── run.py                  # Application entry point
+```
 
-1. Launch the application: `python src/main.py`
-2. Select a technology from the main menu
-3. Choose from available tasks:
-   - **Error Codes**: Search for specific error codes in manuals
-   - **Manuals**: Open relevant documentation
-   - **Flowcharts**: Access troubleshooting flowcharts
+## 🧑‍💻 Development
 
-### PDF Processing Tool
+### Automated Development Workflow
 
-Process PDF manuals to extract error code tables:
+Set up the complete development environment:
 
 ```bash
-python src/process_pdf.py --pdf-path "path/to/manual.pdf" --table-name "error_codes" --start-page 1 --end-page 10
+# One-time setup for new developers
+python scripts/setup_environment.py
 ```
 
-**Parameters:**
-- `--pdf-path`: Full path to the PDF file
-- `--table-name`: Database table name for storing extracted data
-- `--start-page`: First page to process (1-based)
-- `--end-page`: Last page to process (1-based)
+Development commands:
 
-## Project Structure
+```bash
+# During development (fast code quality checks)
+python scripts/format_code.py
 
-```
-├── src/
-│   ├── main.py              # Main GUI application
-│   ├── process_pdf.py       # PDF processing utility
-│   ├── example_data.json    # Configuration template (committed)
-│   ├── data.json           # Local configuration (user-created, not committed)
-│   └── errorCodesTechnologies.db  # Generated database
-├── media/                  # Images and resources
-│   ├── README.md           # Media folder instructions
-│   ├── example_*.png       # Example placeholder images (committed)
-│   └── [your_files]        # Your actual images (not committed)
-├── build/                  # Build artifacts
-├── requirements.txt        # Python dependencies
-├── .gitignore             # Git ignore rules
-└── README.md              # This file
+# Before pushing (comprehensive validation)
+python scripts/test_workflow.py
+
+# For releases (automated version management)
+python scripts/release_manager.py patch --changes "Bug fixes and improvements"
 ```
 
-## Development
+### Code Quality Standards
 
-### Configuration Best Practices
+- **PEP 8 compliance**: 100-character line length standard
+- **Strict compliance** with Black, Flake8, and isort
+- **Zero warnings/errors** requirement
+- **Pre-commit hooks** for automatic quality enforcement
+- **Object-oriented programming** patterns
 
-1. **Never commit `src/data.json`** - Contains sensitive URLs and credentials
-2. **Never commit corporate media files** - Only example placeholders are committed
-3. **Update `src/example_data.json`** when adding new technologies or features
-4. **Use relative paths** for media files in configuration
-5. **Use example URLs** in `example_data.json` (like `https://example.com/path/to/file.pdf`)
+## 🧪 Testing
 
-### Security Features
+### Running Tests
 
-- **Automatic data protection**: Real configuration and media files are automatically ignored by git
-- **Template system**: Safe examples provided for structure reference
-- **Sensitive data isolation**: All corporate-specific content stays local
+Install development dependencies:
 
-### Code Style
+```bash
+pip install -e ".[dev]"
+```
 
-This project follows PEP 8 Python style guidelines and uses object-oriented programming patterns.
+Run the test suite:
 
-### AI Assistant Instructions
+```bash
+pytest
+```
 
-Project-specific instructions for GitHub Copilot and other AI assistants are located in `.github/copilot-instructions.md`.
+For detailed output with coverage:
 
-### Contributing
+```bash
+pytest -v --cov=src --cov-report=term-missing
+```
 
-1. Ensure all new code includes proper error handling
-2. Add docstrings for new classes and methods
-3. Update `example_data.json` when adding new features
-4. Test thoroughly across different environments
-5. Keep configuration examples generic and non-sensitive
+### Test Organization
 
-## Dependencies
+- **Unit Tests**: Located in `tests/` directory
+  - `test_core.py`: Core application functionality
+  - `test_main.py`: Main application class and UI components
+  - `conftest.py`: Common test fixtures and configurations
 
-See `requirements.txt` for the complete list of required packages.
+### Test Structure
 
-## License
+```
+tests/
+├── __init__.py         # Makes tests a Python package
+├── conftest.py         # Test fixtures and configuration
+├── test_*.py           # Unit tests
+└── integration/        # Integration tests
+    └── test_*.py
+```
 
-MIT License - Open source project for industrial troubleshooting applications.
+### Writing Tests
 
-## Support
+- Test files: `test_*.py`
+- Test functions: start with `test_`
+- Use fixtures from `tests/conftest.py`
+- Mock external dependencies using `unittest.mock`
+- Follow Arrange-Act-Assert pattern
+- Test both success and error cases
+
+### Test Coverage
+
+Generate HTML coverage report:
+
+```bash
+pytest --cov=src --cov-report=html
+```
+
+Open `htmlcov/index.html` to view the coverage report.
+
+**Current Coverage**: 21.24% with comprehensive test suite focusing on core application logic, UI component interactions, and error handling.
+
+## 📝 Logging
+
+The application includes a robust logging system:
+
+- **Log Files**: Automatically saved in the `logs/` directory
+- **Rotation**: New log file created daily, kept for 7 days
+- **Purpose**: Debugging and understanding application behavior
+
+## 🤝 Contributing
+
+We welcome contributions! Please see `docs/CONTRIBUTING.md` for detailed guidelines on:
+- Development workflow
+- Commit message standards
+- Review process
+
+Project-specific AI assistant instructions are in `.github/copilot-instructions.md`.
+
+## 📝 License
+
+This project is licensed under the MIT License. See the `LICENSE` file for details.
+
+## 💬 Support
 
 For issues or questions, please open an issue in the project repository.
+
+---
+
+**Version: 1.2.0** | **Last Updated: October 1, 2025**
